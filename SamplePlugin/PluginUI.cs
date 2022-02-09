@@ -1,6 +1,7 @@
 ﻿using ImGuiNET;
 using System;
 using System.Numerics;
+using Dalamud.Interface.Windowing;
 
 namespace Wordsmith
 {
@@ -11,6 +12,7 @@ namespace Wordsmith
         private Plugin Plugin;
         public Gui.ThesaurusUI Main;
         public static Gui.Alert? Alert;
+        public static readonly WindowSystem WindowSystem = new WindowSystem("Wordsmith");
 
         private bool settingsVisible = false;
         public bool SettingsVisible
@@ -24,7 +26,7 @@ namespace Wordsmith
         {
             this.Plugin = configuration;
             Main = new Gui.ThesaurusUI(Plugin);
-            Alert = new Gui.Alert(Plugin);
+            //Alert = new Gui.Alert(Plugin);
         }
 
         public void Dispose()
@@ -43,6 +45,11 @@ namespace Wordsmith
             Main.Draw();
             Alert?.Draw();
             DrawSettingsWindow();
+        }
+
+        public void ShowMain()
+        {
+            Main.IsOpen = true;
         }
         public void RaiseAlert(string alert) => Alert.AppendMessage(alert);
 

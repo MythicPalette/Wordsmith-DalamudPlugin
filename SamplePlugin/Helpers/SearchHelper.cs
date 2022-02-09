@@ -8,7 +8,7 @@ using HtmlAgilityPack;
 
 namespace Wordsmith.Helpers
 {
-    public class SearchHelper
+    public class SearchHelper : IDisposable
     {
         protected Plugin Plugin;
         public bool Loading { get; private set; } = false;
@@ -201,6 +201,11 @@ namespace Wordsmith.Helpers
             }
 
             Loading = false;
+        }
+
+        public void Dispose()
+        {
+            _client.Dispose();
         }
     }
 }

@@ -6,29 +6,44 @@ using System.Threading.Tasks;
 using System.Numerics;
 using ImGuiNET;
 using Wordsmith.Helpers;
+using Dalamud.Interface.Windowing;
 
 namespace Wordsmith.Gui
 {
-    public class ThesaurusUI : Window
+    public class ThesaurusUI : Window, IDisposable
     {
         protected string _search = "";
 
         protected SearchHelper SearchHelper;
 
-        public ThesaurusUI(Plugin plugin) : base(plugin)
+        public ThesaurusUI(Plugin plugin) : base($"{Plugin.AppName} - Thesaurus")
         {
             SearchHelper = new SearchHelper(plugin);
             _search = "";
-        }
-        protected override void DrawUI()
-        {
-            ImGui.SetNextWindowSize(new Vector2(375, 330), ImGuiCond.FirstUseEver);
-            ImGui.SetNextWindowSizeConstraints(new Vector2(375, 330), new Vector2(9999, 9999));
-            if (ImGui.Begin($"{Plugin.Name} - Thesaurus", ref this._visible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+
+            PluginUI.WindowSystem.AddWindow(this);
+            SizeConstraints = new WindowSizeConstraints()
             {
-                //DrawWordSearch();
-            }
-            ImGui.End();
+                MinimumSize = new(375, 330),
+                MaximumSize = new(float.MaxValue, float.MaxValue)
+            };
+
+            Flags |= ImGuiWindowFlags.NoScrollbar;
+            Flags |= ImGuiWindowFlags.NoScrollWithMouse;
+        }
+        public override void Draw()
+        {
+            if (!IsOpen) return;
+
+            DrawWordSearch();
+
+            //ImGui.SetNextWindowSize(new Vector2(375, 330), ImGuiCond.FirstUseEver);
+            //ImGui.SetNextWindowSizeConstraints(new Vector2(375, 330), new Vector2(9999, 9999));
+            //if (ImGui.Begin($"{Plugin.Name} - Thesaurus", ref this._visible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+            //{
+            //    DrawWordSearch();
+            //}
+            //ImGui.End();
         }
 
         protected void DrawWordSearch()
@@ -54,7 +69,7 @@ namespace Wordsmith.Gui
             }
             catch (Exception e)
             {
-                Plugin.PluginUi.RaiseAlert(e.Message);
+                //Plugin.PluginUi.RaiseAlert(e.Message);
             }
         }
 
@@ -173,6 +188,12 @@ namespace Wordsmith.Gui
                 }
                 ImGui.Unindent();
             }
+        }
+
+        public void Dispose()
+        {
+            SearchHelper.Dispose();
+            PluginUI.WindowSystem.RemoveWindow(this);
         }
     }
 }

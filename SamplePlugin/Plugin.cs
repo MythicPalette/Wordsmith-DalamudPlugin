@@ -8,8 +8,9 @@ namespace Wordsmith
 {
     public sealed class Plugin : IDalamudPlugin
     {
-        public string Name => "Wordsmith";
 
+        public static readonly string AppName = "Wordsmith";
+        public string Name => AppName;
         private const string commandName = "/wordsmith";
 
         public DalamudPluginInterface PluginInterface { get; init; }
@@ -17,7 +18,7 @@ namespace Wordsmith
         public Configuration Configuration { get; init; }
         public PluginUI PluginUi { get; init; }
 
-        public bool Debug = false;
+        public static bool Debug = false;
 
         public Plugin(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -52,7 +53,8 @@ namespace Wordsmith
         private void OnMainCommand(string command, string args)
         {
             // in response to the slash command, just display our main ui
-            this.PluginUi.Main.Visible = true;
+            //this.PluginUi.Main.Visible = true;
+            this.PluginUi.ShowMain();
         }
 
         private void DrawUI()
