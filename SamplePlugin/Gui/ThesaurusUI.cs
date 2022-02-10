@@ -1,27 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Numerics;
 using ImGuiNET;
 using Wordsmith.Helpers;
-using Dalamud.Interface.Windowing;
 
 namespace Wordsmith.Gui
 {
-    public class ThesaurusUI : Window, IDisposable
+    public class ThesaurusUI : WordsmithWindow
     {
         protected string _search = "";
+        protected string _query = "";
+        protected bool _searchFailed = false;
+        protected int _searchMinLength = 3;
 
         protected SearchHelper SearchHelper;
 
-        public ThesaurusUI(Plugin plugin) : base($"{Plugin.AppName} - Thesaurus")
+        public ThesaurusUI() : base($"{Wordsmith.AppName}##thesaurus")
         {
-            SearchHelper = new SearchHelper(plugin);
+            IsOpen = true;
+            SearchHelper = new SearchHelper();
             _search = "";
 
-            PluginUI.WindowSystem.AddWindow(this);
+            WordsmithUI.WindowSystem.AddWindow(this);
             SizeConstraints = new WindowSizeConstraints()
             {
                 MinimumSize = new(375, 330),
@@ -30,21 +29,45 @@ namespace Wordsmith.Gui
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
+            Flags |= ImGuiWindowFlags.MenuBar;
         }
         public override void Draw()
         {
             if (!IsOpen) return;
 
+            DrawMenu();
             DrawWordSearch();
-
-            //ImGui.SetNextWindowSize(new Vector2(375, 330), ImGuiCond.FirstUseEver);
-            //ImGui.SetNextWindowSizeConstraints(new Vector2(375, 330), new Vector2(9999, 9999));
-            //if (ImGui.Begin($"{Plugin.Name} - Thesaurus", ref this._visible, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
-            //{
-            //    DrawWordSearch();
-            //}
-            //ImGui.End();
         }
+
+        protected void DrawMenu()
+        {
+            try
+            {
+                // If we fail to create a menu bar, back out
+                if (ImGui.BeginMenuBar())
+                {
+                    if (ImGui.BeginMenu($"Character##{Wordsmith.AppName}CharacterMenu"))
+                    {
+                        if(ImGui.MenuItem($"New##{Wordsmith.AppName}NewCharacterMenuItem"))
+
+                        ImGui.EndMenu();
+                    }
+                    if (ImGui.MenuItem($"Settings##{Wordsmith.AppName}SettingsMenuItem"))
+                    {
+                        //Plugin.PluginUi.SettingsUI.IsOpen = !Plugin.PluginUi.SettingsUI.IsOpen;
+                        WordsmithUI.ShowSettings();
+                    }
+
+                    // Close the menu bar.
+                    ImGui.EndMenuBar();
+                }
+            }
+            catch(Exception ex)
+            {
+                Dalamud.Logging.PluginLog.Log(ex.Message);
+            }
+        }
+
 
         protected void DrawWordSearch()
         {
@@ -73,21 +96,15 @@ namespace Wordsmith.Gui
             }
         }
 
-        protected bool DoSearch()
+        protected bool ScheduleSearch()
         {
-            if (_search.ToLower().Trim() == "##debug##")
+            if (_search.Length >= _searchMinLength)
             {
-                Plugin.Debug = !Plugin.Debug;
+                //SearchHelper.SearchThesaurus(_search.Trim());
+                _query = _search;
                 _search = "";
                 return true;
             }
-            else if (_search.Length > 2)
-            {
-                SearchHelper.SearchThesaurus(_search.Trim());
-                _search = "";
-                return true;
-            }
-
             return false;
         }
         protected void DrawSearchBar()
@@ -100,18 +117,18 @@ namespace Wordsmith.Gui
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
 
-                bool SearchFail = false;
-                if (ImGui.InputTextWithHint("###ThesaurusSearchBar", (Plugin.Debug ? "Debugging..." : "Enter a word and hit enter to search..."), ref _search, 128, ImGuiInputTextFlags.EnterReturnsTrue))
-                    SearchFail = DoSearch();
+                if (ImGui.InputTextWithHint("###ThesaurusSearchBar", "Enter a word and hit enter to search...", ref _search, 128, ImGuiInputTextFlags.EnterReturnsTrue))
+                    _searchFailed = !ScheduleSearch();
 
                 ImGui.TableNextColumn();
                 if (ImGui.Button("Search", new Vector2(50, 20)))
-                    SearchFail = DoSearch();
-
-                if(SearchFail)
-                    ImGui.Text("Minimum of 2 letters required.");
+                    _searchFailed = !ScheduleSearch();
 
                 ImGui.EndTable();
+
+                if (_searchFailed)
+                    ImGui.TextColored(new(255, 0, 0, 255), $"Minimum of {_searchMinLength} letters required.");
+
                 ImGui.Separator();
             }            
         }
@@ -189,11 +206,25 @@ namespace Wordsmith.Gui
                 ImGui.Unindent();
             }
         }
-
-        public void Dispose()
+        public override void Update()
         {
+            base.Update();
+            if (!IsOpen)
+                Dispose();
+
+            // If not querying return.
+            if (_query == "" || _query == "##done##") return;
+            SearchHelper.SearchThesaurus(_query.Trim());
+            _query = "##done##";
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose();
             SearchHelper.Dispose();
-            PluginUI.WindowSystem.RemoveWindow(this);
+
+            // Remove the window from the window system.
+            WordsmithUI.WindowSystem.RemoveWindow(this);
         }
     }
 }

@@ -9,10 +9,8 @@ namespace Wordsmith
     {
         public int Version { get; set; } = 0;
 
-        public int SearchHistoryCount { get; set; } = 50;
+        public int SearchHistoryCount { get; set; } = 10;
         public bool ResearchToTop { get; set; } = true;
-
-        public bool AutomaticErrorReports { get; set; } = true;
 
         // the below exist just to make saving less cumbersome
 

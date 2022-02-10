@@ -10,8 +10,9 @@ namespace Wordsmith.Helpers
 {
     public class SearchHelper : IDisposable
     {
-        protected Plugin Plugin;
         public bool Loading { get; private set; } = false;
+        protected float _progress = 0.0f;
+        public float Progress => _progress;
 
         protected Data.WordSearchResult? _result;
         public Data.WordSearchResult? Result => _result;
@@ -20,11 +21,11 @@ namespace Wordsmith.Helpers
         protected void AddHistoryEntry(Data.WordSearchResult entry)
         {
             // Add the latest to the history
-            _history.Add(entry);
+            _history.Insert(0, entry);
 
             // If over allowed amount remove oldest.
-            if (_history.Count > Plugin.Configuration.SearchHistoryCount)
-                _history.Remove(_history.Last());
+            while (_history.Count >= Wordsmith.Configuration.SearchHistoryCount)
+                _history.RemoveAt(_history.Count - 1);
         }
 
         public void DeleteResult(Data.WordSearchResult? entry)
@@ -42,10 +43,9 @@ namespace Wordsmith.Helpers
 
         protected HttpClient _client;
 
-        public SearchHelper(Plugin plugin)
+        public SearchHelper()
         {
             _client = new HttpClient();
-            Plugin = plugin;
         }
 
         protected int InHistory(string query)
@@ -61,8 +61,9 @@ namespace Wordsmith.Helpers
         {
             try
             {
+                _progress = 0f;
                 // If searching the same thing twice, return
-                if (_result?.Query.ToLower() == query.ToLower())
+                if (Result?.Query.ToLower() == query.ToLower())
                     return;
 
                 // Check if current query is in the history
@@ -73,14 +74,14 @@ namespace Wordsmith.Helpers
                 {
 
                     // If the user doesn't want to move results to the top return
-                    if (!Plugin.Configuration.ResearchToTop)
+                    if (!Wordsmith.Configuration.ResearchToTop)
                         return;
 
                     // If the last search was not null or an error
-                    if (_result != null && !_result.SearchError)
+                    if (Result != null && !Result.SearchError)
                     {
                         // Move the last search to the history
-                        _history.Insert(0, _result);
+                        AddHistoryEntry(Result);
 
                         // Move the returned index down by one.
                         ++idx;
@@ -94,16 +95,18 @@ namespace Wordsmith.Helpers
             }
             catch (Exception ex)
             {
-                PluginUI.Alert?.AppendMessage(ex.Message);
+                Dalamud.Logging.PluginLog.LogError(ex.Message);
             }
+
             Loading = true;
-            if (_result != null && !_result.SearchError)
-                _history.Insert(0, _result);
+            if (Result != null && !Result.SearchError)
+                AddHistoryEntry(Result);
 
             try
             {
                 // Get the HTMl as a string
                 var html = await _client.GetStringAsync("https://www.merriam-webster.com/thesaurus/" + query);
+                _progress = 0.1f;
 
                 // Convert it to a document.
                 HtmlDocument doc = new HtmlDocument();
@@ -124,10 +127,10 @@ namespace Wordsmith.Helpers
                 // Get the thesaurus entries
                 List<HtmlNode> entrynodes = doc.DocumentNode.SelectNodes("//div[@class='thesaurus-entry']").ToList();
 
-                PluginUI.Alert?.NewMessage($"{variants.Count}|{entrynodes.Count}");
                 for (int i = 0; i < variants.Count; ++i)
                 {
-                    PluginUI.Alert?.AppendMessage($"Attempting variant {i}");
+                    _progress += (0.91f / (float)variants.Count);
+
                     Data.ThesaurusEntry tEntry = new Data.ThesaurusEntry();
 
                     tEntry.Word = query;
@@ -141,13 +144,11 @@ namespace Wordsmith.Helpers
                         string[] asin = entrynodes[i].SelectSingleNode(".//span[@class='dt ']").SelectNodes(".//em").ToList().Select(n => n.InnerText).ToArray();
                         tEntry.Definition += $" {string.Join(", ", asin)}.";
                     }
-                    PluginUI.Alert?.AppendMessage($"Done with definition {{{tEntry.Definition}}}");
 
                     // Get the synonym list
                     HtmlNode worker = entrynodes[i].SelectSingleNode(".//span[@class='thes-list syn-list']");
                     if (worker != null)
                         tEntry.AddSynonyms(worker.SelectNodes(".//a").Select(n => n.InnerText).ToArray());
-                    PluginUI.Alert?.AppendMessage($"Done with synonyms {{{tEntry.SynonymString}}}");
 
                     // Get the related words list
                     worker = entrynodes[i].SelectSingleNode(".//span[@class='thes-list rel-list']");
@@ -160,7 +161,6 @@ namespace Wordsmith.Helpers
                         if (worker != null)
                             tEntry.AddSynonyms(worker.SelectNodes(".//a").Select(n => n.InnerText).ToArray());
                     }
-                    PluginUI.Alert?.AppendMessage($"Done with related words {{{tEntry.RelatedString}}}");
 
                     // Get the near antonyms list
                     worker = entrynodes[i].SelectSingleNode(".//span[@class='thes-list near-list']");
@@ -173,7 +173,6 @@ namespace Wordsmith.Helpers
                         if (worker != null)
                             tEntry.AddNearAntonyms(worker.SelectNodes(".//a").Select(n => n.InnerText).ToArray());
                     }
-                    PluginUI.Alert?.AppendMessage($"Done with near antonyms {{{tEntry.NearAntonymString}}}");
 
                     // Get the antonyms list
                     worker = entrynodes[i].SelectSingleNode(".//span[@class='thes-list ant-list']");
@@ -182,10 +181,9 @@ namespace Wordsmith.Helpers
                             worker.SelectNodes(".//a")?.Select(n => n.InnerText).ToArray() ??
                             worker.SelectSingleNode(".//ul[@class='mw-list']").SelectNodes(".//span").Select(n => n.InnerText).ToArray());
 
-                    PluginUI.Alert?.AppendMessage($"Done with antonyms {{{tEntry.AntonymString}}}");
 
                     // This is a comment that shows the debug window
-                    PluginUI.Alert?.AppendMessage($"{tEntry.Type}\n{tEntry.Definition}\n\nSynonyms:\n{tEntry.SynonymString}\n\nRelated Words:\n{tEntry.RelatedString}\n\nNear Antonyms:\n{tEntry.NearAntonymString}\n\nAntonyms:\n{tEntry.AntonymString}");
+                    Dalamud.Logging.PluginLog.Log($"{query}##{result.ID}",$"{tEntry.Type} - {tEntry.Definition} - Synonyms: - {tEntry.SynonymString}--Related Words:-{tEntry.RelatedString}--Near Antonyms:-{tEntry.NearAntonymString}--Antonyms:-{tEntry.AntonymString}");
                     result.AddEntry(tEntry);
 
                     _result = result;
