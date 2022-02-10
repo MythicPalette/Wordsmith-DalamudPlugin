@@ -12,6 +12,8 @@ namespace Wordsmith
         public int SearchHistoryCount { get; set; } = 10;
         public bool ResearchToTop { get; set; } = true;
 
+        public bool DeleteClosedScratchPads { get; set; } = false;
+
         // the below exist just to make saving less cumbersome
 
         [NonSerialized]

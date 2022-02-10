@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Linq;
 using System.Numerics;
 using ImGuiNET;
+using Dalamud.Interface.Windowing;
 using Wordsmith.Helpers;
 
 namespace Wordsmith.Gui
 {
-    public class ThesaurusUI : WordsmithWindow
+    public class ThesaurusUI : Window
     {
         protected string _search = "";
         protected string _query = "";
@@ -14,7 +16,7 @@ namespace Wordsmith.Gui
 
         protected SearchHelper SearchHelper;
 
-        public ThesaurusUI() : base($"{Wordsmith.AppName}##thesaurus")
+        public ThesaurusUI() : base($"{Wordsmith.AppName} - Thesaurus")
         {
             IsOpen = true;
             SearchHelper = new SearchHelper();
@@ -46,9 +48,23 @@ namespace Wordsmith.Gui
                 // If we fail to create a menu bar, back out
                 if (ImGui.BeginMenuBar())
                 {
-                    if (ImGui.BeginMenu($"Character##{Wordsmith.AppName}CharacterMenu"))
+                    if (ImGui.BeginMenu("Scratch Pads##ScratchPadMenu"))
                     {
-                        if(ImGui.MenuItem($"New##{Wordsmith.AppName}NewCharacterMenuItem"))
+                        // New scratchpad button.
+                        if (ImGui.MenuItem($"New Scratch Pad##NewScratchPadMenuItem"))
+                            WordsmithUI.ShowScratchPad(-1); // -1 id always creates a new scratch pad.
+
+                        foreach (ScratchPadUI w in WordsmithUI.Windows.Where(x => x.GetType() == typeof(ScratchPadUI)).ToArray())
+                        {
+                            if (w.GetType() != typeof(ScratchPadUI))
+                            {
+                                Dalamud.Logging.PluginLog.Log("Wrong window type");
+                                continue;
+                            }
+
+                            if (ImGui.MenuItem($"{w.WindowName}"))
+                                WordsmithUI.ShowScratchPad(w.ID);
+                        }
 
                         ImGui.EndMenu();
                     }
@@ -67,7 +83,6 @@ namespace Wordsmith.Gui
                 Dalamud.Logging.PluginLog.Log(ex.Message);
             }
         }
-
 
         protected void DrawWordSearch()
         {
@@ -209,8 +224,6 @@ namespace Wordsmith.Gui
         public override void Update()
         {
             base.Update();
-            if (!IsOpen)
-                Dispose();
 
             // If not querying return.
             if (_query == "" || _query == "##done##") return;
@@ -218,13 +231,12 @@ namespace Wordsmith.Gui
             _query = "##done##";
         }
 
-        public override void Dispose()
-        {
-            base.Dispose();
-            SearchHelper.Dispose();
+        //public void Dispose()
+        //{
+        //    SearchHelper.Dispose();
 
-            // Remove the window from the window system.
-            WordsmithUI.WindowSystem.RemoveWindow(this);
-        }
+        //    // Remove the window from the window system.
+        //    WordsmithUI.WindowSystem.RemoveWindow(this);
+        //}
     }
 }
