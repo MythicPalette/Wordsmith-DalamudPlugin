@@ -367,6 +367,10 @@ namespace Wordsmith.Gui
             _error = "";
             _notice = "";
 
+            // Don't spell check an empty input.
+            if (_scratch.Length == 0)
+                return;
+
             _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch));
             if (_corrections.Count > 0)
                 _error = $"Found {_corrections.Count} spelling errors.";
@@ -437,6 +441,19 @@ namespace Wordsmith.Gui
             base.Update();
 
             PadState newState = GetState();
+
+            // If automatically replacying double spaces
+            if (Wordsmith.Configuration.ReplaceDoubleSpaces)
+            {
+                do
+                {
+                    // Replace double spaces.
+                    _scratch = _scratch.Replace("  ", " ");
+
+                    // Loop until there are no more double spaces. We loop because
+                    // three or more spaces in a row could end up still getting through.
+                } while (_scratch.Contains("  "));
+            }
 
             if (_overrideRefresh)
             {

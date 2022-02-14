@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company></Company>
-    <Version>0.1.5</Version>
+    <Version>0.1.6</Version>
     <Description>A roleplay assistant.</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="..\wordsmith_icon.png" Link="images\icon.png" CopyToOutputDirectory="Always"/>
+    <Content Include="..\wordsmith_icon.png" Link="images\icon.png" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 

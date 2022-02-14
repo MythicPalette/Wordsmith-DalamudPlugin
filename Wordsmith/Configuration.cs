@@ -48,6 +48,11 @@ namespace Wordsmith
         /// </summary>
         public int ScratchPadTextEnterBehavior { get; set; } = 0;
 
+        /// <summary>
+        /// Automatically replace double spaces in the text.
+        /// </summary>
+        public bool ReplaceDoubleSpaces { get; set; } = true;
+
         // Spell Check settings.
         /// <summary>
         /// Holds the dictionary of words added by the user.

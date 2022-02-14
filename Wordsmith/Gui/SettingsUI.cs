@@ -18,6 +18,7 @@ namespace Wordsmith.Gui
         private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
         private bool _onSentence = Wordsmith.Configuration.BreakOnSentence;
         private bool _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
+        private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
         private int _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
         // Dictionary Settings
@@ -104,6 +105,7 @@ namespace Wordsmith.Gui
                     ImGui.Checkbox("Show text in chunks##SettingsUICheckbox", ref _showChunks);
                     ImGui.Checkbox("Split text at period/questionmark/exclamation mark##SettingsUICheckbox", ref _onSentence);
                     ImGui.Checkbox("Automatically clear Scratch Pad text after copying last chunk.", ref _autoClear);
+                    ImGui.Checkbox("Autmatically fix multiple spaces in text.", ref _fixDoubleSpace);
                     ImGui.Combo("Enter Key Behavior", ref _scratchEnter, new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
                     ImGui.EndChild();
                 }
@@ -201,9 +203,12 @@ namespace Wordsmith.Gui
             _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
             _showChunks = Wordsmith.Configuration.ShowTextInChunks;
             _onSentence = Wordsmith.Configuration.BreakOnSentence;
+            _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
+            _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
+            _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
-            // Dictionary Settings
-            _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
+        // Dictionary Settings
+        _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
         }
 
         private void Save()
@@ -230,6 +235,9 @@ namespace Wordsmith.Gui
 
             if (_autoClear != Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
                 Wordsmith.Configuration.AutomaticallyClearAfterLastCopy = _autoClear;
+
+            if (_fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)
+                Wordsmith.Configuration.ReplaceDoubleSpaces = _fixDoubleSpace;
 
             if (_scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
                 Wordsmith.Configuration.ScratchPadTextEnterBehavior = _scratchEnter;
