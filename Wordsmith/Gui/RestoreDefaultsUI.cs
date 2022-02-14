@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
@@ -14,7 +15,7 @@ namespace Wordsmith.Gui
         {
             WordsmithUI.WindowSystem.AddWindow(this);
             IsOpen = true;
-            Size = new(300, 170);
+            Size = ImGuiHelpers.ScaledVector2(300, 170);
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
             Flags |= ImGuiWindowFlags.NoResize;
@@ -25,7 +26,7 @@ namespace Wordsmith.Gui
             ImGui.TextWrapped("Restoring defaults resets all settings to their original values (not including words added to your dictionary).");
             ImGui.Text("Proceed?");
 
-            if (ImGui.Button("Yes##RestoreDefaultSettingsConfirmedButton", new(120, 20)))
+            if (ImGui.Button("Yes##RestoreDefaultSettingsConfirmedButton", ImGuiHelpers.ScaledVector2(120, 20)))
             {
                 // Thesaurus settings.
                 Wordsmith.Configuration.SearchHistoryCount = 10;
@@ -47,7 +48,7 @@ namespace Wordsmith.Gui
             }
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel##RestoreDefaultSettingsAbortedButton", new(120, 20)))
+            if (ImGui.Button("Cancel##RestoreDefaultSettingsAbortedButton", ImGuiHelpers.ScaledVector2(120, 20)))
                 IsOpen = false;
         }
     }

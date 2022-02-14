@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Numerics;
 using ImGuiNET;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Helpers;
 
@@ -28,8 +29,8 @@ namespace Wordsmith.Gui
             WordsmithUI.WindowSystem.AddWindow(this);
             SizeConstraints = new WindowSizeConstraints()
             {
-                MinimumSize = new(375, 330),
-                MaximumSize = new(float.MaxValue, float.MaxValue)
+                MinimumSize = ImGuiHelpers.ScaledVector2(375, 330),
+                MaximumSize = ImGuiHelpers.ScaledVector2(float.MaxValue, float.MaxValue)
             };
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -147,7 +148,7 @@ namespace Wordsmith.Gui
             if (ImGui.BeginTable("SearchZoneTable", 2))
             {
                 ImGui.TableSetupColumn("SearchTextBarColumn");
-                ImGui.TableSetupColumn("SearchTextButtonColumn", ImGuiTableColumnFlags.WidthFixed, 50);
+                ImGui.TableSetupColumn("SearchTextButtonColumn", ImGuiTableColumnFlags.WidthFixed, 50 * ImGuiHelpers.GlobalScale);
 
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
@@ -156,7 +157,7 @@ namespace Wordsmith.Gui
                     _searchFailed = !ScheduleSearch();
 
                 ImGui.TableNextColumn();
-                if (ImGui.Button("Search", new Vector2(50, 20)))
+                if (ImGui.Button("Search", ImGuiHelpers.ScaledVector2(50, 20)))
                     _searchFailed = !ScheduleSearch();
 
                 ImGui.EndTable();
@@ -195,7 +196,7 @@ namespace Wordsmith.Gui
                     foreach (Data.ThesaurusEntry entry in result?.Entries ?? Array.Empty<Data.ThesaurusEntry>())
                         DrawEntry(entry);
 
-                    if (ImGui.Button(" Delete Result ", new Vector2(-1, 20)))
+                    if (ImGui.Button(" Delete Result ", ImGuiHelpers.ScaledVector2(-1, 20)))
                         SearchHelper.DeleteResult(result);
                     
                     ImGui.Unindent();

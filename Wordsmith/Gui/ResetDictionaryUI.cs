@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface;
 using ImGuiNET;
 
 namespace Wordsmith.Gui
@@ -14,7 +15,7 @@ namespace Wordsmith.Gui
         {
             WordsmithUI.WindowSystem.AddWindow(this);
             IsOpen = true;
-            Size = new(300, 150);
+            Size = ImGuiHelpers.ScaledVector2(300, 150);
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
             Flags |= ImGuiWindowFlags.NoResize;
@@ -25,7 +26,7 @@ namespace Wordsmith.Gui
             ImGui.TextWrapped("This will delete all entries that you added to the dictionary. This cannot be undone.");
             ImGui.Text("Proceed?");
 
-            if (ImGui.Button("Yes##RestoreDefaultSettingsConfirmedButton", new(120, 20)))
+            if (ImGui.Button("Yes##RestoreDefaultSettingsConfirmedButton", ImGuiHelpers.ScaledVector2(120, 20)))
             {
                 // Thesaurus settings.
                 Wordsmith.Configuration.CustomDictionaryEntries = new();
@@ -33,7 +34,7 @@ namespace Wordsmith.Gui
             }
 
             ImGui.SameLine();
-            if (ImGui.Button("Cancel##RestoreDefaultSettingsAbortedButton", new(120, 20)))
+            if (ImGui.Button("Cancel##RestoreDefaultSettingsAbortedButton", ImGuiHelpers.ScaledVector2(120, 20)))
                 IsOpen = false;
         }
     }

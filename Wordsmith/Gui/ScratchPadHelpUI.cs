@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
@@ -16,8 +17,8 @@ namespace Wordsmith.Gui
             WordsmithUI.WindowSystem.AddWindow(this);
             SizeConstraints = new()
             {
-                MinimumSize = new(300, 450),
-                MaximumSize = new(float.MaxValue, float.MaxValue)
+                MinimumSize = ImGuiHelpers.ScaledVector2(300, 450),
+                MaximumSize = ImGuiHelpers.ScaledVector2(float.MaxValue, float.MaxValue)
             };
 
             Flags |= ImGuiWindowFlags.NoScrollbar;

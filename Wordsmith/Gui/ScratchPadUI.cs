@@ -8,6 +8,7 @@ using ImGuiNET;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
 using System.Numerics;
+using Dalamud.Interface;
 
 namespace Wordsmith.Gui
 {
@@ -89,8 +90,8 @@ namespace Wordsmith.Gui
             WordsmithUI.WindowSystem.AddWindow(this);
             SizeConstraints = new()
             {
-                MinimumSize = new(400, 300),
-                MaximumSize = new(float.MaxValue, float.MaxValue)
+                MinimumSize = ImGuiHelpers.ScaledVector2(400, 300),
+                MaximumSize = ImGuiHelpers.ScaledVector2(float.MaxValue, float.MaxValue)
             };
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -197,13 +198,13 @@ namespace Wordsmith.Gui
                 
                 if (_chatType == 8)
                 {
-                    ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 120);
+                    ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 120 * ImGuiHelpers.GlobalScale);
                     ImGui.TableSetupColumn($"ScratchPad{ID}TellTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2);
                 }
                 else
                     ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 60);
-                ImGui.TableSetupColumn($"Scratchpad{ID}HelpButtonColumn", ImGuiTableColumnFlags.WidthFixed, 25);
+                ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 60 * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn($"Scratchpad{ID}HelpButtonColumn", ImGuiTableColumnFlags.WidthFixed, 25 * ImGuiHelpers.GlobalScale);
 
 
                 //ImGui.SetNextItemWidth((_chatType != 8 ? ImGui.GetWindowWidth() - 120 : 100));
@@ -225,7 +226,7 @@ namespace Wordsmith.Gui
 
                 //ImGui.SameLine();
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"?##ScratchPad{ID}HelpButton", new(20, 20)))
+                if (ImGui.Button($"?##ScratchPad{ID}HelpButton", ImGuiHelpers.ScaledVector2(20, 20)))
                     WordsmithUI.ShowScratchPadHelp();
 
                 ImGui.EndTable();
@@ -241,7 +242,7 @@ namespace Wordsmith.Gui
             if (_corrections.Count > 0)
                 FooterHeight += 25;
 
-            if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - FooterHeight)))
+            if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", ImGuiHelpers.ScaledVector2(-1, (Size?.X ?? 25) - FooterHeight)))
             {
                 ImGui.SetNextItemWidth(-1);
                 if (Wordsmith.Configuration.ShowTextInChunks)
@@ -271,10 +272,10 @@ namespace Wordsmith.Gui
                 if (ImGui.BeginTable($"{ID}WordCorrectionTable", 4))
                 {
 
-                    ImGui.TableSetupColumn($"{ID}MisspelledWordColumn", ImGuiTableColumnFlags.WidthFixed, len + 5);
+                    ImGui.TableSetupColumn($"{ID}MisspelledWordColumn", ImGuiTableColumnFlags.WidthFixed, (len + 5) * ImGuiHelpers.GlobalScale);
                     ImGui.TableSetupColumn($"{ID}ReplacementTextInputColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                    ImGui.TableSetupColumn($"{ID}ReplaceTextButtonColumn", ImGuiTableColumnFlags.WidthFixed, 50);
-                    ImGui.TableSetupColumn($"{ID}AddToDictionaryButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100);
+                    ImGui.TableSetupColumn($"{ID}ReplaceTextButtonColumn", ImGuiTableColumnFlags.WidthFixed, 50 * ImGuiHelpers.GlobalScale);
+                    ImGui.TableSetupColumn($"{ID}AddToDictionaryButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale);
 
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1);
@@ -282,7 +283,7 @@ namespace Wordsmith.Gui
 
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1);
-                    ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - len - 200);
+                    ImGui.SetNextItemWidth((ImGui.GetWindowWidth() - len - 200) * ImGuiHelpers.GlobalScale);
                     if (ImGui.InputTextWithHint("##ScratchPad{ID}ReplaceTextTextbox", "Replace with...", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
                         OnReplace();
 
@@ -318,22 +319,22 @@ namespace Wordsmith.Gui
                 ImGui.TableSetupColumn($"{ID}FooterSpellCheckButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
 
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Copy{(_chatType > 0 ? $" with {_chatHeaders[_chatType]}" : "")}{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", new(-1, 20)))
+                if (ImGui.Button($"Copy{(_chatType > 0 ? $" with {_chatHeaders[_chatType]}" : "")}{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", ImGuiHelpers.ScaledVector2(-1, 20)))
                     DoCopyToClipboard();
 
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Clear", new(-1, 20)))
+                if (ImGui.Button($"Clear", ImGuiHelpers.ScaledVector2(-1, 20)))
                     _scratch = "";
 
                 // Spell Check button.
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Spell Check", new(-1, 20)))
+                if (ImGui.Button($"Spell Check", ImGuiHelpers.ScaledVector2(-1, 20)))
                     DoSpellCheck();
 
                 ImGui.EndTable();
             }
 
-            if (ImGui.Button($"Delete Pad", new(-1, 20)))
+            if (ImGui.Button($"Delete Pad", ImGuiHelpers.ScaledVector2(-1, 20)))
             {
                 this.IsOpen = false;
                 WordsmithUI.RemoveWindow(this);
@@ -372,6 +373,7 @@ namespace Wordsmith.Gui
             else
                 _notice = "No spelling errors found.";
         }
+
         /// <summary>
         /// Replaces spelling errors with the given text or ignores an error if _replaceText is blank
         /// </summary>

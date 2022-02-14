@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
@@ -39,8 +40,8 @@ namespace Wordsmith.Gui
             //Size = new(375, 350);
             SizeConstraints = new WindowSizeConstraints()
             {
-                MinimumSize = new(400, 375),
-                MaximumSize = new(400, float.MaxValue)
+                MinimumSize = ImGuiHelpers.ScaledVector2(400, 375),
+                MaximumSize = ImGuiHelpers.ScaledVector2(400, float.MaxValue)
             };
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -67,7 +68,7 @@ namespace Wordsmith.Gui
             {
                 if (ImGui.BeginTabItem("Thesaurus##SettingsUITabItem"))
                 {
-                    if (ImGui.BeginChild("ThesaurusSettingsChildFrame", new(-1, ImGui.GetWindowSize().Y - bottomButtonsGap)))
+                    if (ImGui.BeginChild("ThesaurusSettingsChildFrame", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - bottomButtonsGap)))
                     {
                         //Search history count
                         //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
@@ -111,13 +112,13 @@ namespace Wordsmith.Gui
                         if(ImGui.BeginTable($"CustomDictionaryEntriesTable", 2, ImGuiTableFlags.BordersH))
                         {
                             ImGui.TableSetupColumn("CustomDictionaryWordColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                            ImGui.TableSetupColumn("CustomDictionaryDeleteColumn", ImGuiTableColumnFlags.WidthFixed, 60);
+                            ImGui.TableSetupColumn("CustomDictionaryDeleteColumn", ImGuiTableColumnFlags.WidthFixed, 60 * ImGuiHelpers.GlobalScale);
 
                             ImGui.TableNextColumn();
                             ImGui.Text("Custom dictionary entries (Deleting is permanent.)");
 
                             ImGui.TableNextColumn();
-                            if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", new(-1, 20)))
+                            if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, 20)))
                                 WordsmithUI.ShowResetDictionary();
 
                             for (int i=0; i<Wordsmith.Configuration.CustomDictionaryEntries.Count; ++i)
@@ -126,7 +127,7 @@ namespace Wordsmith.Gui
                                 ImGui.Text(Wordsmith.Configuration.CustomDictionaryEntries[i]);
 
                                 ImGui.TableNextColumn();
-                                if(ImGui.Button($"Delete##CustomDictionaryDelete{i}Buttom", new(-1, 20)))
+                                if(ImGui.Button($"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2(-1, 20)))
                                 {
                                     Wordsmith.Configuration.CustomDictionaryEntries.RemoveAt(i);
                                     Wordsmith.Configuration.Save();
@@ -144,26 +145,26 @@ namespace Wordsmith.Gui
             if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 4))
             {
                 ImGui.TableSetupColumn("SettingsUITableSpacerColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn("SettingsUISaveAndCloseButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100);
-                ImGui.TableSetupColumn("SettingsUIDefaultsButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100);
-                ImGui.TableSetupColumn("SettingsUICancelButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100);
+                ImGui.TableSetupColumn("SettingsUISaveAndCloseButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("SettingsUIDefaultsButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("SettingsUICancelButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale);
 
                 // Leave the first column blank for spacing.
                 ImGui.TableNextColumn();
 
                 ImGui.TableNextColumn();
                 // Save and close buttons
-                if (ImGui.Button("Save And Close", new(-1, 20)))
+                if (ImGui.Button("Save And Close", ImGuiHelpers.ScaledVector2(-1, 20)))
                     Save();
 
                 ImGui.TableNextColumn();
                 // Reset settings to default.
-                if (ImGui.Button("Restore Defaults", new(-1, 20)))
+                if (ImGui.Button("Restore Defaults", ImGuiHelpers.ScaledVector2(-1, 20)))
                     WordsmithUI.ShowRestoreSettings();
 
                 ImGui.TableNextColumn();
                 // Cancel button
-                if (ImGui.Button("Cancel", new(-1, 20)))
+                if (ImGui.Button("Cancel", ImGuiHelpers.ScaledVector2(-1, 20)))
                     IsOpen = false;
 
                 ImGui.EndTable();
