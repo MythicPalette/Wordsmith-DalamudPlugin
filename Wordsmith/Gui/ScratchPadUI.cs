@@ -1,13 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Runtime.InteropServices;
 using ImGuiNET;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
-using System.Numerics;
 using Dalamud.Interface;
 
 namespace Wordsmith.Gui
@@ -238,7 +232,7 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void DrawTextEntry()
         {
-            int FooterHeight = 100;
+            int FooterHeight = 110;
             if (_corrections.Count > 0)
                 FooterHeight += 25;
 
@@ -262,6 +256,9 @@ namespace Wordsmith.Gui
             }
         }
         
+        /// <summary>
+        /// Draws the word replacement section if there are known spelling errors.
+        /// </summary>
         protected void DrawWordReplacement()
         {
             if (_corrections.Count > 0)
@@ -307,6 +304,7 @@ namespace Wordsmith.Gui
                 }
             }
         }
+
         /// <summary>
         /// Draws the buttons at the foot of the window.
         /// </summary>
@@ -361,7 +359,9 @@ namespace Wordsmith.Gui
                 _scratch = "";
         }
 
-
+        /// <summary>
+        /// Clears out any error messages or notices and runs the spell checker.
+        /// </summary>
         protected void DoSpellCheck()
         {
             _error = "";

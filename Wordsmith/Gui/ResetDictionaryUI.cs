@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dalamud.Interface.Windowing;
+﻿using Dalamud.Interface.Windowing;
 using Dalamud.Interface;
 using ImGuiNET;
 
@@ -15,7 +10,7 @@ namespace Wordsmith.Gui
         {
             WordsmithUI.WindowSystem.AddWindow(this);
             IsOpen = true;
-            Size = ImGuiHelpers.ScaledVector2(300, 150);
+            Size = ImGuiHelpers.ScaledVector2(300, 160);
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
             Flags |= ImGuiWindowFlags.NoResize;

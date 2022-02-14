@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dalamud.Interface;
+﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
@@ -11,6 +6,7 @@ namespace Wordsmith.Gui
 {
     public class SettingsUI : Window
     {
+        private const int FOOTER_HEIGHT = 75;
 
         // Thesaurus settings.
         private int _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
@@ -41,7 +37,7 @@ namespace Wordsmith.Gui
             SizeConstraints = new WindowSizeConstraints()
             {
                 MinimumSize = ImGuiHelpers.ScaledVector2(400, 375),
-                MaximumSize = ImGuiHelpers.ScaledVector2(400, float.MaxValue)
+                MaximumSize = ImGuiHelpers.ScaledVector2(float.MaxValue, float.MaxValue)
             };
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -62,86 +58,103 @@ namespace Wordsmith.Gui
             // If not open, exit.
             if (!IsOpen) return;
 
-
-            int bottomButtonsGap = 95;
             if (ImGui.BeginTabBar("SettingsUITabBar"))
             {
-                if (ImGui.BeginTabItem("Thesaurus##SettingsUITabItem"))
-                {
-                    if (ImGui.BeginChild("ThesaurusSettingsChildFrame", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - bottomButtonsGap)))
-                    {
-                        //Search history count
-                        //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
-                        ImGui.InputInt("Search History Size", ref _searchHistoryCountChange, 1, 5);
-                        if (_searchHistoryCountChange < 1)
-                            _searchHistoryCountChange = 1;
-                        if (_searchHistoryCountChange > 50)
-                            _searchHistoryCountChange = 50;
-
-                        //Re-search to top
-                        ImGui.Checkbox("Move repeated search to top of history.", ref _researchToTopChange);
-
-                        ImGui.EndChild();
-                    }
-                    ImGui.EndTabItem();
-                }
-
-                if (ImGui.BeginTabItem("Scratch Pad##SettingsUITabItem"))
-                {
-                    if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", new(-1, ImGui.GetWindowSize().Y - bottomButtonsGap)))
-                    {
-                        ImGui.Checkbox("Auto-delete Scratch Pads on close##SettingsUICheckbox", ref _deleteClosed);
-                        ImGui.Checkbox("Don't spell check words that end with a hyphen##SettingsUICheckbox", ref _ignoreHypen);
-                        ImGui.Checkbox("Show text in chunks##SettingsUICheckbox", ref _showChunks);
-                        ImGui.Checkbox("Split text at period/questionmark/exclamation mark##SettingsUICheckbox", ref _onSentence);
-                        ImGui.Checkbox("Automatically clear Scratch Pad text after copying last chunk.", ref _autoClear);
-                        ImGui.Combo("Enter Key Behavior", ref _scratchEnter, new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
-                        ImGui.EndChild();
-                    }
-                    ImGui.EndTabItem();
-                }
-
-                if (ImGui.BeginTabItem("Spell Check##SettingsUITabItem"))
-                {
-                    if (ImGui.BeginChild("DictionarySettingsChild", new(-1, ImGui.GetWindowSize().Y - bottomButtonsGap)))
-                    {
-                        ImGui.InputText("Dictionary Filename", ref _dictionaryFilename, 128);
-                        ImGui.Separator();
-                        ImGui.Spacing();
-
-                        if(ImGui.BeginTable($"CustomDictionaryEntriesTable", 2, ImGuiTableFlags.BordersH))
-                        {
-                            ImGui.TableSetupColumn("CustomDictionaryWordColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                            ImGui.TableSetupColumn("CustomDictionaryDeleteColumn", ImGuiTableColumnFlags.WidthFixed, 60 * ImGuiHelpers.GlobalScale);
-
-                            ImGui.TableNextColumn();
-                            ImGui.Text("Custom dictionary entries (Deleting is permanent.)");
-
-                            ImGui.TableNextColumn();
-                            if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, 20)))
-                                WordsmithUI.ShowResetDictionary();
-
-                            for (int i=0; i<Wordsmith.Configuration.CustomDictionaryEntries.Count; ++i)
-                            {
-                                ImGui.TableNextColumn();
-                                ImGui.Text(Wordsmith.Configuration.CustomDictionaryEntries[i]);
-
-                                ImGui.TableNextColumn();
-                                if(ImGui.Button($"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2(-1, 20)))
-                                {
-                                    Wordsmith.Configuration.CustomDictionaryEntries.RemoveAt(i);
-                                    Wordsmith.Configuration.Save();
-                                }
-                            }
-                            ImGui.EndTable();
-                        }
-                        ImGui.EndChild();
-                    }
-                    ImGui.EndTabItem();
-                }
+                DrawThesaurusTab();
+                DrawScratchPadTab();
+                DrawSpellCheckTab();
+                ImGui.EndTabBar();
             }
 
             ImGui.Separator();
+            DrawFooter();
+        }
+
+        protected void DrawThesaurusTab()
+        {
+            if (ImGui.BeginTabItem("Thesaurus##SettingsUITabItem"))
+            {
+                if (ImGui.BeginChild("ThesaurusSettingsChildFrame", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT)))
+                {
+                    //Search history count
+                    //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
+                    ImGui.InputInt("Search History Size", ref _searchHistoryCountChange, 1, 5);
+                    if (_searchHistoryCountChange < 1)
+                        _searchHistoryCountChange = 1;
+                    if (_searchHistoryCountChange > 50)
+                        _searchHistoryCountChange = 50;
+
+                    //Re-search to top
+                    ImGui.Checkbox("Move repeated search to top of history.", ref _researchToTopChange);
+
+                    ImGui.EndChild();
+                }
+                ImGui.EndTabItem();
+            }
+        }
+
+        protected void DrawScratchPadTab()
+        {
+            if (ImGui.BeginTabItem("Scratch Pad##SettingsUITabItem"))
+            {
+                if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT)))
+                {
+                    ImGui.Checkbox("Auto-delete Scratch Pads on close##SettingsUICheckbox", ref _deleteClosed);
+                    ImGui.Checkbox("Don't spell check words that end with a hyphen##SettingsUICheckbox", ref _ignoreHypen);
+                    ImGui.Checkbox("Show text in chunks##SettingsUICheckbox", ref _showChunks);
+                    ImGui.Checkbox("Split text at period/questionmark/exclamation mark##SettingsUICheckbox", ref _onSentence);
+                    ImGui.Checkbox("Automatically clear Scratch Pad text after copying last chunk.", ref _autoClear);
+                    ImGui.Combo("Enter Key Behavior", ref _scratchEnter, new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
+                    ImGui.EndChild();
+                }
+                ImGui.EndTabItem();
+            }
+        }
+
+        protected void DrawSpellCheckTab()
+        {
+            if (ImGui.BeginTabItem("Spell Check##SettingsUITabItem"))
+            {
+                if (ImGui.BeginChild("DictionarySettingsChild", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT)))
+                {
+                    ImGui.InputText("Dictionary Filename", ref _dictionaryFilename, 128);
+                    ImGui.Separator();
+                    ImGui.Spacing();
+
+                    if (ImGui.BeginTable($"CustomDictionaryEntriesTable", 2, ImGuiTableFlags.BordersH))
+                    {
+                        ImGui.TableSetupColumn("CustomDictionaryWordColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+                        ImGui.TableSetupColumn("CustomDictionaryDeleteColumn", ImGuiTableColumnFlags.WidthFixed, 60 * ImGuiHelpers.GlobalScale);
+
+                        ImGui.TableNextColumn();
+                        ImGui.Text("Custom dictionary entries (Deleting is permanent.)");
+
+                        ImGui.TableNextColumn();
+                        if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, 20)))
+                            WordsmithUI.ShowResetDictionary();
+
+                        for (int i = 0; i < Wordsmith.Configuration.CustomDictionaryEntries.Count; ++i)
+                        {
+                            ImGui.TableNextColumn();
+                            ImGui.Text(Wordsmith.Configuration.CustomDictionaryEntries[i]);
+
+                            ImGui.TableNextColumn();
+                            if (ImGui.Button($"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2(-1, 20)))
+                            {
+                                Wordsmith.Configuration.CustomDictionaryEntries.RemoveAt(i);
+                                Wordsmith.Configuration.Save();
+                            }
+                        }
+                        ImGui.EndTable();
+                    }
+                    ImGui.EndChild();
+                }
+                ImGui.EndTabItem();
+            }
+        }
+
+        protected void DrawFooter()
+        {
             if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 4))
             {
                 ImGui.TableSetupColumn("SettingsUITableSpacerColumn", ImGuiTableColumnFlags.WidthStretch, 2);
