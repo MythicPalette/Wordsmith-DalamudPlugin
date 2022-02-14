@@ -89,7 +89,7 @@ namespace Wordsmith.Gui
             WordsmithUI.WindowSystem.AddWindow(this);
             SizeConstraints = new()
             {
-                MinimumSize = new(200, 150),
+                MinimumSize = new(400, 300),
                 MaximumSize = new(float.MaxValue, float.MaxValue)
             };
 
@@ -103,6 +103,7 @@ namespace Wordsmith.Gui
             DrawMenu();
             DrawHead();
             DrawTextEntry();
+            DrawWordReplacement();
             DrawFooter();
         }
 
@@ -202,7 +203,7 @@ namespace Wordsmith.Gui
                 }
                 else
                     ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 75);
+                ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 60);
                 ImGui.TableSetupColumn($"Scratchpad{ID}HelpButtonColumn", ImGuiTableColumnFlags.WidthFixed, 25);
 
 
@@ -255,58 +256,85 @@ namespace Wordsmith.Gui
             ImGui.InputTextWithHint("##TextEntryBox", "Type Here...", ref _scratch, 4096);            
         }
         
-        /// <summary>
-        /// Draws the buttons at the foot of the window.
-        /// </summary>
-        protected void DrawFooter()
+        protected void DrawWordReplacement()
         {
             if (_corrections.Count > 0)
             {
                 Data.WordCorrection correct = _corrections[0];
 
                 float len = ImGui.CalcTextSize($"Spelling error: \"{correct.Original}\"").X;
-                ImGui.TextColored(new(255, 0, 0, 255), $"Spelling error: \"{correct.Original}\"");
-
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - len - 200);
-                if (ImGui.InputTextWithHint("##ScratchPad{ID}ReplaceTextTextbox", "Replace with...", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
-                    OnReplace();
-
-                ImGui.SameLine();
-                if (ImGui.Button("Replace##ScratchPad{ID}ReplaceTextButton"))
-                    OnReplace();
-
-                ImGui.SameLine();
-                if (ImGui.Button("Add To Dictionary##ScratchPad{ID}AddToDictionaryButton"))
+                if (ImGui.BeginTable($"{ID}WordCorrectionTable", 4))
                 {
-                    Data.Lang.AddDictionaryEntry(correct.Original);
-                    _corrections.RemoveAt(0);
-                    if (_corrections.Count == 0)
-                        _refreshRequired = true;
+
+                    ImGui.TableSetupColumn($"{ID}MisspelledWordColumn", ImGuiTableColumnFlags.WidthFixed, len + 5);
+                    ImGui.TableSetupColumn($"{ID}ReplacementTextInputColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+                    ImGui.TableSetupColumn($"{ID}ReplaceTextButtonColumn", ImGuiTableColumnFlags.WidthFixed, 50);
+                    ImGui.TableSetupColumn($"{ID}AddToDictionaryButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100);
+
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(-1);
+                    ImGui.TextColored(new(255, 0, 0, 255), $"Spelling error: \"{correct.Original}\"");
+
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(-1);
+                    ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - len - 200);
+                    if (ImGui.InputTextWithHint("##ScratchPad{ID}ReplaceTextTextbox", "Replace with...", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
+                        OnReplace();
+
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(-1);
+                    if (ImGui.Button("Replace##ScratchPad{ID}ReplaceTextButton"))
+                        OnReplace();
+
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(-1);
+                    if (ImGui.Button("Add To Dictionary##ScratchPad{ID}AddToDictionaryButton"))
+                    {
+                        Data.Lang.AddDictionaryEntry(correct.Original);
+                        _corrections.RemoveAt(0);
+                        if (_corrections.Count == 0)
+                            _refreshRequired = true;
+                    }
+
+                    ImGui.EndTable();
                 }
             }
-
-
-            if (ImGui.Button($"Copy{(_chatType > 0 ? $" with {_chatHeaders[_chatType]}" : "")}{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk+1}/{_chunks?.Length})" : "")}", new(ImGui.GetWindowWidth() / 3 - 12, 20)))
-                OnCopyButton();
-
-            ImGui.SameLine();
-            if (ImGui.Button($"Clear", new(ImGui.GetWindowWidth() / 3 - 12, 20)))
-                _scratch = "";
-
-            // Spell Check button.
-            ImGui.SameLine();
-            if (ImGui.Button($"Spell Check", new(ImGui.GetWindowWidth() / 3 - 12, 20)))
+        }
+        /// <summary>
+        /// Draws the buttons at the foot of the window.
+        /// </summary>
+        protected void DrawFooter()
+        {
+            if (ImGui.BeginTable($"{ID}FooterButtonTable", 3))
             {
-                _error = "";
-                _notice = "";
+                ImGui.TableSetupColumn($"{ID}FooterCopyButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
+                ImGui.TableSetupColumn($"{ID}FooterClearButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
+                ImGui.TableSetupColumn($"{ID}FooterSpellCheckButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
 
-                _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch));
-                if (_corrections.Count > 0)
-                    _error = $"Found {_corrections.Count} spelling errors.";
-                else
-                    _notice = "No spelling errors found.";
+                ImGui.TableNextColumn();
+                if (ImGui.Button($"Copy{(_chatType > 0 ? $" with {_chatHeaders[_chatType]}" : "")}{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", new(-1, 20)))
+                    OnCopyButton();
+
+                ImGui.TableNextColumn();
+                if (ImGui.Button($"Clear", new(-1, 20)))
+                    _scratch = "";
+
+                // Spell Check button.
+                ImGui.TableNextColumn();
+                if (ImGui.Button($"Spell Check", new(-1, 20)))
+                {
+                    _error = "";
+                    _notice = "";
+
+                    _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch));
+                    if (_corrections.Count > 0)
+                        _error = $"Found {_corrections.Count} spelling errors.";
+                    else
+                        _notice = "No spelling errors found.";
+                }
+                ImGui.EndTable();
             }
+
             if (ImGui.Button($"Delete Pad", new(-1, 20)))
             {
                 this.IsOpen = false;
