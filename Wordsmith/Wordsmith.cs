@@ -39,13 +39,7 @@ namespace Wordsmith
                 HelpMessage = "Display the main Wordsmith window."
             });
 
-            this.CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo(OnSettingsCommand)
-            {
-                HelpMessage = "Display the Wordsmith settings window."
-            });
-
             this.PluginInterface.UiBuilder.Draw += DrawUI;
-            this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
 
             Data.Lang.Init();
         }
@@ -57,7 +51,6 @@ namespace Wordsmith
         }
 
         private void OnMainCommand(string command, string args) => WordsmithUI.ShowMain();
-        private void OnSettingsCommand(string command, string args) => WordsmithUI.ShowSettings();
 
         private void DrawUI()
         {
@@ -70,10 +63,6 @@ namespace Wordsmith
                     PluginLog.LogError($"{e.Message}");
             }
             catch (Exception e) { PluginLog.LogError($"{e} :: {e.Message}"); }
-        }
-
-        private void DrawConfigUI()
-        {
         }
     }
 }
