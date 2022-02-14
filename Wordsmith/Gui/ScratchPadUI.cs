@@ -247,10 +247,11 @@ namespace Wordsmith.Gui
             }
 
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputTextWithHint("##TextEntryBox", "Type Here...", ref _scratch, 4096, ImGuiInputTextFlags.EnterReturnsTrue))
+            if (ImGui.InputTextWithHint("##TextEntryBox", "Type Here...", ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, ImGuiInputTextFlags.EnterReturnsTrue))
             {
                 if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 1)
                     DoSpellCheck();
+
                 else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 2)
                     DoCopyToClipboard();
             }

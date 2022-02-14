@@ -19,6 +19,7 @@ namespace Wordsmith.Gui
         private bool _onSentence = Wordsmith.Configuration.BreakOnSentence;
         private bool _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
         private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
+        private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
         private int _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
         // Dictionary Settings
@@ -101,11 +102,20 @@ namespace Wordsmith.Gui
                 if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT)))
                 {
                     ImGui.Checkbox("Auto-delete Scratch Pads on close##SettingsUICheckbox", ref _deleteClosed);
+                    ImGui.Separator();
                     ImGui.Checkbox("Don't spell check words that end with a hyphen##SettingsUICheckbox", ref _ignoreHypen);
+                    ImGui.Separator();
                     ImGui.Checkbox("Show text in chunks##SettingsUICheckbox", ref _showChunks);
+                    ImGui.Separator();
                     ImGui.Checkbox("Split text at period/questionmark/exclamation mark##SettingsUICheckbox", ref _onSentence);
+                    ImGui.Separator();
                     ImGui.Checkbox("Automatically clear Scratch Pad text after copying last chunk.", ref _autoClear);
+                    ImGui.Separator();
                     ImGui.Checkbox("Autmatically fix multiple spaces in text.", ref _fixDoubleSpace);
+                    ImGui.Separator();
+                    ImGui.DragInt("Max text length", ref _scratchMaxTextLen, 128, 512, 8096);
+                    ImGui.TextWrapped("Note: The higher the text length, the more memory it will use (up to 8MB)");
+                    ImGui.Separator();
                     ImGui.Combo("Enter Key Behavior", ref _scratchEnter, new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
                     ImGui.EndChild();
                 }
@@ -205,6 +215,7 @@ namespace Wordsmith.Gui
             _onSentence = Wordsmith.Configuration.BreakOnSentence;
             _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
             _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
+            _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
             _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
         // Dictionary Settings
@@ -238,6 +249,9 @@ namespace Wordsmith.Gui
 
             if (_fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)
                 Wordsmith.Configuration.ReplaceDoubleSpaces = _fixDoubleSpace;
+
+            if (_scratchMaxTextLen != Wordsmith.Configuration.ScratchPadMaximumTextLength)
+                Wordsmith.Configuration.ScratchPadMaximumTextLength = _scratchMaxTextLen;
 
             if (_scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
                 Wordsmith.Configuration.ScratchPadTextEnterBehavior = _scratchEnter;

@@ -48,6 +48,8 @@ namespace Wordsmith
         /// </summary>
         public int ScratchPadTextEnterBehavior { get; set; } = 0;
 
+        public int ScratchPadMaximumTextLength { get; set; } = 4096;
+
         /// <summary>
         /// Automatically replace double spaces in the text.
         /// </summary>
