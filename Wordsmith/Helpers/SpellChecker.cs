@@ -27,6 +27,9 @@ namespace Wordsmith.Helpers
                 if (word == null)
                     continue;
 
+                if (word.EndsWith('-') && Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
+                    continue;
+
                 string? result = Lang.WordList.FirstOrDefault(w => w.ToLower() == word || w.ToLower() == $"{word}'s");
                 // Compare lowercase first then check again with capitalization
                 if (result == null)
