@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Text;
 using System.Collections.Generic;
 using ImGuiNET;
-using Dalamud.Interface.Windowing;
 using Dalamud.Interface;
+using Dalamud.Interface.Windowing;
+using Dalamud.Logging;
 
 namespace Wordsmith.Gui
 {
@@ -230,7 +232,7 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Draws the chat with a single line entry and a wrapped text frame above it for proofreading.
         /// </summary>
-        protected void DrawTextEntry()
+        protected unsafe void DrawTextEntry()
         {
             int FooterHeight = 110;
             if (_corrections.Count > 0)
@@ -256,7 +258,7 @@ namespace Wordsmith.Gui
                     DoCopyToClipboard();
             }
         }
-        
+
         /// <summary>
         /// Draws the word replacement section if there are known spelling errors.
         /// </summary>
@@ -443,16 +445,11 @@ namespace Wordsmith.Gui
 
             PadState newState = GetState();
 
-            // If automatically replacying double spaces
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
             {
                 do
                 {
-                    // Replace double spaces.
                     _scratch = _scratch.Replace("  ", " ");
-
-                    // Loop until there are no more double spaces. We loop because
-                    // three or more spaces in a row could end up still getting through.
                 } while (_scratch.Contains("  "));
             }
 
