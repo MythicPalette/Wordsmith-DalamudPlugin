@@ -11,7 +11,6 @@ namespace Wordsmith.Helpers
 {
     public class SpellChecker
     {
-        private static readonly string EN_Chars = "abcdefghijklmnopqrstuvwxyz"; 
         /// <summary>
         /// Check the given string for any possible spelling mistakes.
         /// </summary>
@@ -120,75 +119,5 @@ namespace Wordsmith.Helpers
 
             return str;
         }
-
-        /// <summary>
-        /// Generate all letter replacement typo words.
-        /// </summary>
-        /// <param name="word">The misspelled word as the seed to generate word list.</param>
-        /// <returns>A list of potential replacement words.</returns>
-        //private static WordCorrection ReplaceLetter(string word)
-        //{
-        //    List<string> results = new();
-
-        //    // Generate 1 step away.
-        //    results.AddRange(GenerateOneAway(word));
-
-        //    string[] seeds = results.ToArray();
-        //    // Generate second step away.
-        //    foreach( string seed in seeds)
-        //        results.AddRange(GenerateOneAway(seed));
-
-        //    // Go through all results
-        //    int i = 0;
-        //    try
-        //    {
-        //        while (i < results.Count)
-        //        {
-        //            // If the result is not in the dictionary
-        //            if (Lang.WordList.FirstOrDefault(w => w.ToLower() == results[i]) == null)
-        //                results.RemoveAt(i); // Remove it.
-        //            else
-        //                ++i;
-        //        }
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        PluginLog.LogDebug($"{e}");
-        //    }
-
-        //    return new(){ Original = word, Suggestions = results?.ToArray() };
-        //}
-
-        //private static string[] GenerateOneAway(string text)
-        //{
-        //    text = CleanWord(text.ToLower());
-
-        //    List<string> results = new();
-
-        //    try
-        //    {
-        //        // Iterate through each letter in the word.
-        //        for (int i = 0; i < text.Length; ++i)
-        //        {
-        //            // Generate a word for each possible letter in position i
-        //            for (int x = 0; x < EN_Chars.Length; ++x)
-        //            {
-        //                char[] chars = text.ToCharArray();
-        //                chars[i] = EN_Chars[x];
-        //                results.Add(string.Join("", chars));
-        //            }
-        //        }
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        PluginLog.LogError($"{e}");
-        //    }
-        //    return results.ToArray();
-        //}
-
-        //protected static void SpellCheckCallback(WordCorrection[] suggestions)
-        //{
-        //    PluginLog.LogDebug($"SpellCheckCallback()");
-        //}
     }
 }
