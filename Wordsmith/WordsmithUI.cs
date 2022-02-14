@@ -10,9 +10,6 @@ namespace Wordsmith
     // to do any cleanup
     public static class WordsmithUI
     {
-        //private static ThesaurusUI? _ThesaurusUI;
-        //private static SettingsUI? _SettingsUI;
-        //private static ScratchPadUI? _ScratchPadUI;
         private static List<Window> _windows = new();
         public static Window[] Windows => _windows.ToArray();
 
@@ -35,7 +32,7 @@ namespace Wordsmith
             // If the result is null, create a new window
             if (w == null)
                 _windows.Add(Activator.CreateInstance(typeof(T)) as Window);
-
+            
             // If the result wasn't null, open the window
             else
                 w.IsOpen = true;

@@ -10,7 +10,6 @@ namespace Wordsmith.Gui
 {
     public class SettingsUI : Window
     {
-
         protected int _searchHistoryCountChange = -1;
         protected bool _researchToTopChange = true;
         protected bool _deleteClosedScratchpadsChange = false;
@@ -69,9 +68,6 @@ namespace Wordsmith.Gui
                 // If Research to top has changed then update it
                 if (_researchToTopChange != Wordsmith.Configuration.ResearchToTop)
                     Wordsmith.Configuration.ResearchToTop = _researchToTopChange;
-
-                if (_deleteClosedScratchpadsChange != Wordsmith.Configuration.DeleteClosedScratchPads)
-                    Wordsmith.Configuration.DeleteClosedScratchPads = _deleteClosedScratchpadsChange;
 
                 // Save the configuration
                 Wordsmith.Configuration.Save();

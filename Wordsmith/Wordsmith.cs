@@ -1,9 +1,10 @@
-﻿using Dalamud.Game.Command;
-using Dalamud.IoC;
-using Dalamud.Plugin;
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
+using Dalamud.Game.Command;
+using Dalamud.IoC;
+using Dalamud.Plugin;
+using Dalamud.Logging;
 
 namespace Wordsmith
 {
@@ -45,11 +46,14 @@ namespace Wordsmith
 
             this.PluginInterface.UiBuilder.Draw += DrawUI;
             this.PluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
+
+            Data.Lang.Init();
         }
 
         public void Dispose()
         {
             this.CommandManager.RemoveHandler(MAIN_CMD_STRING);
+            this.CommandManager.RemoveHandler(SETTINGS_CMD_STRING);
         }
 
         private void OnMainCommand(string command, string args) => WordsmithUI.ShowMain();
@@ -57,14 +61,15 @@ namespace Wordsmith
 
         private void DrawUI()
         {
-            try
+            try { WordsmithUI.WindowSystem.Draw(); }
+            catch (InvalidOperationException e)
             {
-                WordsmithUI.WindowSystem.Draw();
+                // If the message isn't about collection being modified, log it. Otherwise
+                // Discard the error.
+                if(!e.Message.StartsWith("Collection was modified"))
+                    PluginLog.LogError($"{e.Message}");
             }
-            catch (Exception e)
-            {
-                Dalamud.Logging.PluginLog.LogError($"{e} :: {e.Message}");
-            }
+            catch (Exception e) { PluginLog.LogError($"{e} :: {e.Message}"); }
         }
 
         private void DrawConfigUI()

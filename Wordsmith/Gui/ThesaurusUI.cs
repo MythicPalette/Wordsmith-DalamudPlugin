@@ -33,6 +33,10 @@ namespace Wordsmith.Gui
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
             Flags |= ImGuiWindowFlags.MenuBar;
         }
+
+        /// <summary>
+        /// The Draw entry point for Dalamud.Interface.Windowing
+        /// </summary>
         public override void Draw()
         {
             if (!IsOpen) return;
@@ -41,6 +45,9 @@ namespace Wordsmith.Gui
             DrawWordSearch();
         }
 
+        /// <summary>
+        /// Draws the menu bar at the top of the screen.
+        /// </summary>
         protected void DrawMenu()
         {
             try
@@ -84,6 +91,9 @@ namespace Wordsmith.Gui
             }
         }
 
+        /// <summary>
+        /// Draws main UI.
+        /// </summary>
         protected void DrawWordSearch()
         {
             try
@@ -111,6 +121,10 @@ namespace Wordsmith.Gui
             }
         }
 
+        /// <summary>
+        /// Moves the search string into the query to search for it.
+        /// </summary>
+        /// <returns>Returns true if the search string passes the minimum length.</returns>
         protected bool ScheduleSearch()
         {
             if (_search.Length >= _searchMinLength)
@@ -122,6 +136,10 @@ namespace Wordsmith.Gui
             }
             return false;
         }
+
+        /// <summary>
+        /// Draws the search bar on the UI.
+        /// </summary>
         protected void DrawSearchBar()
         {
             if (ImGui.BeginTable("SearchZoneTable", 2))
@@ -148,6 +166,9 @@ namespace Wordsmith.Gui
             }            
         }
 
+        /// <summary>
+        /// Draws the last search's data to the UI.
+        /// </summary>
         protected void DrawLastSearch()
         {
             if (SearchHelper.Result?.SearchError ?? false)
@@ -160,6 +181,10 @@ namespace Wordsmith.Gui
                 DrawSearchResult(SearchHelper.Result);
         }
 
+        /// <summary>
+        /// Draws one search result item to the UI.
+        /// </summary>
+        /// <param name="result">The search result to be drawn</param>
         protected void DrawSearchResult(Data.WordSearchResult result)
         {
             if (result != null)
@@ -178,6 +203,10 @@ namespace Wordsmith.Gui
             }
         }
 
+        /// <summary>
+        /// Draws a search result's entry data. One search result can have multiple data entries.
+        /// </summary>
+        /// <param name="entry">The data to draw.</param>
         protected void DrawEntry(Data.ThesaurusEntry entry)
         {
             if (ImGui.CollapsingHeader(
@@ -221,6 +250,10 @@ namespace Wordsmith.Gui
                 ImGui.Unindent();
             }
         }
+
+        /// <summary>
+        /// Framework update.
+        /// </summary>
         public override void Update()
         {
             base.Update();
@@ -230,13 +263,5 @@ namespace Wordsmith.Gui
             SearchHelper.SearchThesaurus(_query.Trim());
             _query = "##done##";
         }
-
-        //public void Dispose()
-        //{
-        //    SearchHelper.Dispose();
-
-        //    // Remove the window from the window system.
-        //    WordsmithUI.WindowSystem.RemoveWindow(this);
-        //}
     }
 }
