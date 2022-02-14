@@ -18,6 +18,7 @@ namespace Wordsmith
         // passing in the image here just for simplicity
         public static void ShowMain() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
         public static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
+        public static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
         public static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
 
         private static void Show<T>(string name)

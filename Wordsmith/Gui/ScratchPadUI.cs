@@ -205,9 +205,7 @@ namespace Wordsmith.Gui
 
             ImGui.SameLine();
             if (ImGui.Button($"?##ScratchPad{ID}HelpButton", new(20, 20)))
-            {
-
-            }
+                WordsmithUI.ShowScratchPadHelp();
         }
 
         /// <summary>
