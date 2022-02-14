@@ -5,6 +5,8 @@
             ProjectDir="$(ProjectDir)"
             OutputPath="$(OutputPath)"
             AssemblyName="$(AssemblyName)"
+            ManifestType ="json"
+            VersionComponents ="3"
             MakeZip="true"/>
   </Target>
 </Project>

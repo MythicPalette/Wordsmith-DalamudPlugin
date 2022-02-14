@@ -4,15 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Dalamud;
 using Dalamud.Logging;
 using System.Reflection;
+using Dalamud.Plugin;
 
 namespace Wordsmith.Data
 {
-    public class Lang
+    public static class Lang
     {
         public static string[] WordList => _wordlist.ToArray();
         private static List<string> _wordlist = new();
+
+        private static DalamudPluginInterface pluginInterface;
 
         /// <summary>
         /// Active becomes true after Init() has successfully loaded a language file.
@@ -22,8 +26,9 @@ namespace Wordsmith.Data
         /// <summary>
         /// Load the language file and enable spell checks.
         /// </summary>
-        public static void Init()
+        public static void Init(DalamudPluginInterface plugin)
         {
+            pluginInterface = plugin;
             // Only support english for now.
             string langCode = "en";
             if (!LoadLanguageFile(langCode))
@@ -38,10 +43,11 @@ namespace Wordsmith.Data
         /// <param name="langCode">The language code to be loaded (i.e. en). Defaults to "en" for English</param>
         private static bool LoadLanguageFile(string langCode)
         {
-            string filepath = $"{Assembly.GetExecutingAssembly().Location.Replace("Wordsmith.dll", "")}lang_{langCode}";
+            string filepath = Path.Combine(pluginInterface.AssemblyLocation.Directory?.FullName!, $"Dictionaries\\lang_{langCode}");
+            //string filepath = $"{Assembly.GetExecutingAssembly().Location.Replace("Wordsmith.dll", "")}lang_{langCode}";
             if (!File.Exists(filepath))
             {
-                PluginLog.LogWarning($"Configured language file \"lang_{langCode}\" not found. Disabling all spell checking.");
+                PluginLog.LogWarning($"Configured language file \"{filepath}\" not found. Disabling all spell checking.");
                 return false;
             }
             try

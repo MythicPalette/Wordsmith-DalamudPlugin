@@ -41,7 +41,7 @@ namespace Wordsmith
 
             this.PluginInterface.UiBuilder.Draw += DrawUI;
 
-            Data.Lang.Init();
+            Data.Lang.Init(pluginInterface);
         }
 
         public void Dispose()
