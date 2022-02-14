@@ -95,12 +95,12 @@ namespace Wordsmith.Gui
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
-            Flags |= ImGuiWindowFlags.MenuBar;
+            //Flags |= ImGuiWindowFlags.MenuBar;
         }
 
         public override void Draw()
         {
-            DrawMenu();
+            //DrawMenu();
             DrawHead();
             DrawTextEntry();
             DrawWordReplacement();
@@ -155,9 +155,9 @@ namespace Wordsmith.Gui
                         Wordsmith.Configuration.Save();
                     }
 
-                    if (ImGui.MenuItem($"Show text in blocks", "", Wordsmith.Configuration.ShowTrueOutput))
+                    if (ImGui.MenuItem($"Show text in blocks", "", Wordsmith.Configuration.ShowTextInChunks))
                     { 
-                        Wordsmith.Configuration.ShowTrueOutput = !Wordsmith.Configuration.ShowTrueOutput;
+                        Wordsmith.Configuration.ShowTextInChunks = !Wordsmith.Configuration.ShowTextInChunks;
                         _refreshRequired = true;
                         Wordsmith.Configuration.Save();
                     }
@@ -245,7 +245,7 @@ namespace Wordsmith.Gui
             if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - FooterHeight)))
             {
                 ImGui.SetNextItemWidth(-1);
-                if (Wordsmith.Configuration.ShowTrueOutput)
+                if (Wordsmith.Configuration.ShowTextInChunks)
                     ImGui.TextWrapped($"{string.Join("\n\n", _chunks ?? new string[] { })}");
                 else
                     ImGui.TextWrapped($"{(_chatType > 0 ? $"{_chatHeaders[_chatType]} " : "")}{(_chatType == 8 ? $"{_telltarget} " : "")}{(_useOOC ? "(( " : "")}{_scratch}{(_useOOC ? " ))" : "")}");
@@ -291,6 +291,7 @@ namespace Wordsmith.Gui
                     if (ImGui.Button("Add To Dictionary##ScratchPad{ID}AddToDictionaryButton"))
                     {
                         Data.Lang.AddDictionaryEntry(correct.Original);
+
                         _corrections.RemoveAt(0);
                         if (_corrections.Count == 0)
                             _refreshRequired = true;
@@ -427,6 +428,7 @@ namespace Wordsmith.Gui
 
             else if (_lastState != newState || _refreshRequired)
             {
+                _refreshRequired = false;
                 _error = "";
                 _notice = "";
 

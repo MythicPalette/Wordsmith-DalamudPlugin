@@ -31,7 +31,7 @@ namespace Wordsmith
         /// <summary>
         /// Toggles displaying text in copy chunks.
         /// </summary>
-        public bool ShowTrueOutput { get; set; } = true;
+        public bool ShowTextInChunks { get; set; } = true;
 
         /// <summary>
         /// Attempts to break text chunks at the nearest sentence rather than the nearest space.
@@ -42,6 +42,11 @@ namespace Wordsmith
         /// Holds the dictionary of words added by the user.
         /// </summary>
         public List<string> CustomDictionaryEntries { get; set; } = new();
+
+        /// <summary>
+        /// The file to be loaded into Lang dictionary.
+        /// </summary>
+        public string DictionaryFile { get; set; } = "lang_en";
 
         // the below exist just to make saving less cumbersome
 

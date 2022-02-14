@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.IO;
-using Dalamud;
 using Dalamud.Logging;
-using System.Reflection;
 using Dalamud.Plugin;
 
 namespace Wordsmith.Data
@@ -16,7 +12,7 @@ namespace Wordsmith.Data
         public static string[] WordList => _wordlist.ToArray();
         private static List<string> _wordlist = new();
 
-        private static DalamudPluginInterface pluginInterface;
+        private static DalamudPluginInterface? pluginInterface;
 
         /// <summary>
         /// Active becomes true after Init() has successfully loaded a language file.
@@ -30,8 +26,7 @@ namespace Wordsmith.Data
         {
             pluginInterface = plugin;
             // Only support english for now.
-            string langCode = "en";
-            if (!LoadLanguageFile(langCode))
+            if (!LoadLanguageFile())
                 return;
 
             _wordlist.AddRange(Wordsmith.Configuration.CustomDictionaryEntries);
@@ -40,11 +35,10 @@ namespace Wordsmith.Data
         /// <summary>
         /// Loads the specified language file.
         /// </summary>
-        /// <param name="langCode">The language code to be loaded (i.e. en). Defaults to "en" for English</param>
-        private static bool LoadLanguageFile(string langCode)
+        private static bool LoadLanguageFile()
         {
-            string filepath = Path.Combine(pluginInterface.AssemblyLocation.Directory?.FullName!, $"Dictionaries\\lang_{langCode}");
-            //string filepath = $"{Assembly.GetExecutingAssembly().Location.Replace("Wordsmith.dll", "")}lang_{langCode}";
+            string filepath = Path.Combine(pluginInterface?.AssemblyLocation.Directory?.FullName!, $"Dictionaries\\{Wordsmith.Configuration.DictionaryFile}");
+
             if (!File.Exists(filepath))
             {
                 PluginLog.LogWarning($"Configured language file \"{filepath}\" not found. Disabling all spell checking.");
@@ -82,16 +76,21 @@ namespace Wordsmith.Data
             }
             catch (Exception e)
             {
-                PluginLog.LogError($"Unable to load lang_{langCode}. {e}");
+                PluginLog.LogError($"Unable to load language file {Wordsmith.Configuration.DictionaryFile}. {e}");
                 return false;
             }
         }
 
-        public static void AddDictionaryEntry(string text)
+        public static bool AddDictionaryEntry(string text)
         {
+            // If the word is already in the dictionary, disregard.
+            if (_wordlist.FirstOrDefault(w => w.ToLower() == text.ToLower().Trim()) != null)
+                return false;
+
             _wordlist.Add(text.ToLower().Trim());
             Wordsmith.Configuration.CustomDictionaryEntries.Add(text.ToLower().Trim());
             Wordsmith.Configuration.Save();
+            return true;
         }
     }
 }
