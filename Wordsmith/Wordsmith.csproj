@@ -28,10 +28,14 @@
   </ItemGroup> -->
 
   <ItemGroup>
-    <Content Include="Dictionaries\lang_en">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <Content Include="Dictionaries\lang_en" CopyToOutputDirectory="Always" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="..\wordsmith_icon.png" Link="images\icon.png" CopyToOutputDirectory="Always"/>
+  </ItemGroup>
+
+
 
   <PropertyGroup>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
