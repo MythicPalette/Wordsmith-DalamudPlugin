@@ -30,6 +30,8 @@ namespace Wordsmith.Helpers
                     continue;
 
                 string word = CleanWord(words[i].ToLower());
+                if (word == null)
+                    continue;
 
                 string? result = Lang.WordList.FirstOrDefault(w => w.ToLower() == word || w.ToLower() == $"{word}'s");
                 // Compare lowercase first then check again with capitalization

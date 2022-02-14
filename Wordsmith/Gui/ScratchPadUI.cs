@@ -191,21 +191,45 @@ namespace Wordsmith.Gui
                 ImGui.Separator();
             }
 
-            ImGui.SetNextItemWidth((_chatType != 8 ? ImGui.GetWindowWidth() - 120 : 100));
-            ImGui.Combo($"##ScratchPad{ID}ChatTypeCombo", ref _chatType, _chatOptions, 9);
-            if (_chatType == _chatHeaders.Length - 1)
+            int columns = 3 + (_chatType == 8 ? 1 : 0);
+            if (ImGui.BeginTable($"##ScratchPad{ID}HeaderTable", columns))
             {
-                ImGui.SameLine();
-                ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 220);
-                ImGui.InputTextWithHint("##TellTargetText", "User Name@World", ref _telltarget, 128);
+                
+                if (_chatType == 8)
+                {
+                    ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 120);
+                    ImGui.TableSetupColumn($"ScratchPad{ID}TellTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+                }
+                else
+                    ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+                ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 75);
+                ImGui.TableSetupColumn($"Scratchpad{ID}HelpButtonColumn", ImGuiTableColumnFlags.WidthFixed, 25);
+
+
+                //ImGui.SetNextItemWidth((_chatType != 8 ? ImGui.GetWindowWidth() - 120 : 100));
+                ImGui.TableNextColumn();
+                ImGui.SetNextItemWidth(-1);
+                ImGui.Combo($"##ScratchPad{ID}ChatTypeCombo", ref _chatType, _chatOptions, 9);
+                if (_chatType == _chatHeaders.Length - 1)
+                {
+                    //ImGui.SameLine();
+                    ImGui.TableNextColumn();
+                    //ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 220);
+                    ImGui.SetNextItemWidth(-1);
+                    ImGui.InputTextWithHint("##TellTargetText", "User Name@World", ref _telltarget, 128);
+                }
+
+                //ImGui.SameLine();
+                ImGui.TableNextColumn();
+                ImGui.Checkbox("((OOC))", ref _useOOC);
+
+                //ImGui.SameLine();
+                ImGui.TableNextColumn();
+                if (ImGui.Button($"?##ScratchPad{ID}HelpButton", new(20, 20)))
+                    WordsmithUI.ShowScratchPadHelp();
+
+                ImGui.EndTable();
             }
-
-            ImGui.SameLine();
-            ImGui.Checkbox("((OOC))", ref _useOOC);
-
-            ImGui.SameLine();
-            if (ImGui.Button($"?##ScratchPad{ID}HelpButton", new(20, 20)))
-                WordsmithUI.ShowScratchPadHelp();
         }
 
         /// <summary>
