@@ -191,7 +191,7 @@ namespace Wordsmith.Gui
                 ImGui.Separator();
             }
 
-            ImGui.SetNextItemWidth((_chatType != 8 ? ImGui.GetWindowWidth() - 110 : 100));
+            ImGui.SetNextItemWidth((_chatType != 8 ? ImGui.GetWindowWidth() - 120 : 100));
             ImGui.Combo($"##ScratchPad{ID}ChatTypeCombo", ref _chatType, _chatOptions, 9);
             if (_chatType == _chatHeaders.Length - 1)
             {

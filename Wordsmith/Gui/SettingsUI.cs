@@ -56,8 +56,6 @@ namespace Wordsmith.Gui
             //Re-search to top
             ImGui.Checkbox("Move repeated search to top of history.", ref _researchToTopChange);
 
-            ImGui.Checkbox("Delete closed scratch pads", ref _deleteClosedScratchpadsChange);
-
             // Save and close buttons
             if(ImGui.Button("Save And Close", new(152, 20)))
             {
