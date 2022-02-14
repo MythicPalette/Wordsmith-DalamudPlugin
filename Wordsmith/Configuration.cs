@@ -13,7 +13,7 @@ namespace Wordsmith
         public int SearchHistoryCount { get; set; } = 10;
         public bool ResearchToTop { get; set; } = true;
 
-        // Scratch Pad
+        // Scratch Pad settings
         public bool DeleteClosedScratchPads { get; set; } = false;
 
         /// <summary>
@@ -38,6 +38,17 @@ namespace Wordsmith
         /// </summary>
         public bool BreakOnSentence { get; set; } = true;
 
+        /// <summary>
+        /// If true, scratch pads will automatically clear their text after copying the last block.
+        /// </summary>
+        public bool AutomaticallyClearAfterLastCopy { get; set; } = false;
+        
+        /// <summary>
+        /// Decides behavior when hitting enter in Scratch Pad text entry.
+        /// </summary>
+        public int ScratchPadTextEnterBehavior { get; set; } = 0;
+
+        // Spell Check settings.
         /// <summary>
         /// Holds the dictionary of words added by the user.
         /// </summary>

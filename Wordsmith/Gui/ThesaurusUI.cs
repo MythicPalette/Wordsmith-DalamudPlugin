@@ -16,6 +16,9 @@ namespace Wordsmith.Gui
 
         protected SearchHelper SearchHelper;
 
+        /// <summary>
+        /// Instantiates a new ThesaurusUI object.
+        /// </summary>
         public ThesaurusUI() : base($"{Wordsmith.AppName} - Thesaurus")
         {
             IsOpen = true;
@@ -104,8 +107,7 @@ namespace Wordsmith.Gui
                     DrawSearchBar();
                     if (ImGui.BeginChild("SearchResultWindow"))
                     {
-                        DrawLastSearch();
-
+                        DrawSearchErrors();
                         foreach (Data.WordSearchResult result in SearchHelper.History)
                             DrawSearchResult(result);
 
@@ -169,16 +171,14 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Draws the last search's data to the UI.
         /// </summary>
-        protected void DrawLastSearch()
+        protected void DrawSearchErrors()
         {
-            if (SearchHelper.Result?.SearchError ?? false)
+            if (SearchHelper.Error != null)
             {
-                ImGui.TextColored(new Vector4(255, 0, 0, 255), $"Failed to acquire results for {SearchHelper.Result.Query}\n{SearchHelper.Result.Exception?.Message ?? ""}");
+                ImGui.TextColored(new Vector4(255, 0, 0, 255), $"Search Error:\n{SearchHelper.Error.Message}");
                 ImGui.Separator();
                 ImGui.Spacing();
             }
-            else if (SearchHelper.Result != null)
-                DrawSearchResult(SearchHelper.Result);
         }
 
         /// <summary>
@@ -263,5 +263,10 @@ namespace Wordsmith.Gui
             SearchHelper.SearchThesaurus(_query.Trim());
             _query = "##done##";
         }
+
+        /// <summary>
+        ///  Disposes of the SearchHelper child.
+        /// </summary>
+        public void DisposeChild() => this.SearchHelper.Dispose();
     }
 }

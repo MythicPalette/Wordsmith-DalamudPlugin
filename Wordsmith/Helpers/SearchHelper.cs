@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net.Http;
 using HtmlAgilityPack;
+using Dalamud.Logging;
 
 namespace Wordsmith.Helpers
 {
@@ -14,96 +15,117 @@ namespace Wordsmith.Helpers
         protected float _progress = 0.0f;
         public float Progress => _progress;
 
-        protected Data.WordSearchResult? _result;
-        public Data.WordSearchResult? Result => _result;
+        public Exception? Error { get; private set; } = null;
 
         protected List<Data.WordSearchResult> _history = new List<Data.WordSearchResult>();
+        public Data.WordSearchResult[] History => _history.ToArray();
+
+        /// <summary>
+        /// Adds a searched item to the history.
+        /// </summary>
+        /// <param name="entry">The entry to add to the history.</param>
         protected void AddHistoryEntry(Data.WordSearchResult entry)
         {
             // Add the latest to the history
             _history.Insert(0, entry);
+            PluginLog.LogDebug($"Added {entry.Query} to history.");
 
             // If over allowed amount remove oldest.
             while (_history.Count >= Wordsmith.Configuration.SearchHistoryCount)
                 _history.RemoveAt(_history.Count - 1);
         }
 
+        /// <summary>
+        /// Deletes an item from the search history.
+        /// </summary>
+        /// <param name="entry">Entry to be removed from history</param>
         public void DeleteResult(Data.WordSearchResult? entry)
         {
             if (entry == null)
                 return;
 
-            if (_result == entry)
-                _result = null;
-
             else if (_history.Contains(entry))
                 _history.Remove(entry);
         }
-        public Data.WordSearchResult[] History => _history.ToArray();
 
+        /// <summary>
+        /// The client used by Wordsmith Thesaurus to get the web pages for scraping.
+        /// </summary>
         protected HttpClient _client;
 
+        /// <summary>
+        /// Instantiates a new SearchHelper object
+        /// </summary>
         public SearchHelper()
         {
             _client = new HttpClient();
         }
 
-        protected int InHistory(string query)
+        public void SearchThesaurus(string query)
         {
-            for(int i=0; i<History.Length; ++i)
-            {
-                if (History[i].Query.ToLower() == query.ToLower())
-                    return i;
-            }
-            return -1;
+            // Lowercase and trim the query string.
+            query = query.ToLower().Trim();
+
+            // Nullify the previous error.
+            Error = null;
+
+            // Check history first and if we don't find anything there
+            // Trying web scraping for the information.
+            if (!SearchHistory(query))
+                ScrapeWeb(query);
+
         }
-        public async void SearchThesaurus(string query)
+
+        /// <summary>
+        /// Searches through the user's history for the query.
+        /// </summary>
+        /// <param name="query">Search string to locate</param>
+        /// <returns>True if the query was found in the history.</returns>
+        protected bool SearchHistory(string query)
         {
             try
             {
+                // If there is no history return false.
+                if (History.Length == 0)
+                    return false;
+
+                PluginLog.LogDebug($"Checking History for {query}");
+
                 _progress = 0f;
                 // If searching the same thing twice, return
-                if (Result?.Query.ToLower() == query.ToLower())
-                    return;
+                if (History[0].Query == query)
+                    return true;
 
                 // Check if current query is in the history
-                int idx = InHistory(query);
+                Data.WordSearchResult? result = History.FirstOrDefault(r => r.Query == query);
 
                 // If a match is found
-                if (idx > -1)
+                if (result != null)
                 {
-
                     // If the user doesn't want to move results to the top return
-                    if (!Wordsmith.Configuration.ResearchToTop)
-                        return;
+                    if (Wordsmith.Configuration.ResearchToTop)
+                        _history.Move(result, 0); // Move the result object to the top of the list.
 
-                    // If the last search was not null or an error
-                    if (Result != null && !Result.SearchError)
-                    {
-                        // Move the last search to the history
-                        AddHistoryEntry(Result);
-
-                        // Move the returned index down by one.
-                        ++idx;
-                    }
-
-                    // Get the resulting history item
-                    _result = _history[idx];
-                    _history.RemoveAt(idx);
-                    return;
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                Dalamud.Logging.PluginLog.LogError(ex.Message);
+                PluginLog.LogError(ex.Message);
             }
+            return false;
+        }
 
-            Loading = true;
-            if (Result != null && !Result.SearchError)
-                AddHistoryEntry(Result);
-
+        /// <summary>
+        /// Searches www.merriam-webster.com/thesaurus for thesaurus entries.
+        /// </summary>
+        /// <param name="query">The string to search.</param>
+        protected async void ScrapeWeb(string query)
+        { 
             try
             {
+                PluginLog.LogDebug($"Scraping web for {query}.");
+
                 // Get the HTMl as a string
                 var html = await _client.GetStringAsync("https://www.merriam-webster.com/thesaurus/" + query);
                 _progress = 0.1f;
@@ -181,24 +203,21 @@ namespace Wordsmith.Helpers
                             worker.SelectNodes(".//a")?.Select(n => n.InnerText).ToArray() ??
                             worker.SelectSingleNode(".//ul[@class='mw-list']").SelectNodes(".//span").Select(n => n.InnerText).ToArray());
 
-
-                    // This is a comment that shows the debug window
-                    Dalamud.Logging.PluginLog.Log($"{query}##{result.ID}",$"{tEntry.Type} - {tEntry.Definition} - Synonyms: - {tEntry.SynonymString}--Related Words:-{tEntry.RelatedString}--Near Antonyms:-{tEntry.NearAntonymString}--Antonyms:-{tEntry.AntonymString}");
+                    // Add the entry to the result object.
                     result.AddEntry(tEntry);
-
-                    _result = result;
                 }
+
+                // Add the result to the history
+                AddHistoryEntry(result);
             }
-            catch (HttpRequestException ex)
+            catch (HttpRequestException)
             {
-                _result = new Data.WordSearchResult(query) { Exception = new Exception($"{query} was not found in the thesaurus.") };
+                Error = new Exception($"{query} was not found in the thesaurus.");
             }
             catch (Exception ex)
             {
-                _result = new Data.WordSearchResult(query) { Exception = ex};
+                Error = ex;
             }
-
-            Loading = false;
         }
 
         public void Dispose()

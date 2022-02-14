@@ -95,7 +95,6 @@ namespace Wordsmith.Gui
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
-            //Flags |= ImGuiWindowFlags.MenuBar;
         }
 
         public override void Draw()
@@ -253,7 +252,13 @@ namespace Wordsmith.Gui
             }
 
             ImGui.SetNextItemWidth(-1);
-            ImGui.InputTextWithHint("##TextEntryBox", "Type Here...", ref _scratch, 4096);            
+            if (ImGui.InputTextWithHint("##TextEntryBox", "Type Here...", ref _scratch, 4096, ImGuiInputTextFlags.EnterReturnsTrue))
+            {
+                if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 1)
+                    DoSpellCheck();
+                else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 2)
+                    DoCopyToClipboard();
+            }
         }
         
         protected void DrawWordReplacement()
@@ -314,7 +319,7 @@ namespace Wordsmith.Gui
 
                 ImGui.TableNextColumn();
                 if (ImGui.Button($"Copy{(_chatType > 0 ? $" with {_chatHeaders[_chatType]}" : "")}{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", new(-1, 20)))
-                    OnCopyButton();
+                    DoCopyToClipboard();
 
                 ImGui.TableNextColumn();
                 if (ImGui.Button($"Clear", new(-1, 20)))
@@ -323,16 +328,8 @@ namespace Wordsmith.Gui
                 // Spell Check button.
                 ImGui.TableNextColumn();
                 if (ImGui.Button($"Spell Check", new(-1, 20)))
-                {
-                    _error = "";
-                    _notice = "";
+                    DoSpellCheck();
 
-                    _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch));
-                    if (_corrections.Count > 0)
-                        _error = $"Found {_corrections.Count} spelling errors.";
-                    else
-                        _notice = "No spelling errors found.";
-                }
                 ImGui.EndTable();
             }
 
@@ -346,16 +343,35 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Gets the next chunk of text and copies it to the player's clipboard.
         /// </summary>
-        protected void OnCopyButton()
+        protected void DoCopyToClipboard()
         {
             // Copy the next chunk over.
             ImGui.SetClipboardText(_chunks?[_nextChunk++] ?? "");
 
-            // If we copied the last chunk start at the beginning.
-            if (_nextChunk == _chunks?.Length)
-                _nextChunk = 0;
+            // If we're not at the last chunk, return.
+            if (_nextChunk < _chunks?.Length)
+                return;
+
+            // After this point, we assume we've copied the last chunk.
+            _nextChunk = 0;
+
+            // If configured to clear text after last copy
+            if (Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
+                _scratch = "";
         }
 
+
+        protected void DoSpellCheck()
+        {
+            _error = "";
+            _notice = "";
+
+            _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch));
+            if (_corrections.Count > 0)
+                _error = $"Found {_corrections.Count} spelling errors.";
+            else
+                _notice = "No spelling errors found.";
+        }
         /// <summary>
         /// Replaces spelling errors with the given text or ignores an error if _replaceText is blank
         /// </summary>

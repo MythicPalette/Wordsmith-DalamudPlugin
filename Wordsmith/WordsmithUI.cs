@@ -20,6 +20,8 @@ namespace Wordsmith
         public static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
         public static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
         public static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
+        public static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
+        public static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
 
         private static void Show<T>(string name)
         {
