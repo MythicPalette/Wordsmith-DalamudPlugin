@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Text;
+using System.Linq;
 using System.Collections.Generic;
 using ImGuiNET;
 using Dalamud.Interface;
@@ -111,6 +111,26 @@ namespace Wordsmith.Gui
         {
             if (ImGui.BeginMenuBar())
             {
+                if (ImGui.BeginMenu("Scratch Pads##ScratchPadMenu"))
+                {
+                    // New scratchpad button.
+                    if (ImGui.MenuItem($"New Scratch Pad##NewScratchPadMenuItem"))
+                        WordsmithUI.ShowScratchPad(-1); // -1 id always creates a new scratch pad.
+
+                    foreach (ScratchPadUI w in WordsmithUI.Windows.Where(x => x.GetType() == typeof(ScratchPadUI)).ToArray())
+                    {
+                        if (w.GetType() != typeof(ScratchPadUI))
+                        {
+                            PluginLog.Log("Wrong window type");
+                            continue;
+                        }
+
+                        if (ImGui.MenuItem($"{w.WindowName}"))
+                            WordsmithUI.ShowScratchPad(w.ID);
+                    }
+
+                    ImGui.EndMenu();
+                }
                 if (ImGui.BeginMenu($"Text##ScratchPad{ID}TextMenu"))
                 {
                     if (ImGui.MenuItem($"Clear##ScratchPad{ID}TextClearMenuItem"))
