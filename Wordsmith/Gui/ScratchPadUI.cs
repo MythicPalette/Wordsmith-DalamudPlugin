@@ -97,7 +97,7 @@ namespace Wordsmith.Gui
         public override void Draw()
         {
             //DrawMenu();
-            DrawHead();
+            DrawHeader();
             DrawTextEntry();
             DrawWordReplacement();
             DrawFooter();
@@ -174,7 +174,7 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Draws the chat type selection and the tell target entry box if set to /tell
         /// </summary>
-        protected void DrawHead()
+        protected void DrawHeader()
         {
             if (_error != "")
             {
@@ -199,7 +199,7 @@ namespace Wordsmith.Gui
                 }
                 else
                     ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 60 * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn($"Scratchpad{ID}HelpButtonColumn", ImGuiTableColumnFlags.WidthFixed, 25 * ImGuiHelpers.GlobalScale);
 
 
@@ -222,7 +222,8 @@ namespace Wordsmith.Gui
 
                 //ImGui.SameLine();
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"?##ScratchPad{ID}HelpButton", ImGuiHelpers.ScaledVector2(20, 20)))
+                ImGui.SetNextItemWidth(-1);
+                if (ImGui.Button($"?##ScratchPad{ID}HelpButton"))
                     WordsmithUI.ShowScratchPadHelp();
 
                 ImGui.EndTable();
@@ -232,7 +233,7 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Draws the chat with a single line entry and a wrapped text frame above it for proofreading.
         /// </summary>
-        protected unsafe void DrawTextEntry()
+        protected void DrawTextEntry()
         {
             int FooterHeight = 110;
             if (_corrections.Count > 0)
