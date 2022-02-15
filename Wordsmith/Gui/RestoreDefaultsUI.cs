@@ -22,25 +22,7 @@ namespace Wordsmith.Gui
             ImGui.Text("Proceed?");
 
             if (ImGui.Button("Yes##RestoreDefaultSettingsConfirmedButton", ImGuiHelpers.ScaledVector2(120, 20)))
-            {
-                // Thesaurus settings.
-                Wordsmith.Configuration.SearchHistoryCount = 10;
-                Wordsmith.Configuration.ResearchToTop = true;
-
-                // Scratch Pad settings
-                Wordsmith.Configuration.DeleteClosedScratchPads = false;
-                Wordsmith.Configuration.IgnoreWordsEndingInHyphen = true;
-                Wordsmith.Configuration.PunctuationCleaningList = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/";
-                Wordsmith.Configuration.ShowTextInChunks = true;
-                Wordsmith.Configuration.BreakOnSentence = true;
-                Wordsmith.Configuration.AutomaticallyClearAfterLastCopy = false;
-                Wordsmith.Configuration.ScratchPadTextEnterBehavior = 0;
-
-                // Spell Check settings
-                Wordsmith.Configuration.DictionaryFile = "lang_en";
-
-                Wordsmith.Configuration.Save();
-            }
+                Wordsmith.Configuration.ResetToDefault();
 
             ImGui.SameLine();
             if (ImGui.Button("Cancel##RestoreDefaultSettingsAbortedButton", ImGuiHelpers.ScaledVector2(120, 20)))

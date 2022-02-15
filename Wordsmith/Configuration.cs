@@ -39,6 +39,16 @@ namespace Wordsmith
         public bool BreakOnSentence { get; set; } = true;
 
         /// <summary>
+        /// The symbols to consider the end of a sentence.
+        /// </summary>
+        public string SplitPointDefinitions { get; set; } = ".?!";
+
+        /// <summary>
+        /// The symbols that count as encapsulation characters. These can be next to SplitPoints.
+        /// </summary>
+        public string EncapsulationCharacters { get; set; } = "\"'*-";
+
+        /// <summary>
         /// If true, scratch pads will automatically clear their text after copying the last block.
         /// </summary>
         public bool AutomaticallyClearAfterLastCopy { get; set; } = false;
@@ -48,6 +58,9 @@ namespace Wordsmith
         /// </summary>
         public int ScratchPadTextEnterBehavior { get; set; } = 0;
 
+        /// <summary>
+        /// Maximum length of input on ScratchPads
+        /// </summary>
         public int ScratchPadMaximumTextLength { get; set; } = 4096;
 
         /// <summary>
@@ -72,6 +85,31 @@ namespace Wordsmith
         private DalamudPluginInterface? pluginInterface;
 
         public void Initialize(DalamudPluginInterface pluginInterface) => this.pluginInterface = pluginInterface;
+
+        public void ResetToDefault()
+        {
+            // Thesaurus settings.
+            SearchHistoryCount = 10;
+            ResearchToTop = true;
+
+            // Scratch Pad settings
+            DeleteClosedScratchPads = false;
+            IgnoreWordsEndingInHyphen = true;
+            PunctuationCleaningList = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/";
+            ShowTextInChunks = true;
+            BreakOnSentence = true;
+            SplitPointDefinitions = ".?!";
+            EncapsulationCharacters = "\"'*-";
+            AutomaticallyClearAfterLastCopy = false;
+            ScratchPadTextEnterBehavior = 0;
+            ScratchPadMaximumTextLength = 4096;
+            ReplaceDoubleSpaces = true;
+
+            // Spell Check settings
+            DictionaryFile = "lang_en";
+
+            Save();
+        }
         public void Save() => this.pluginInterface!.SavePluginConfig(this);
         
     }

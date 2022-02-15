@@ -382,29 +382,38 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void OnReplace()
         {
-            // If the text box is not empty
-            if (_replaceText.Length > 0)
+            try
             {
-                Data.WordCorrection correct = _corrections[0];
-                // Break apart the words.
-                string[] words = _scratch.Split(' ');
+                // If the text box is not empty
+                if (_replaceText.Length > 0)
+                {
+                    // Get the first object
+                    Data.WordCorrection correct = _corrections[0];
 
-                // Replace the content of the word in question.
-                words[correct.Index] = _replaceText + words[correct.Index].Remove(0, correct.Original.Length);
+                    // Break apart the words.
+                    string[] words = _scratch.Split(' ');
 
-                _overrideRefresh = true;
-                // Replace the user's original text with the new words.
-                _scratch = string.Join(' ', words);
+                    // Replace the content of the word in question.
+                    words[correct.Index] = _replaceText + words[correct.Index].Remove(0, correct.Original.Length);
 
-                // Clear out replacement text.
-                _replaceText = "";
+                    _overrideRefresh = true;
+                    // Replace the user's original text with the new words.
+                    _scratch = string.Join(' ', words);
+
+                    // Clear out replacement text.
+                    _replaceText = "";
+                }
+
+                // Remove the spelling error.
+                _corrections.RemoveAt(0);
+
+                if (_corrections.Count == 0)
+                    _overrideRefresh = false;
             }
-
-            // Remove the spelling error.
-            _corrections.RemoveAt(0);
-
-            if (_corrections.Count == 0)
-                _overrideRefresh = false;
+            catch (Exception e)
+            {
+                PluginLog.LogError(e.ToString());
+            }
         }
 
         /// <summary>

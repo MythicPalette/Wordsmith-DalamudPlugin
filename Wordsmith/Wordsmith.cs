@@ -14,7 +14,7 @@ namespace Wordsmith
         public static readonly string AppName = "Wordsmith";
         public string Name => AppName;
         private const string THES_CMD_STRING = "/thesaurus";
-        private const string SETTINGS_CMD_STRING = "/wordsmithconfig";
+        private const string SETTINGS_CMD_STRING = "/wordsmith";
         private const string SCRATCH_CMD_STRING = "/scratchpad";
 
         public DalamudPluginInterface PluginInterface { get; init; }

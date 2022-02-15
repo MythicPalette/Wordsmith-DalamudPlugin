@@ -6,7 +6,7 @@ namespace Wordsmith.Gui
 {
     public class SettingsUI : Window
     {
-        private const int FOOTER_HEIGHT = 75;
+        private const int FOOTER_HEIGHT = 55;
 
         // Thesaurus settings.
         private int _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
@@ -21,6 +21,8 @@ namespace Wordsmith.Gui
         private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
         private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
         private int _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
+        private string _scratchSplitPoints = Wordsmith.Configuration.SplitPointDefinitions;
+        private string _scratchEncapChars = Wordsmith.Configuration.EncapsulationCharacters;
 
         // Dictionary Settings
         private string _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
@@ -117,6 +119,12 @@ namespace Wordsmith.Gui
                     ImGui.TextWrapped("Note: The higher the text length, the more memory it will use (up to 8MB)");
                     ImGui.Separator();
                     ImGui.Combo("Enter Key Behavior", ref _scratchEnter, new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
+                    ImGui.Separator();
+                    ImGui.TextWrapped($"Each of the characters in the text below can mark the end of a sentence. i.e. \"A.B\" is not a sentence terminator but \"A. B\" is.");
+                    ImGui.InputText("##ScratchPadSplitCharsText", ref _scratchSplitPoints, 32);
+                    ImGui.Separator();
+                    ImGui.TextWrapped($"Each of the characters in the text below marks the end of an encapsulator. This is used with sentence terminators in case of encapsulation i.e. \"A) B\" will not count but \"A.) B\" will.");
+                    ImGui.InputText($"##ScratchPadEncapCharsText", ref _scratchEncapChars, 32);
                     ImGui.EndChild();
                 }
                 ImGui.EndTabItem();
@@ -255,6 +263,12 @@ namespace Wordsmith.Gui
 
             if (_scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
                 Wordsmith.Configuration.ScratchPadTextEnterBehavior = _scratchEnter;
+
+            if (_scratchSplitPoints != Wordsmith.Configuration.SplitPointDefinitions)
+                Wordsmith.Configuration.SplitPointDefinitions = _scratchSplitPoints;
+
+            if (_scratchEncapChars != Wordsmith.Configuration.EncapsulationCharacters)
+                Wordsmith.Configuration.EncapsulationCharacters = _scratchEncapChars;
 
             // Spell Check settings.
             if (_dictionaryFilename != Wordsmith.Configuration.DictionaryFile)

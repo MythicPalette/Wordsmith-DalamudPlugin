@@ -99,8 +99,21 @@ namespace Wordsmith.Helpers
                     // If it is, take note of it.
                     lastSpace = length;
 
-                    if (".?!".Contains(text[offset + length - 1]))
+                    // If the character is a split point 
+                    if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 1]))
                         lastSentence = length;
+
+                    // If there are more characters previous
+                    else if (offset+length -2 >= 0)
+                    {
+                        // Check if we have a case of encapsulation like (Hello.)
+                        if(Wordsmith.Configuration.EncapsulationCharacters.Contains(text[offset+length-1]))
+                        {
+                            // If the character is a split point 
+                            if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 2]))
+                                lastSentence = length;
+                        }
+                    }
                 }
             }
 
