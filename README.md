@@ -18,7 +18,7 @@ The Scratch Pads are the star feature here. You enter the text into the textbox 
 ## Experimental Scratch Pad UI
 ![Screenshot_42](https://user-images.githubusercontent.com/67084868/154022261-feef8d01-8b8e-4da4-8749-c769263a9ead.png)
 
-There is a currently experimental UI for the scratch pad as well. If you notice, this textbox has word wrap! That's write, you can type thousands of characters and actually scroll up and down through large portions of your text all at once to make it so much easier to see what you're doing. Again though, this part is experimental and you might run into a bug or two!
+There is a currently experimental UI for the scratch pad as well. If you notice, this textbox has word wrap! That's right, you can type thousands of characters and actually scroll up and down through large portions of your text all at once to make it so much easier to see what you're doing. Again though, this part is experimental and you might run into a bug or two!
 
 [To Top](#wordsmith)
 
