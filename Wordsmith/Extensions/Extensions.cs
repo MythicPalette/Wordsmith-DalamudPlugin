@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Wordsmith.Helpers
+namespace Wordsmith.Extensions
 {
     public static class Extensions
     {
@@ -48,6 +48,8 @@ namespace Wordsmith.Helpers
                 // Insert it at the new location.
                 list.Insert(index, obj);
         }
+
+
         /// <summary>
         /// Capitalizes the first letter in a string.
         /// </summary>
@@ -59,6 +61,15 @@ namespace Wordsmith.Helpers
                 return char.ToUpper(s[0]).ToString();
             else if (s.Length > 1)
                 return char.ToUpper(s[0]).ToString() + s.Substring(1);
+            return s;
+        }
+
+        public static string FixSpacing(this string s)
+        {
+            do
+            {
+                s = s.Replace("  ", " ");
+            } while (s.Contains("  "));
             return s;
         }
     }

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using HtmlAgilityPack;
 using Dalamud.Logging;
+using Wordsmith.Extensions;
 
 namespace Wordsmith.Helpers
 {

@@ -198,7 +198,10 @@ namespace Wordsmith.Gui
                 ImGui.TableNextColumn();
                 // Reset settings to default.
                 if (ImGui.Button("Restore Defaults", ImGuiHelpers.ScaledVector2(-1, 20)))
+                {
                     WordsmithUI.ShowRestoreSettings();
+                    IsOpen = false;
+                }
 
                 ImGui.TableNextColumn();
                 // Cancel button

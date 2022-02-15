@@ -5,6 +5,7 @@ using ImGuiNET;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Helpers;
+using Wordsmith.Extensions;
 
 namespace Wordsmith.Gui
 {

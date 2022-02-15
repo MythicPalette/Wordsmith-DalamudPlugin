@@ -6,6 +6,7 @@ using ImGuiNET;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Dalamud.Logging;
+using Wordsmith.Extensions;
 
 namespace Wordsmith.Gui
 {
@@ -49,6 +50,12 @@ namespace Wordsmith.Gui
             public override int GetHashCode() => HashCode.Combine(ChatType, ScratchText, UseOOC, TellTarget);
         }
 
+        protected static readonly string[] _chatOptions = new string[] { "None", "Emote (/em)", "Reply (/r)", "Say (/s)", "Party (/p)", "FC (/fc)", "Shout (/sh)", "Yell (/y)", "Tell (/t)", "Linkshells" };
+        protected static readonly string[] _chatHeaders = new string[] { "", "/em", "/r", "/p", "/fc", "/s", "/sh", "/y", "/t", "" };
+        protected const int CHAT_NONE = 0;
+        protected const int CHAT_TELL = 8;
+        protected const int CHAT_LS = 9;
+
         protected static int _nextID = 0;
         public static int LastID => _nextID;
         public static int NextID => _nextID++;
@@ -64,14 +71,47 @@ namespace Wordsmith.Gui
 
         protected int _chatType = 0;
         protected string _scratch = "";
+
+        /// <summary>
+        /// Returns a trimmed, single-line version of scratch.
+        /// </summary>
+        protected string ScratchString => _scratch.Trim().Replace('\n', ' ');
         protected string _telltarget = "";
+        protected int _linkshell = 0;
         protected float _lastWidth = -1;
         protected int _charWidth = 0;
 
         protected bool _useOOC = false;
 
-        protected static readonly string[] _chatOptions = new string[] { "None", "Emote (/em)", "Reply (/r)", "Party (/p)", "FC (/fc)", "Say (/s)", "Shout (/sh)", "Yell (/y)", "Tell (/t)" };
-        protected static readonly string[] _chatHeaders = new string[] { "", "/em", "/r", "/p", "/fc", "/s", "/sh", "/y", "/t" };
+
+        /// <summary>
+        /// Gets the slash command (if one exists) and the tell target if one is needed.
+        /// </summary>
+        protected string GetFullChatHeader()
+        {
+            if (_chatType == CHAT_NONE)
+                return "";
+
+            // Get the slash command.
+            string result = _chatHeaders[_chatType];
+
+            // If /tell get the target or placeholder.
+            if (_chatType == CHAT_TELL)
+                result += $" {_telltarget} ";
+
+            // Generate the linkshell options
+            List<string> ls = new();
+            for (int i = 1; i <= 8; ++i)
+                ls.Add($"/cwlinkshell{i} ");
+            for (int i = 1; i <= 8; ++i)
+                ls.Add($"/linkshell{i} ");
+
+            // Grab the linkshell command.
+            if (_chatType == CHAT_LS)
+                result = ls[_linkshell];
+
+            return result;
+        }
 
         protected int _scratchBufferSize = 4096;
 
@@ -101,9 +141,15 @@ namespace Wordsmith.Gui
             DrawMenu();
             DrawHeader();
             if (Wordsmith.Configuration.UseExperimentalInputText)
+            {
+                DrawChunkDisplay(165);
                 DrawTextEntryExperimental();
+            }
             else
+            {
+                DrawChunkDisplay(110);
                 DrawTextEntry();
+            }
             DrawWordReplacement();
             DrawFooter();
         }
@@ -191,49 +237,67 @@ namespace Wordsmith.Gui
                 ImGui.Separator();
             }
 
-            int columns = 2 + (_chatType == 8 ? 1 : 0);
+            int columns = 2 + (_chatType >= CHAT_TELL ? 1 : 0);
             if (ImGui.BeginTable($"##ScratchPad{ID}HeaderTable", columns))
             {
-                
-                if (_chatType == 8)
+                // Setup 2-3 columns depending on the selected chat header.
+                if (_chatType >= CHAT_TELL)
                 {
                     ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 120 * ImGuiHelpers.GlobalScale);
-                    ImGui.TableSetupColumn($"ScratchPad{ID}TellTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+                    ImGui.TableSetupColumn($"ScratchPad{ID}CustomTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2);
                 }
                 else
                     ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
                 ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale);
 
 
-                //ImGui.SetNextItemWidth((_chatType != 8 ? ImGui.GetWindowWidth() - 120 : 100));
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
-                ImGui.Combo($"##ScratchPad{ID}ChatTypeCombo", ref _chatType, _chatOptions, 9);
-                if (_chatType == _chatHeaders.Length - 1)
+
+                ImGui.Combo($"##ScratchPad{ID}ChatTypeCombo", ref _chatType, _chatOptions, _chatOptions.Length);
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Select the chat header.");
+
+                if (_chatType == CHAT_TELL)
                 {
-                    //ImGui.SameLine();
                     ImGui.TableNextColumn();
-                    //ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 220);
                     ImGui.SetNextItemWidth(-1);
                     ImGui.InputTextWithHint("##TellTargetText", "User Name@World", ref _telltarget, 128);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Enter the user and world or a placeholder here.");
+                }
+                else if (_chatType == CHAT_LS)
+                {
+                    ImGui.TableNextColumn();
+                    ImGui.SetNextItemWidth(-1);
+                    //ImGui.InputTextWithHint("##CustomTargetText", "/header...", ref _telltarget, 128);
+                    List<string> ls = new();
+                    for (int i = 1; i <= 8; ++i)
+                        ls.Add($"CW Linkshell {i}");
+                    for (int i = 1; i <= 8; ++i)
+                        ls.Add($"Linkshell {i}");
+
+                    ImGui.Combo($"##ScratchPad{ID}LinkshellCombo", ref _linkshell, ls.ToArray(), ls.Count);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Enter a custom targer here such as /cwls1.");
                 }
 
-                //ImGui.SameLine();
                 ImGui.TableNextColumn();
                 ImGui.Checkbox("((OOC))", ref _useOOC);
-
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Enables or disables OOC double parenthesis.");
                 ImGui.EndTable();
             }
         }
 
         /// <summary>
-        /// Draws the chat with a single line entry and a wrapped text frame above it for proofreading.
+        /// Draws the text chunk display.
         /// </summary>
-        protected void DrawTextEntry()
+        /// <param name="FooterHeight">The size of the footer elements.</param>
+        protected void DrawChunkDisplay(int FooterHeight)
         {
-            int FooterHeight = 110;
             if (_corrections.Count > 0)
-                FooterHeight += 25;
+                FooterHeight += 32;
 
             if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - (FooterHeight * ImGuiHelpers.GlobalScale))))
             {
@@ -241,10 +305,16 @@ namespace Wordsmith.Gui
                 if (Wordsmith.Configuration.ShowTextInChunks)
                     ImGui.TextWrapped($"{string.Join("\n\n", _chunks ?? new string[] { })}");
                 else
-                    ImGui.TextWrapped($"{(_chatType > 0 ? $"{_chatHeaders[_chatType]} " : "")}{(_chatType == 8 ? $"{_telltarget} " : "")}{(_useOOC ? "(( " : "")}{_scratch.Replace('\n', ' ')}{(_useOOC ? " ))" : "")}");
+                    ImGui.TextWrapped($"{GetFullChatHeader()}{(_useOOC ? "(( " : "")}{ScratchString}{(_useOOC ? " ))" : "")}");
                 ImGui.EndChild();
             }
+        }
 
+        /// <summary>
+        /// Draws a single line entry.
+        /// </summary>
+        protected void DrawTextEntry()
+        {
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextWithHint("##TextEntryBox", "Type Here...", ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, ImGuiInputTextFlags.EnterReturnsTrue))
             {
@@ -256,22 +326,11 @@ namespace Wordsmith.Gui
             }
         }
 
+        /// <summary>
+        /// Draws a multiline text entry.
+        /// </summary>
         protected unsafe void DrawTextEntryExperimental()
         {
-            int FooterHeight = 110 + 55;
-            if (_corrections.Count > 0)
-                FooterHeight += 25;
-
-            if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - (FooterHeight * ImGuiHelpers.GlobalScale))))
-            {
-                ImGui.SetNextItemWidth(-1);
-                if (Wordsmith.Configuration.ShowTextInChunks)
-                    ImGui.TextWrapped($"{string.Join("\n\n", _chunks ?? new string[] { })}");
-                else
-                    ImGui.TextWrapped($"{(_chatType > 0 ? $"{_chatHeaders[_chatType]} " : "")}{(_chatType == 8 ? $"{_telltarget} " : "")}{(_useOOC ? "(( " : "")}{_scratch.Replace('\n', ' ')}{(_useOOC ? " ))" : "")}");
-                ImGui.EndChild();
-            }
-
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputTextMultiline($"##MultilineTextEntry",
                 ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength,
@@ -346,7 +405,7 @@ namespace Wordsmith.Gui
                 ImGui.TableSetupColumn($"{ID}FooterSpellCheckButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
 
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Copy{(_chatType > 0 ? $" with {_chatHeaders[_chatType]}" : "")}{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", ImGuiHelpers.ScaledVector2(-1, 20)))
+                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", ImGuiHelpers.ScaledVector2(-1, 20)))
                     DoCopyToClipboard();
 
                 ImGui.TableNextColumn();
@@ -472,20 +531,11 @@ namespace Wordsmith.Gui
             txt = txt.TrimEnd('\n', '\r').TrimStart();
 
             // Replace all remaining new lines with spaces
-            txt = txt.Replace("\n", " ");
+            txt = txt.Replace('\n', ' ');
 
-            // If replacing double spaces
+            // Replace double spaces if configured to do so.
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
-            {
-                do
-                {
-                    // Replace all double spaces with a single space
-                    txt = txt.Replace("  ", " ");
-
-                    // Without looping, it's possible not all double spaces will
-                    // be removed.
-                } while (txt.Contains("  "));
-            }
+                txt = txt.FixSpacing();
 
             // Get the maximum allowed character width.
             float width = ImGui.GetWindowWidth() - (32 * ImGuiHelpers.GlobalScale);
@@ -552,12 +602,7 @@ namespace Wordsmith.Gui
             PadState newState = GetState();
 
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
-            {
-                do
-                {
-                    _scratch = _scratch.Replace("  ", " ");
-                } while (_scratch.Contains("  "));
-            }
+                _scratch = _scratch.FixSpacing();
 
             if (_overrideRefresh)
             {
@@ -574,7 +619,7 @@ namespace Wordsmith.Gui
                 _corrections = new();
 
                 _lastState = newState;
-                _chunks = Helpers.ChatHelper.FFXIVify($"{(_chatType > 0 ? $"{_chatHeaders[_chatType]} " : "")}{(_chatType == 8 ? $"{_telltarget} " : "")}", _scratch.Replace('\n', ' '), _useOOC);
+                _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);
                 _nextChunk = 0;
             }
         }

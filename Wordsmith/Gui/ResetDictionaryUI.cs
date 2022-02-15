@@ -26,6 +26,7 @@ namespace Wordsmith.Gui
                 // Thesaurus settings.
                 Wordsmith.Configuration.CustomDictionaryEntries = new();
                 Wordsmith.Configuration.Save();
+                IsOpen = false;
             }
 
             ImGui.SameLine();

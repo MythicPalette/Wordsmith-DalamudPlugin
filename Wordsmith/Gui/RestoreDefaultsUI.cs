@@ -22,7 +22,10 @@ namespace Wordsmith.Gui
             ImGui.Text("Proceed?");
 
             if (ImGui.Button("Yes##RestoreDefaultSettingsConfirmedButton", ImGuiHelpers.ScaledVector2(120, 20)))
+            {
                 Wordsmith.Configuration.ResetToDefault();
+                IsOpen = false;
+            }
 
             ImGui.SameLine();
             if (ImGui.Button("Cancel##RestoreDefaultSettingsAbortedButton", ImGuiHelpers.ScaledVector2(120, 20)))
