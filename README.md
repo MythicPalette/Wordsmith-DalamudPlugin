@@ -58,4 +58,4 @@ The thesaurus references a large library of synonyms, antonyms, and related word
 ![Screenshot_48](https://user-images.githubusercontent.com/67084868/154162943-0b184d42-5e6b-4254-93cd-0d824d49f529.png)
 
 Installation is fairly easy.
-Add [this link](https://raw.githubusercontent.com/LadyDefile/DalamudPlugins/main/plugins.json) https://raw.githubusercontent.com/LadyDefile/DalamudPlugins/main/plugins.json to your third-party repositories in your plugin settings, save, and find Wordsmith. That easy.
+Add https://raw.githubusercontent.com/LadyDefile/DalamudPlugins/main/plugins.json to your third-party repositories in your plugin settings, save, and find Wordsmith. That easy.
