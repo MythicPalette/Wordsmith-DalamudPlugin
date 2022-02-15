@@ -6,7 +6,7 @@ namespace Wordsmith.Gui
 {
     public class SettingsUI : Window
     {
-        private const int FOOTER_HEIGHT = 55;
+        private const int FOOTER_HEIGHT = 100;
 
         // Thesaurus settings.
         private int _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
@@ -23,6 +23,7 @@ namespace Wordsmith.Gui
         private int _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
         private string _scratchSplitPoints = Wordsmith.Configuration.SplitPointDefinitions;
         private string _scratchEncapChars = Wordsmith.Configuration.EncapsulationCharacters;
+        private bool _scratchExperimentalUI = Wordsmith.Configuration.UseExperimentalInputText;
 
         // Dictionary Settings
         private string _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
@@ -41,7 +42,7 @@ namespace Wordsmith.Gui
             SizeConstraints = new WindowSizeConstraints()
             {
                 MinimumSize = ImGuiHelpers.ScaledVector2(400, 375),
-                MaximumSize = ImGuiHelpers.ScaledVector2(float.MaxValue, float.MaxValue)
+                MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
             };
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -78,7 +79,7 @@ namespace Wordsmith.Gui
         {
             if (ImGui.BeginTabItem("Thesaurus##SettingsUITabItem"))
             {
-                if (ImGui.BeginChild("ThesaurusSettingsChildFrame", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT)))
+                if (ImGui.BeginChild("ThesaurusSettingsChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
                 {
                     //Search history count
                     //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
@@ -101,7 +102,7 @@ namespace Wordsmith.Gui
         {
             if (ImGui.BeginTabItem("Scratch Pad##SettingsUITabItem"))
             {
-                if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT)))
+                if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
                 {
                     ImGui.Checkbox("Auto-delete Scratch Pads on close##SettingsUICheckbox", ref _deleteClosed);
                     ImGui.Separator();
@@ -125,6 +126,10 @@ namespace Wordsmith.Gui
                     ImGui.Separator();
                     ImGui.TextWrapped($"Each of the characters in the text below marks the end of an encapsulator. This is used with sentence terminators in case of encapsulation i.e. \"A) B\" will not count but \"A.) B\" will.");
                     ImGui.InputText($"##ScratchPadEncapCharsText", ref _scratchEncapChars, 32);
+                    ImGui.Separator();
+                    ImGui.TextColored(new(255, 0, 0, 255), "WARNING: Experimental.");
+                    ImGui.TextWrapped($"These are experimental features and may have more bugs than usual, including game-crashing bugs. While I have done my best to ensure this doesn't happen, these are still experimental options until proven stable.");
+                    ImGui.Checkbox($"Scratch Pad Multi Line Text Entry", ref _scratchExperimentalUI);
                     ImGui.EndChild();
                 }
                 ImGui.EndTabItem();
@@ -135,7 +140,7 @@ namespace Wordsmith.Gui
         {
             if (ImGui.BeginTabItem("Spell Check##SettingsUITabItem"))
             {
-                if (ImGui.BeginChild("DictionarySettingsChild", ImGuiHelpers.ScaledVector2(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT)))
+                if (ImGui.BeginChild("DictionarySettingsChild", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
                 {
                     ImGui.InputText("Dictionary Filename", ref _dictionaryFilename, 128);
                     ImGui.Separator();
@@ -225,6 +230,9 @@ namespace Wordsmith.Gui
             _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
             _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
             _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
+            _scratchSplitPoints = Wordsmith.Configuration.SplitPointDefinitions;
+            _scratchEncapChars = Wordsmith.Configuration.EncapsulationCharacters;
+            _scratchExperimentalUI = Wordsmith.Configuration.UseExperimentalInputText;
 
         // Dictionary Settings
         _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
@@ -269,6 +277,9 @@ namespace Wordsmith.Gui
 
             if (_scratchEncapChars != Wordsmith.Configuration.EncapsulationCharacters)
                 Wordsmith.Configuration.EncapsulationCharacters = _scratchEncapChars;
+
+            if (_scratchExperimentalUI != Wordsmith.Configuration.UseExperimentalInputText)
+                Wordsmith.Configuration.UseExperimentalInputText = _scratchExperimentalUI;
 
             // Spell Check settings.
             if (_dictionaryFilename != Wordsmith.Configuration.DictionaryFile)

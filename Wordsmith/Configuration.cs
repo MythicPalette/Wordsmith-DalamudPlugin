@@ -14,7 +14,7 @@ namespace Wordsmith
         public bool ResearchToTop { get; set; } = true;
 
         // Scratch Pad settings
-        public bool DeleteClosedScratchPads { get; set; } = false;
+        public bool DeleteClosedScratchPads { get; set; } = true;
 
         /// <summary>
         /// If true, the spellchecker will not attempt to match words ending in a hyphen.
@@ -68,6 +68,11 @@ namespace Wordsmith
         /// </summary>
         public bool ReplaceDoubleSpaces { get; set; } = true;
 
+        /// <summary>
+        /// Enables the experimental multiline text input.
+        /// </summary>
+        public bool UseExperimentalInputText { get; set; } = false;
+
         // Spell Check settings.
         /// <summary>
         /// Holds the dictionary of words added by the user.
@@ -104,13 +109,18 @@ namespace Wordsmith
             ScratchPadTextEnterBehavior = 0;
             ScratchPadMaximumTextLength = 4096;
             ReplaceDoubleSpaces = true;
+            UseExperimentalInputText = false;
 
             // Spell Check settings
             DictionaryFile = "lang_en";
 
             Save();
         }
-        public void Save() => this.pluginInterface!.SavePluginConfig(this);
+        public void Save()
+        {
+            this.pluginInterface!.SavePluginConfig(this);
+            pluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+        }
         
     }
 }

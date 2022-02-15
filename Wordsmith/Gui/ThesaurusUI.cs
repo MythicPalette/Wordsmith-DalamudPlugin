@@ -30,7 +30,7 @@ namespace Wordsmith.Gui
             SizeConstraints = new WindowSizeConstraints()
             {
                 MinimumSize = ImGuiHelpers.ScaledVector2(375, 330),
-                MaximumSize = ImGuiHelpers.ScaledVector2(float.MaxValue, float.MaxValue)
+                MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
             };
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
