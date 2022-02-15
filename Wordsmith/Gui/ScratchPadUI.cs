@@ -79,7 +79,7 @@ namespace Wordsmith.Gui
 
         protected string _replaceText = "";
 
-        public ScratchPadUI() :base($"{Wordsmith.AppName} - Scratch Pad #{_nextID}")
+        public ScratchPadUI() : base($"{Wordsmith.AppName} - Scratch Pad #{_nextID}")
         {
             ID = NextID;
             IsOpen = true;
@@ -92,11 +92,12 @@ namespace Wordsmith.Gui
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
+            Flags |= ImGuiWindowFlags.MenuBar;
         }
 
         public override void Draw()
         {
-            //DrawMenu();
+            DrawMenu();
             DrawHeader();
             DrawTextEntry();
             DrawWordReplacement();
@@ -136,37 +137,11 @@ namespace Wordsmith.Gui
                     }
                     ImGui.EndMenu();
                 }
-                if (ImGui.BeginMenu($"Settings##ScratchPad{ID}SettingsMenu"))
-                {
-                    if (ImGui.MenuItem($"Delete on close", "", Wordsmith.Configuration.DeleteClosedScratchPads))
-                    {
-                        Wordsmith.Configuration.DeleteClosedScratchPads = !Wordsmith.Configuration.DeleteClosedScratchPads;
-                        _refreshRequired = true;
-                        Wordsmith.Configuration.Save();
-                    }
-                    if (ImGui.MenuItem($"Don't spellcheck hyphenated words", "", Wordsmith.Configuration.IgnoreWordsEndingInHyphen))
-                    { 
-                        Wordsmith.Configuration.IgnoreWordsEndingInHyphen = !Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
-                        _refreshRequired = true;
-                        Wordsmith.Configuration.Save();
-                    }
+                if (ImGui.MenuItem($"Thesaurus##ScratchPad{ID}ThesaurusMenu"))
+                    WordsmithUI.ShowThesaurus();
 
-                    if (ImGui.MenuItem($"Show text in blocks", "", Wordsmith.Configuration.ShowTextInChunks))
-                    { 
-                        Wordsmith.Configuration.ShowTextInChunks = !Wordsmith.Configuration.ShowTextInChunks;
-                        _refreshRequired = true;
-                        Wordsmith.Configuration.Save();
-                    }
-
-                    if (ImGui.MenuItem($"Attempt to form blocks by sentence", "", Wordsmith.Configuration.BreakOnSentence))
-                    { 
-                        Wordsmith.Configuration.BreakOnSentence = !Wordsmith.Configuration.BreakOnSentence;
-                        _refreshRequired = true;
-                        Wordsmith.Configuration.Save();
-                    }
-
-                    ImGui.EndMenu();
-                }
+                if (ImGui.MenuItem($"Settings##ScratchPad{ID}SettingsMenu"))
+                    WordsmithUI.ShowSettings();
                 ImGui.EndMenuBar();
             }
         }

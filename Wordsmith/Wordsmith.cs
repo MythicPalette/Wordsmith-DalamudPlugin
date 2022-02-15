@@ -13,8 +13,9 @@ namespace Wordsmith
 
         public static readonly string AppName = "Wordsmith";
         public string Name => AppName;
-        private const string MAIN_CMD_STRING = "/wordsmith";
+        private const string THES_CMD_STRING = "/thesaurus";
         private const string SETTINGS_CMD_STRING = "/wordsmithconfig";
+        private const string SCRATCH_CMD_STRING = "/scratchpad";
 
         public DalamudPluginInterface PluginInterface { get; init; }
         public CommandManager CommandManager { get; init; }
@@ -34,14 +35,19 @@ namespace Wordsmith
             //var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
             //var goatImage = this.PluginInterface.UiBuilder.LoadImage(imagePath);
 
-            this.CommandManager.AddHandler(MAIN_CMD_STRING, new CommandInfo(OnMainCommand)
+            this.CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo(OnMainCommand)
             {
-                HelpMessage = "Display the main Wordsmith window."
+                HelpMessage = "Display the thesaurus window."
             });
 
             this.CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo(OnSettingsCommand)
             {
                 HelpMessage = "Display the configuration window."
+            });
+
+            this.CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo(OnScratchCommand)
+            {
+                HelpMessage = "Opens a new scratch pad or a specific pad if number given i.e. /scratchpad 5"
             });
 
             this.PluginInterface.UiBuilder.Draw += DrawUI;
@@ -52,12 +58,21 @@ namespace Wordsmith
 
         public void Dispose()
         {
-            this.CommandManager.RemoveHandler(MAIN_CMD_STRING);
+            this.CommandManager.RemoveHandler(THES_CMD_STRING);
             this.CommandManager.RemoveHandler(SETTINGS_CMD_STRING);
+            this.CommandManager.RemoveHandler(SCRATCH_CMD_STRING);
         }
 
-        private void OnMainCommand(string command, string args) => WordsmithUI.ShowMain();
+        private void OnMainCommand(string command, string args) => WordsmithUI.ShowThesaurus();
         private void OnSettingsCommand(string command, string args) => OpenConfig();
+        private void OnScratchCommand(string command, string args)
+        {
+            int x;
+            if (int.TryParse(args.Trim(), out x))
+                WordsmithUI.ShowScratchPad(x);
+            else
+                WordsmithUI.ShowScratchPad(-1);
+        }
 
         private void DrawUI()
         {

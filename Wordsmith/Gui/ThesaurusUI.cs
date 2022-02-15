@@ -35,7 +35,7 @@ namespace Wordsmith.Gui
 
             Flags |= ImGuiWindowFlags.NoScrollbar;
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
-            Flags |= ImGuiWindowFlags.MenuBar;
+            //Flags |= ImGuiWindowFlags.MenuBar;
         }
 
         /// <summary>
@@ -45,7 +45,7 @@ namespace Wordsmith.Gui
         {
             if (!IsOpen) return;
 
-            DrawMenu();
+            //DrawMenu();
             DrawWordSearch();
         }
 
