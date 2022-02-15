@@ -7,6 +7,7 @@ Wordsmith is designed to be the roleplayer's best friend. It has a few features 
 * [OOC toggle!](#ooc-toggle)
 * [Spell Check!](#spell-check)
 * [A thesaurus?!](#thesaurus)
+* [How To Install](#how-to-install)
 
 ## Scratch Pads
 
@@ -14,8 +15,7 @@ Wordsmith is designed to be the roleplayer's best friend. It has a few features 
 
 The Scratch Pads are the star feature here. You enter the text into the textbox at the bottom and it will display the chunks above. When you're done typing, click the "Copy" button. Notice that it changes to say "Copy with ..." if you select a header. It will always copy your chunks with whatever header you choose so you never have to worry about sending to the wrong chat again. When you click copy, it copies the first chunk. Then, if there are 2, 3, or even 20, each click will copy the next chunk in line. It's a simple one click, then paste and send for each chunk with no effort on your part. It will even try to break the text on sentences.
 
-[To Top](#wordsmith)
-
+## Experimental Scratch Pad UI
 ![Screenshot_42](https://user-images.githubusercontent.com/67084868/154022261-feef8d01-8b8e-4da4-8749-c769263a9ead.png)
 
 There is a currently experimental UI for the scratch pad as well. If you notice, this textbox has word wrap! That's write, you can type thousands of characters and actually scroll up and down through large portions of your text all at once to make it so much easier to see what you're doing. Again though, this part is experimental and you might run into a bug or two!
@@ -53,3 +53,9 @@ With a built-in thesaurus, creative writing is easy. Ever roleplayer knows the s
 The thesaurus references a large library of synonyms, antonyms, and related words to bring you great results. Obviously, not everything will return a result, but it's a pretty huge library of words at your finger tips!
 
 [To Top](#wordsmith)
+
+## How To Install
+![Screenshot_48](https://user-images.githubusercontent.com/67084868/154162943-0b184d42-5e6b-4254-93cd-0d824d49f529.png)
+
+Installation is fairly easy.
+Add [this link](https://raw.githubusercontent.com/LadyDefile/DalamudPlugins/main/plugins.json) https://raw.githubusercontent.com/LadyDefile/DalamudPlugins/main/plugins.json to your third-party repositories in your plugin settings, save, and find Wordsmith. That easy.
