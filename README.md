@@ -25,7 +25,7 @@ There is a currently experimental UI for the scratch pad as well. If you notice,
 ## Chunk Headers
 ![Screenshot_44](https://user-images.githubusercontent.com/67084868/154022608-9e8b4898-ff15-4e95-9062-1ad8eadb2ff9.png)![Screenshot_43](https://user-images.githubusercontent.com/67084868/154022620-f1f03fc9-f7b1-41bf-834e-3d45e6b5e291.png)
 
-Chunk Headers are the text that will be put in front of each copied chunk (highlighted by a red box in the screenshots above). Paste with confidence knowing that you'll never paste into the wrong chat again.
+Chunk Headers (highlighted by a red box in the screenshots above) are the text that will be put in front of each copied chunk. Paste with confidence knowing that you'll never paste into the wrong chat again.
 
 [To Top](#wordsmith)
 
