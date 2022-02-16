@@ -19,8 +19,9 @@ namespace Wordsmith.Helpers
             UTF8Encoding encoder = new();
 
             // Get the number of bytes taken by the header.
-            // Note that we remove 4 bytes right off of the top. This is for the (c) ending for roleplay.
-            int availableBytes = 496 - encoder.GetByteCount($"{header} ");
+            // Note that we remove 5 bytes right off of the top as a buffer zone.
+            // We then cut the bytes out required for the header and for the continuation marker.
+            int availableBytes = 495 - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
 
             // If the user is typing into OOC, remove 6 more bytes from the available bytes for the (( )) tags.
             if (OOC)
@@ -42,8 +43,11 @@ namespace Wordsmith.Helpers
 
                 // Add the string to the list with the header and, if offset is not at
                 // the end of the string yet, add the continuation marker for the player.
-                results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}{(offset < text.Length ? " (c)" : "")}");
+                //results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}{(offset < text.Length ? " (c)" : "")}");
+                results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}");
             }
+            for (int i = 0; i < (Wordsmith.Configuration.MarkLastChunk ? results.Count : results.Count - 1); ++i)
+                results[i] += Wordsmith.Configuration.ContinuationMarker.Replace("#c", (i+1).ToString()).Replace("#m", results.Count.ToString());
 
             return results.ToArray();
         }

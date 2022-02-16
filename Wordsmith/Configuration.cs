@@ -14,6 +14,8 @@ namespace Wordsmith
         public bool ResearchToTop { get; set; } = true;
 
         // Scratch Pad settings
+        public string[] CrossWorldLinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
+        public string[] LinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
         public bool DeleteClosedScratchPads { get; set; } = true;
 
         /// <summary>
@@ -47,6 +49,18 @@ namespace Wordsmith
         /// The symbols that count as encapsulation characters. These can be next to SplitPoints.
         /// </summary>
         public string EncapsulationCharacters { get; set; } = "\"'*-";
+
+        /// <summary>
+        /// Specifies the continuation marker to use at the end of each chunk.
+        /// </summary>
+        public string ContinuationMarker { get; set; } = "(c)";
+
+        /// <summary>
+        /// When enabled, it puts the continuation marker on the last chunk as well. This is useful
+        /// when someone uses a continuation marker that has something (1/3) and they want (3/3) on
+        /// the last chunk.
+        /// </summary>
+        public bool MarkLastChunk { get; set; } = false;
 
         /// <summary>
         /// If true, scratch pads will automatically clear their text after copying the last block.

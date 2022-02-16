@@ -50,11 +50,12 @@ namespace Wordsmith.Gui
             public override int GetHashCode() => HashCode.Combine(ChatType, ScratchText, UseOOC, TellTarget);
         }
 
-        protected static readonly string[] _chatOptions = new string[] { "None", "Emote (/em)", "Reply (/r)", "Say (/s)", "Party (/p)", "FC (/fc)", "Shout (/sh)", "Yell (/y)", "Tell (/t)", "Linkshells" };
-        protected static readonly string[] _chatHeaders = new string[] { "", "/em", "/r", "/s", "/p", "/fc", "/sh", "/y", "/t", "" };
+        protected static readonly string[] _chatOptions = new string[] { "None", "Emote (/em)", "Reply (/r)", "Say (/s)", "Party (/p)", "FC (/fc)", "Shout (/sh)", "Yell (/y)", "Tell (/t)", "Linkshells", "Echo" };
+        protected static readonly string[] _chatHeaders = new string[] { "", "/em", "/r", "/s", "/p", "/fc", "/sh", "/y", "/t", "", "/e" };
         protected const int CHAT_NONE = 0;
         protected const int CHAT_TELL = 8;
         protected const int CHAT_LS = 9;
+        protected const int CHAT_ECHO = 10;
 
         protected static int _nextID = 0;
         public static int LastID => _nextID;
@@ -258,11 +259,11 @@ namespace Wordsmith.Gui
             }
 
             // If we're in Tell or Linkshell mode we need an extra column.
-            int columns = 2 + (_chatType >= CHAT_TELL ? 1 : 0);
+            int columns = 2 + (_chatType >= CHAT_TELL && _chatType != CHAT_ECHO ? 1 : 0);
             if (ImGui.BeginTable($"##ScratchPad{ID}HeaderTable", columns))
             {
                 // Setup 2-3 columns depending on the selected chat header.
-                if (_chatType >= CHAT_TELL)
+                if (_chatType >= CHAT_TELL && _chatType != CHAT_ECHO)
                 {
                     ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 90 * ImGuiHelpers.GlobalScale);
                     ImGui.TableSetupColumn($"ScratchPad{ID}CustomTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2);
@@ -297,7 +298,7 @@ namespace Wordsmith.Gui
 
                     ImGui.SameLine();
                     ImGui.SetNextItemWidth(-1);
-                    ImGui.Combo($"##ScratchPad{ID}LinkshellCombo", ref _linkshell, new string[] { "1", "2", "3", "4", "5", "6", "7", "8" }, 8);
+                    ImGui.Combo($"##ScratchPad{ID}LinkshellCombo", ref _linkshell, (_crossWorld ? Wordsmith.Configuration.CrossWorldLinkshellNames : Wordsmith.Configuration.LinkshellNames), 8);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Enter a custom targer here such as /cwls1.");
                 }
@@ -424,21 +425,22 @@ namespace Wordsmith.Gui
         {
             if (ImGui.BeginTable($"{ID}FooterButtonTable", 3))
             {
-                ImGui.TableSetupColumn($"{ID}FooterCopyButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
+                //ImGui.TableSetupColumn($"{ID}ChunkPrevColumn", ImGuiTableColumnFlags.WidthFixed, 20 * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn($"{ID}FooterCopyColumn", ImGuiTableColumnFlags.WidthStretch, 1);
+                //ImGui.TableSetupColumn($"{ID}ChunkNextColumn", ImGuiTableColumnFlags.WidthFixed, 20 * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn($"{ID}FooterClearButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
                 ImGui.TableSetupColumn($"{ID}FooterSpellCheckButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
 
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", ImGuiHelpers.ScaledVector2(-1, 20)))
-                    DoCopyToClipboard();
+                DrawCopyButton();
 
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Clear", ImGuiHelpers.ScaledVector2(-1, 20)))
+                if (ImGui.Button($"Clear", ImGuiHelpers.ScaledVector2(-1, 25)))
                     _scratch = "";
 
                 // Spell Check button.
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Spell Check", ImGuiHelpers.ScaledVector2(-1, 20)))
+                if (ImGui.Button($"Spell Check", ImGuiHelpers.ScaledVector2(-1, 25)))
                     DoSpellCheck();
 
                 ImGui.EndTable();
@@ -446,11 +448,50 @@ namespace Wordsmith.Gui
 
             if (!Wordsmith.Configuration.DeleteClosedScratchPads)
             {
-                if (ImGui.Button($"Delete Pad", ImGuiHelpers.ScaledVector2(-1, 20)))
+                if (ImGui.Button($"Delete Pad", ImGuiHelpers.ScaledVector2(-1, 25)))
                 {
                     this.IsOpen = false;
                     WordsmithUI.RemoveWindow(this);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Draws the copy button depending on how many chunks are available.
+        /// </summary>
+        protected void DrawCopyButton()
+        {
+            if ((_chunks?.Length ?? 0) > 1)
+            {
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(0, 5));
+                ImGui.PushFont(UiBuilder.IconFont);
+                if (ImGui.Button($"{(char)0xF100}##{ID}ChunkBackButton", ImGuiHelpers.ScaledVector2(25, 25)))
+                {
+                    --_nextChunk;
+                    if (_nextChunk < 0)
+                        _nextChunk = _chunks?.Length - 1 ?? 0;
+                }
+                ImGui.PushFont(UiBuilder.DefaultFont);
+
+                ImGui.SameLine();
+                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", new(ImGui.GetColumnWidth() - (23 * ImGuiHelpers.GlobalScale), 25 * ImGuiHelpers.GlobalScale)))
+                    DoCopyToClipboard();
+
+                ImGui.PushFont(UiBuilder.IconFont);
+                ImGui.SameLine();
+                if (ImGui.Button($"{(char)0xF101}##{ID}ChunkBackButton", ImGuiHelpers.ScaledVector2(25, 25)))
+                {
+                    ++_nextChunk;
+                    if (_nextChunk >= (_chunks?.Length ?? 0))
+                        _nextChunk = 0;
+                }
+                ImGui.PushFont(UiBuilder.DefaultFont);
+                ImGui.PopStyleVar();
+            }
+            else
+            {
+                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", new(-1, 25 * ImGuiHelpers.GlobalScale)))
+                    DoCopyToClipboard();
             }
         }
 
@@ -486,7 +527,7 @@ namespace Wordsmith.Gui
             if (_scratch.Length == 0)
                 return;
 
-            _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch.Replace('\n', ' ')));
+            _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch.Replace('\n', ' ').Trim()));
             if (_corrections.Count > 0)
                 _error = $"Found {_corrections.Count} spelling errors.";
             else
