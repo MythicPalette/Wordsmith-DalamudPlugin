@@ -7,6 +7,7 @@ Wordsmith is designed to be the roleplayer's best friend. It has a few features 
 * [OOC toggle!](#ooc-toggle)
 * [Spell Check!](#spell-check)
 * [A thesaurus?!](#thesaurus)
+* [How To Install](#how-to-install)
 
 ## Scratch Pads
 
@@ -14,18 +15,17 @@ Wordsmith is designed to be the roleplayer's best friend. It has a few features 
 
 The Scratch Pads are the star feature here. You enter the text into the textbox at the bottom and it will display the chunks above. When you're done typing, click the "Copy" button. Notice that it changes to say "Copy with ..." if you select a header. It will always copy your chunks with whatever header you choose so you never have to worry about sending to the wrong chat again. When you click copy, it copies the first chunk. Then, if there are 2, 3, or even 20, each click will copy the next chunk in line. It's a simple one click, then paste and send for each chunk with no effort on your part. It will even try to break the text on sentences.
 
-[To Top](#wordsmith)
-
+## Experimental Scratch Pad UI
 ![Screenshot_42](https://user-images.githubusercontent.com/67084868/154022261-feef8d01-8b8e-4da4-8749-c769263a9ead.png)
 
-There is a currently experimental UI for the scratch pad as well. If you notice, this textbox has word wrap! That's write, you can type thousands of characters and actually scroll up and down through large portions of your text all at once to make it so much easier to see what you're doing. Again though, this part is experimental and you might run into a bug or two!
+There is a currently experimental UI for the scratch pad as well. If you notice, this textbox has word wrap! That's right, you can type thousands of characters and actually scroll up and down through large portions of your text all at once to make it so much easier to see what you're doing. Again though, this part is experimental and you might run into a bug or two!
 
 [To Top](#wordsmith)
 
 ## Chunk Headers
 ![Screenshot_44](https://user-images.githubusercontent.com/67084868/154022608-9e8b4898-ff15-4e95-9062-1ad8eadb2ff9.png)![Screenshot_43](https://user-images.githubusercontent.com/67084868/154022620-f1f03fc9-f7b1-41bf-834e-3d45e6b5e291.png)
 
-Chunk Headers are the text that will be put in front of each copied chunk (highlighted by a red box in the screenshots above). Paste with confidence knowing that you'll never paste into the wrong chat again.
+Chunk Headers (highlighted by a red box in the screenshots above) are the text that will be put in front of each copied chunk. Paste with confidence knowing that you'll never paste into the wrong chat again.
 
 [To Top](#wordsmith)
 
@@ -53,3 +53,10 @@ With a built-in thesaurus, creative writing is easy. Ever roleplayer knows the s
 The thesaurus references a large library of synonyms, antonyms, and related words to bring you great results. Obviously, not everything will return a result, but it's a pretty huge library of words at your finger tips!
 
 [To Top](#wordsmith)
+
+## How To Install
+![Screenshot_48](https://user-images.githubusercontent.com/67084868/154162943-0b184d42-5e6b-4254-93cd-0d824d49f529.png)
+
+Installation is fairly easy. First, you must be using Dalamud, the best way to do that is use XivLauncher found [here](https://github.com/goatcorp/FFXIVQuickLauncher). During installation, be sure to enable Dalamud! Once you've done that, go into the game and type /xlsettings to open Dalamud Settings. Go to the "Experimental" tab. You will see "Custom Plugin Repositories" just a little way down. Add https://raw.githubusercontent.com/LadyDefile/DalamudPlugins/main/plugins.json to your custom repositories (copy/paste the link into the text field then click the + button at the end).
+
+Save and type /xlplugins to go find it and click Install. That easy.
