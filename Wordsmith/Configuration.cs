@@ -71,7 +71,7 @@ namespace Wordsmith
         /// <summary>
         /// Enables the experimental multiline text input.
         /// </summary>
-        public bool UseExperimentalInputText { get; set; } = false;
+        public bool UseOldSingleLineInput { get; set; } = false;
 
         // Spell Check settings.
         /// <summary>
@@ -109,7 +109,7 @@ namespace Wordsmith
             ScratchPadTextEnterBehavior = 0;
             ScratchPadMaximumTextLength = 4096;
             ReplaceDoubleSpaces = true;
-            UseExperimentalInputText = false;
+            UseOldSingleLineInput = false;
 
             // Spell Check settings
             DictionaryFile = "lang_en";

@@ -77,6 +77,9 @@ namespace Wordsmith.Helpers
             // Remove white space at the beginning and end. There shouldn't be any but just in case.
             str = str.Trim();
 
+            if (str.EndsWith("'s"))
+                str = str.Substring(0, str.Length - 2);
+
             // Loop
             do
             {

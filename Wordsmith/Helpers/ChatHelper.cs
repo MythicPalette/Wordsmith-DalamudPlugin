@@ -43,9 +43,6 @@ namespace Wordsmith.Helpers
                 // Add the string to the list with the header and, if offset is not at
                 // the end of the string yet, add the continuation marker for the player.
                 results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}{(offset < text.Length ? " (c)" : "")}");
-
-                // Log the new string to the console for debug purposes.
-                PluginLog.LogDebug($"Added string {results.Last()} with byte length of {encoder.GetByteCount(results.Last())}");
             }
 
             return results.ToArray();
