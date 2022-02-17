@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Dalamud.Interface;
+﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
@@ -23,6 +18,7 @@ namespace Wordsmith.Gui
         }
         public override void Draw()
         {
+            // Create multiple subsections of text for the user to read over.
             ImGui.TextWrapped("Scratch Pads are fairly easy to use. First, on the top left, there is a drop down menu where you get to select what chat channel prefix you want to use. If you use choose /tell, a texbox will appear where you can type the user name and world or placeholders.");
             ImGui.Separator();
             ImGui.Spacing();
@@ -36,21 +32,24 @@ namespace Wordsmith.Gui
             ImGui.Spacing();
             ImGui.TextWrapped("To use OOC or \"Out Of Character\" markers, all you have to do is check the box at the top right of the scratch pad. It will automatically wrap all text you type in double parenthesis (( like this )). It's a simple toggle that you can easily turn on and off at any time.\n\n Note: It even works with text already entered.");
             ImGui.Separator();
-
             ImGui.Spacing();
             ImGui.TextWrapped("/Tell is a little different than other headers because it requires a target. Your target can be User Name@World or any usual placehold.\n\nSome placeholders you can use:");
 
+            // Create a table.
             if(ImGui.BeginTable("ScratchPadTellHelpPlaceholderTable", 2, ImGuiTableFlags.Borders))
             {
+                // The table will have two headers, one for placeholder text and one for placeholder description.
                 ImGui.TableSetupColumn("PlaceholderValueColumn", ImGuiTableColumnFlags.WidthFixed, 125 * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn("PlaceholderValueColumn", ImGuiTableColumnFlags.WidthStretch, 2);
 
+                // Setup the column headers.
                 ImGui.TableNextColumn();
                 ImGui.TableHeader("Placeholder##ColumnHeader");
 
                 ImGui.TableNextColumn();
                 ImGui.TableHeader("Description##ColumnHeader");
 
+                // Create a string array with all of the placeholders.
                 string[] placeholders = new string[]
                 {
                     "<t>, <target>",
@@ -69,6 +68,8 @@ namespace Wordsmith.Gui
                     "<mo>, <mouse>"
                 };
 
+                // Create an array with all of the placeholder definitions at the same index
+                // as the placeholder in the previous array.
                 string[] descriptions = new string[]
                 {
                     "Your current target.",
@@ -87,6 +88,8 @@ namespace Wordsmith.Gui
                     "The person your mouse is currently over."
                 };
 
+                // Iterate through both arrays simultaneously and put the data in the
+                // table left then right.
                 for(int i=0; i<placeholders.Length; ++i)
                 {
                     ImGui.TableNextColumn();

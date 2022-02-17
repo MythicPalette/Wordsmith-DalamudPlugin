@@ -10,6 +10,5 @@ namespace Wordsmith.Data
     {
         public int Index = -1;
         public string Original = "";
-        public string Correction = "";
     }
 }

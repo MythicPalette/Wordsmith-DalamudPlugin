@@ -2,8 +2,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
-    <Company></Company>
-    <Version>0.2.2</Version>
+    <Company>DefiledCreations</Company>
+    <Version>0.2.5</Version>
     <Description>A roleplay assistant.</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
@@ -20,15 +20,11 @@
     <OutputPath>$(AppData)\XIVLauncher\devPlugins\Wordsmith\</OutputPath>
   </PropertyGroup>
 
-  <!-- <ItemGroup>
-    <Content Include="..\Data\goat.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup> -->
-
   <ItemGroup>
-    <Content Include="Dictionaries\lang_en" CopyToOutputDirectory="Always" />
+    <Content Include="..\dictionaries\**">
+    <Link>%(RecursiveDir)\Dictionaries\%(Filename)%(Extension)</Link>
+    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +34,7 @@
   <PropertyGroup>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RepositoryUrl>https://github.com/LadyDefile/Wordsmith</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>

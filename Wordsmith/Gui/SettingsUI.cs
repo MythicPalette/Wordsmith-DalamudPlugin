@@ -1,6 +1,9 @@
-﻿using Dalamud.Interface;
+﻿using System.Linq;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
+using System.IO;
+using Wordsmith.Extensions;
 
 namespace Wordsmith.Gui
 {
@@ -213,9 +216,37 @@ namespace Wordsmith.Gui
                     ImGui.Separator();
 
                     // Dictionary File
-                    ImGui.InputText("Dictionary Filename", ref _dictionaryFilename, 128);
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip($"This is the file to be used for the dictionary. To use a custom spell check\ndictionary it must be inside the plug-in's Dictionary folder.");
+                    // Start by getting all of the available dictionary files.
+                    string[] files = Directory.GetFiles(Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries"))
+                        .Select(f => Path.GetFileName(f)).ToArray();
+
+                    // If no files are returned
+                    if (files.Length == 0)
+                    {
+                        // Alert the user to the missing dictionaries.
+                        ImGui.TextColored(new(255, 0, 0, 255), "ERROR.");
+                        ImGui.TextWrapped($"There are no dictionary files in the dictionary folder {{{Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries")}}}.");
+                    }
+                    else
+                    {
+                        // Get the index of the current dictionary file if it exists.
+                        int selection = files.IndexOf(_dictionaryFilename);
+
+                        // If the file isn't found, default to option 0.
+                        if (selection < 0)
+                            selection = 0;
+
+                        ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 160*ImGuiHelpers.GlobalScale);
+                        // Display a combo with all of the available dictionaries.
+                        ImGui.Combo("Dictionary Selection", ref selection, files, files.Length);
+                        if (ImGui.IsItemHovered())
+                            ImGui.SetTooltip($"This is the file to be used for the dictionary. To use a custom spell check\ndictionary it must be inside the plug-in's Dictionary folder.");
+
+                        // If the selection is different from the previous dictionary then
+                        // update the filename.
+                        if (selection != files.IndexOf(_dictionaryFilename))
+                            _dictionaryFilename = files[selection];
+                    }
                     ImGui.Separator();
                     ImGui.Spacing();
 
@@ -425,7 +456,10 @@ namespace Wordsmith.Gui
                 Wordsmith.Configuration.ReplaceDoubleSpaces = _fixDoubleSpace;
 
             if (_dictionaryFilename != Wordsmith.Configuration.DictionaryFile)
+            {
                 Wordsmith.Configuration.DictionaryFile = _dictionaryFilename;
+                Data.Lang.Reinit();
+            }
 
             // Linkshell settings
 

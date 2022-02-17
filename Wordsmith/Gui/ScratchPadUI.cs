@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Linq;
+using System.Numerics;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using ImGuiNET;
 using Dalamud.Interface;
@@ -12,12 +15,16 @@ namespace Wordsmith.Gui
 {
     public class ScratchPadUI : Window
     {
+        /// <summary>
+        /// A protected class used only for comparing multiple pad state elements at once.
+        /// </summary>
         protected class PadState
         {
             public int ChatType;
             public string ScratchText;
             public bool UseOOC;
             public string TellTarget;
+            public bool CrossWorld;
             public PadState()
             {
                 ChatType = 0;
@@ -44,47 +51,86 @@ namespace Wordsmith.Gui
                 if (o.ScratchText != this.ScratchText) return false;
                 if (o.UseOOC != this.UseOOC) return false;
                 if (o.TellTarget != this.TellTarget) return false;
+                if (o.CrossWorld != this.CrossWorld) return false;
                 return true;
             }
 
             public override int GetHashCode() => HashCode.Combine(ChatType, ScratchText, UseOOC, TellTarget);
         }
 
+        /// <summary>
+        /// Contains all of the constants used in this file.
+        /// </summary>
+        #region Constants
         protected static readonly string[] _chatOptions = new string[] { "None", "Emote (/em)", "Reply (/r)", "Say (/s)", "Party (/p)", "FC (/fc)", "Shout (/sh)", "Yell (/y)", "Tell (/t)", "Linkshells", "Echo" };
         protected static readonly string[] _chatHeaders = new string[] { "", "/em", "/r", "/s", "/p", "/fc", "/sh", "/y", "/t", "", "/e" };
         protected const int CHAT_NONE = 0;
         protected const int CHAT_TELL = 8;
         protected const int CHAT_LS = 9;
         protected const int CHAT_ECHO = 10;
+        protected const int ENTER_KEY = 0xD;
+        #endregion
 
+        /// <summary>
+        /// Contains all of the variables related to ID
+        /// </summary>
+        #region ID
         protected static int _nextID = 0;
         public static int LastID => _nextID;
         public static int NextID => _nextID++;
         public int ID { get; set; }
+        #endregion
 
+        /// <summary>
+        /// Contains all of the variables related to the PadState
+        /// </summary>
+        #region Pad State
         protected PadState _lastState = new();
         protected bool _refreshRequired = false;
         protected bool _overrideRefresh = false;
-
         protected string _error = "";
         protected string _notice = "";
+        #endregion
+
         protected List<Data.WordCorrection> _corrections = new();
 
+        /// <summary>
+        /// Contains all of the variables related to the chat header
+        /// </summary>
+        #region Chat Header
         protected int _chatType = 0;
-        protected string _scratch = "";
+        protected string _telltarget = "";
+        protected int _linkshell = 0;
+        protected bool _crossWorld = false;
+        #endregion
 
+        /// <summary>
+        /// Contains all of the variables related to chat text.
+        /// </summary>
+        #region Chat Text
+        protected string _scratch = "";
         /// <summary>
         /// Returns a trimmed, single-line version of scratch.
         /// </summary>
         protected string ScratchString => _scratch.Trim().Replace('\n', ' ');
-        protected string _telltarget = "";
-        protected int _linkshell = 0;
-        protected bool _crossWorld = false;
-        protected float _lastWidth = -1;
-        protected int _charWidth = 0;
-
+        protected int _scratchBufferSize = 4096;
         protected bool _useOOC = false;
+        protected string[]? _chunks;
+        protected int _nextChunk = 0;
+        #endregion
 
+        protected float _lastWidth = 0;
+        protected bool _ignoreTextEdit = false;
+
+        /// <summary>
+        /// The text used by the replacement inputtext.
+        /// </summary>
+        protected string _replaceText = "";
+
+        /// <summary>
+        /// Cancellation token source for spellchecking.
+        /// </summary>
+        protected CancellationTokenSource? _cancellationTokenSource;
 
         /// <summary>
         /// Gets the slash command (if one exists) and the tell target if one is needed.
@@ -110,13 +156,6 @@ namespace Wordsmith.Gui
             return result;
         }
 
-        protected int _scratchBufferSize = 4096;
-
-        protected string[]? _chunks;
-        protected int _nextChunk = 0;
-
-        protected string _replaceText = "";
-
         public ScratchPadUI() : base($"{Wordsmith.AppName} - Scratch Pad #{_nextID}")
         {
             ID = NextID;
@@ -133,17 +172,25 @@ namespace Wordsmith.Gui
             Flags |= ImGuiWindowFlags.MenuBar;
         }
 
-        public float GetFooterHeight()
+        /// <summary>
+        /// Gets the height of the footer.
+        /// </summary>
+        /// <param name="IncludeTextbox">If false, the height of the textbox is not added to the result.</param>
+        /// <returns></returns>
+        public float GetFooterHeight(bool IncludeTextbox = true)
         {
             float result = 60;
             if (!Wordsmith.Configuration.DeleteClosedScratchPads)
                 result += 28;
 
-            // If using the old, single-line input
-            if (Wordsmith.Configuration.UseOldSingleLineInput)
-                result += 35;
-            else
-                result += 90;
+            if (IncludeTextbox)
+            {
+                // If using the old, single-line input
+                if (Wordsmith.Configuration.UseOldSingleLineInput)
+                    result += 35;
+                else
+                    result += 90;
+            }
 
             if (_corrections.Count > 0)
                 result += 32;
@@ -163,10 +210,26 @@ namespace Wordsmith.Gui
 
             // Draw multi-line input.
             else
-                DrawTextEntryExperimental();
+                DrawMultilineTextInput();
 
             DrawWordReplacement();
             DrawFooter();
+
+            // At the end of each draw function, wrap the text
+            // We do this here in case the window is being resized and we want
+            // to rewrap the text in the textbox.
+            if (ImGui.GetWindowWidth() > _lastWidth + 0.1 || ImGui.GetWindowWidth() < _lastWidth - 0.1)
+            {
+                // Don't flag to ignore text edit if the window was just opened
+                if (_lastWidth > 0.1)
+                    _ignoreTextEdit = true;
+
+                // Rewrap scratch
+                _scratch = WrapString(_scratch);
+
+                // Update the last known width.
+                _lastWidth = ImGui.GetWindowWidth();
+            }
         }
 
         /// <summary>
@@ -177,10 +240,10 @@ namespace Wordsmith.Gui
             if (ImGui.BeginMenuBar())
             {
                 // Start the scratch pad menu
-                if (ImGui.BeginMenu("Scratch Pads##ScratchPadMenu"))
+                if (ImGui.BeginMenu($"Scratch Pads##ScratchPadMenu{ID}"))
                 {
                     // New scratchpad button.
-                    if (ImGui.MenuItem($"New Scratch Pad##NewScratchPadMenuItem"))
+                    if (ImGui.MenuItem($"New Scratch Pad##NewScratchPad{ID}MenuItem"))
                         WordsmithUI.ShowScratchPad(-1); // -1 id always creates a new scratch pad.
 
                     // For each of the existing scratch pads, add a button that opens that specific one.
@@ -284,7 +347,7 @@ namespace Wordsmith.Gui
                 {
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(-1);
-                    ImGui.InputTextWithHint("##TellTargetText", "User Name@World", ref _telltarget, 128);
+                    ImGui.InputTextWithHint($"##TellTargetText{ID}", "User Name@World", ref _telltarget, 128);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Enter the user and world or a placeholder here.");
                 }
@@ -322,13 +385,20 @@ namespace Wordsmith.Gui
             if (!Wordsmith.Configuration.ShowTextInChunks && !Wordsmith.Configuration.UseOldSingleLineInput)
                 return;
 
+            // Draw the chunk display
             if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - GetFooterHeight())))
             {
                 ImGui.SetNextItemWidth(-1);
+
+                // We still perform this check on the property for ShowTextInChunks in case the user is using single line input.
+                // If ShowTextInChunks is enabled, we show the text in its chunked state.
                 if (Wordsmith.Configuration.ShowTextInChunks)
                     ImGui.TextWrapped($"{string.Join("\n\n", _chunks ?? new string[] { "" })}");
+
+                // If it's disabled and the user has enabled UseOldSingleLineInput then we still need to draw a display for them.
                 else
                     ImGui.TextWrapped($"{GetFullChatHeader()}{(_useOOC ? "(( " : "")}{ScratchString}{(_useOOC ? " ))" : "")}");
+
                 ImGui.EndChild();
             }
             ImGui.Separator();
@@ -341,8 +411,11 @@ namespace Wordsmith.Gui
         protected void DrawSingleLineTextInput()
         {
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputTextWithHint("##TextEntryBox", "Type Here...", ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, ImGuiInputTextFlags.EnterReturnsTrue))
+
+            // Draw the single line input
+            if (ImGui.InputTextWithHint($"##TextEntryBox{ID}", "Type Here...", ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, ImGuiInputTextFlags.EnterReturnsTrue))
             {
+                // Respond according to user-defined action in settings.
                 if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 1)
                     DoSpellCheck();
 
@@ -354,19 +427,36 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Draws a multiline text entry.
         /// </summary>
-        protected unsafe void DrawTextEntryExperimental()
+        protected unsafe void DrawMultilineTextInput()
         {
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputTextMultiline($"##MultilineTextEntry",
-                ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength,
-                ImGuiHelpers.ScaledVector2(-1, 80), ImGuiInputTextFlags.CallbackEdit | ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.NoHorizontalScroll | ImGuiInputTextFlags.CallbackAlways, OnTextEdit))
+
+            // Default size of the text input.
+            var v = ImGuiHelpers.ScaledVector2(-1, 80);
+
+            // If the user has disabled ShowTextInChunks, increase the size to
+            // take the entire available area.
+            if (!Wordsmith.Configuration.ShowTextInChunks)
+                v = new(-1, (Size?.X ?? 25) - GetFooterHeight(false));
+
+            // Draw the input with multiple callbacks. These callbacks will be
+            // used for managing the word wrapping.
+            ImGui.InputTextMultiline($"##ScratchPad{ID}MultilineTextEntry",
+                ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, v,
+                ImGuiInputTextFlags.CallbackEdit |
+                ImGuiInputTextFlags.NoHorizontalScroll, OnTextEdit);
+
+            // Because InputTextMultiline doesn't trigger EnterReturnsTrue we instead check
+            // if the input has focus and the user pressed the enter key
+            if(ImGui.IsItemFocused() && ImGui.IsKeyPressed(ENTER_KEY))
             {
+                // If the user hits enter, run the user-defined action.
                 if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 1)
                     DoSpellCheck();
 
                 else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 2)
                     DoCopyToClipboard();
-            }    
+            }
         }
 
         /// <summary>
@@ -376,44 +466,34 @@ namespace Wordsmith.Gui
         {
             if (_corrections.Count > 0)
             {
+                // Get the fist incorrect word.
                 Data.WordCorrection correct = _corrections[0];
 
-                float len = ImGui.CalcTextSize($"Spelling error: \"{correct.Original}\"").X;
-                if (ImGui.BeginTable($"{ID}WordCorrectionTable", 4))
+
+                // Notify of the spelling error.
+                ImGui.TextColored(new(255, 0, 0, 255), "Spelling Error:");
+
+                // Draw the text input.
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 230 * ImGuiHelpers.GlobalScale);
+                _replaceText = correct.Original;
+                if (ImGui.InputText($"##ScratchPad{ID}ReplaceTextTextbox", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
+                    OnReplace();
+
+                // If they mouse over the input, tell them to use the enter key to replace.
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Fix the spelling of the word and hit enter or\nclick the \"Add to Dictionary\" button.");
+
+                // Add to dictionary button
+                ImGui.SameLine();
+                ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
+                if (ImGui.Button($"Add To Dictionary##ScratchPad{ID}"))
                 {
+                    Data.Lang.AddDictionaryEntry(correct.Original);
 
-                    ImGui.TableSetupColumn($"{ID}MisspelledWordColumn", ImGuiTableColumnFlags.WidthFixed, (len + 5) * ImGuiHelpers.GlobalScale);
-                    ImGui.TableSetupColumn($"{ID}ReplacementTextInputColumn", ImGuiTableColumnFlags.WidthStretch, 2);
-                    ImGui.TableSetupColumn($"{ID}ReplaceTextButtonColumn", ImGuiTableColumnFlags.WidthFixed, 50 * ImGuiHelpers.GlobalScale);
-                    ImGui.TableSetupColumn($"{ID}AddToDictionaryButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale);
-
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(-1);
-                    ImGui.TextColored(new(255, 0, 0, 255), $"Spelling error: \"{correct.Original}\"");
-
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(-1);
-                    ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - len - 200 * ImGuiHelpers.GlobalScale);
-                    if (ImGui.InputTextWithHint("##ScratchPad{ID}ReplaceTextTextbox", "Replace with...", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
-                        OnReplace();
-
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(-1);
-                    if (ImGui.Button("Replace##ScratchPad{ID}ReplaceTextButton"))
-                        OnReplace();
-
-                    ImGui.TableNextColumn();
-                    ImGui.SetNextItemWidth(-1);
-                    if (ImGui.Button("Add To Dictionary##ScratchPad{ID}AddToDictionaryButton"))
-                    {
-                        Data.Lang.AddDictionaryEntry(correct.Original);
-
-                        _corrections.RemoveAt(0);
-                        if (_corrections.Count == 0)
-                            _refreshRequired = true;
-                    }
-
-                    ImGui.EndTable();
+                    _corrections.RemoveAt(0);
+                    if (_corrections.Count == 0)
+                        _refreshRequired = true;
                 }
             }
         }
@@ -425,30 +505,43 @@ namespace Wordsmith.Gui
         {
             if (ImGui.BeginTable($"{ID}FooterButtonTable", 3))
             {
-                //ImGui.TableSetupColumn($"{ID}ChunkPrevColumn", ImGuiTableColumnFlags.WidthFixed, 20 * ImGuiHelpers.GlobalScale);
+                // Setup the three columns for the buttons. I use a table here for easy space sharing.
+                // The table will handle all sizing and positioning of the buttons automatically with no
+                // extra input from me.
                 ImGui.TableSetupColumn($"{ID}FooterCopyColumn", ImGuiTableColumnFlags.WidthStretch, 1);
-                //ImGui.TableSetupColumn($"{ID}ChunkNextColumn", ImGuiTableColumnFlags.WidthFixed, 20 * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn($"{ID}FooterClearButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
                 ImGui.TableSetupColumn($"{ID}FooterSpellCheckButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
 
+                // Draw the copy button.
                 ImGui.TableNextColumn();
                 DrawCopyButton();
 
+                // Draw the clear button.
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Clear", ImGuiHelpers.ScaledVector2(-1, 25)))
+                if (ImGui.Button($"Clear##Scratch{ID}", ImGuiHelpers.ScaledVector2(-1, 25)))
                     _scratch = "";
 
-                // Spell Check button.
+                // If spell check is disabled, make the button dark so it appears as though it is disabled.
+                if (!Data.Lang.Enabled)
+                    ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.5f);
+
+                // Draw the spell check button.
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Spell Check", ImGuiHelpers.ScaledVector2(-1, 25)))
-                    DoSpellCheck();
+                if (ImGui.Button($"Spell Check##Scratch{ID}", ImGuiHelpers.ScaledVector2(-1, 25)))
+                    if (Data.Lang.Enabled) // If the dictionary is functional then do the spell check.
+                        DoSpellCheck();
+
+                // If spell check is disabled, pop the stylevar to return to normal.
+                if (!Data.Lang.Enabled)
+                    ImGui.PopStyleVar();
 
                 ImGui.EndTable();
             }
 
+            // If not configured to automatically delete scratch pads, draw the delete button.
             if (!Wordsmith.Configuration.DeleteClosedScratchPads)
             {
-                if (ImGui.Button($"Delete Pad", ImGuiHelpers.ScaledVector2(-1, 25)))
+                if (ImGui.Button($"Delete Pad##Scratch{ID}", ImGuiHelpers.ScaledVector2(-1, 25)))
                 {
                     this.IsOpen = false;
                     WordsmithUI.RemoveWindow(this);
@@ -461,9 +554,10 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void DrawCopyButton()
         {
+            // If there is more than 1 chunk.
             if ((_chunks?.Length ?? 0) > 1)
             {
-                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, ImGuiHelpers.ScaledVector2(0, 5));
+                // Push the icon font for the character we need then draw the previous chunk button.
                 ImGui.PushFont(UiBuilder.IconFont);
                 if (ImGui.Button($"{(char)0xF100}##{ID}ChunkBackButton", ImGuiHelpers.ScaledVector2(25, 25)))
                 {
@@ -471,26 +565,29 @@ namespace Wordsmith.Gui
                     if (_nextChunk < 0)
                         _nextChunk = _chunks?.Length - 1 ?? 0;
                 }
+                // Reset the font.
                 ImGui.PushFont(UiBuilder.DefaultFont);
 
-                ImGui.SameLine();
-                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", new(ImGui.GetColumnWidth() - (23 * ImGuiHelpers.GlobalScale), 25 * ImGuiHelpers.GlobalScale)))
+                // Draw the copy button with no spacing.
+                ImGui.SameLine(0, 0);
+                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}##ScratchPad{ID}", new(ImGui.GetColumnWidth() - (23 * ImGuiHelpers.GlobalScale), 25 * ImGuiHelpers.GlobalScale)))
                     DoCopyToClipboard();
 
+                // Push the font and draw the next chunk button with no spacing.
                 ImGui.PushFont(UiBuilder.IconFont);
-                ImGui.SameLine();
+                ImGui.SameLine(0, 0);
                 if (ImGui.Button($"{(char)0xF101}##{ID}ChunkBackButton", ImGuiHelpers.ScaledVector2(25, 25)))
                 {
                     ++_nextChunk;
                     if (_nextChunk >= (_chunks?.Length ?? 0))
                         _nextChunk = 0;
                 }
+                // Reset the font.
                 ImGui.PushFont(UiBuilder.DefaultFont);
-                ImGui.PopStyleVar();
             }
-            else
+            else // If there is only one chunk simply draw a normal button.
             {
-                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}", new(-1, 25 * ImGuiHelpers.GlobalScale)))
+                if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}##ScratchPad{ID}", new(-1, 25 * ImGuiHelpers.GlobalScale)))
                     DoCopyToClipboard();
             }
         }
@@ -520,14 +617,39 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void DoSpellCheck()
         {
+            // If there are any outstanding tokens, cancel them.
+            _cancellationTokenSource?.Cancel();
+
+            // Clear any errors and notifications.
             _error = "";
-            _notice = "";
+            _notice = "Checking your spelling...";
 
             // Don't spell check an empty input.
             if (_scratch.Length == 0)
                 return;
 
+            // Create a new token source.
+            _cancellationTokenSource = new();
+
+            // Create and start the spell check task.
+            Task t = new Task(() => DoSpellCheckAsync(), _cancellationTokenSource.Token);
+            t.Start();
+        }
+
+        /// <summary>
+        /// The spell check task to run.
+        /// </summary>
+        protected unsafe void DoSpellCheckAsync()
+        {
+            // Clear any old corrections to prevent them from stacking.
+            _corrections = new();
             _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch.Replace('\n', ' ').Trim()));
+
+            // Clear any errors or noticies.
+            _error = "";
+            _notice = "";
+
+            // Post the new error or notice.
             if (_corrections.Count > 0)
                 _error = $"Found {_corrections.Count} spelling errors.";
             else
@@ -580,7 +702,10 @@ namespace Wordsmith.Gui
         {
             base.OnClose();
             if (Wordsmith.Configuration.DeleteClosedScratchPads)
+            {
+                _cancellationTokenSource?.Cancel();
                 WordsmithUI.RemoveWindow(this);
+            }
         }
 
         /// <summary>
@@ -590,46 +715,33 @@ namespace Wordsmith.Gui
         /// <returns></returns>
         public unsafe int OnTextEdit(ImGuiInputTextCallbackData* data)
         {
+            // If _ignoreTextEdit is true then the reason for the edit
+            // was a resize and the text has already been wrapped so
+            // we simply return from here.
+            if (_ignoreTextEdit)
+            {
+                _ignoreTextEdit = false;
+                return 0;
+            }
+
             UTF8Encoding utf8 = new();
 
-            // Convert the buffer to a string
-            string txt = utf8.GetString(data->Buf, data->BufTextLen);
+            // For some reason, ImGui's InputText never verifies that BufTextLen never goes negative
+            // which can lead to some serious problems and crashes with trying to get the string.
+            // Here we do the check ourself with the turnery operator. If it does happen to be
+            // a negative number, return a blank string so the rest of the code can continue as normal
+            // at which point the buffer will be cleared and BufTextLen will be set to 0, preventing any
+            // memory damage or crashes.
+            string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen).TrimStart() : "";
 
-            //// If the event flags are/contain CallbackEdit, the user either copy/pasted or entered a key.
-            if ((data->EventFlag & ImGuiInputTextFlags.CallbackEdit) == ImGuiInputTextFlags.CallbackEdit)
+            // If the event flags are/contain CallbackEdit, the user either copy/pasted or entered a key.
+            if ((data->EventFlag & ImGuiInputTextFlags.CallbackEdit) == ImGuiInputTextFlags.CallbackEdit
+                && ImGui.IsKeyPressed(ENTER_KEY))
                 // If the string ends in a new line, remove it.
-                txt = txt.TrimEnd('\n', '\r').TrimStart();
+                txt = txt.TrimEnd('\n', '\r');
 
-            // Replace all remaining new lines with spaces
-            txt = txt.Replace('\n', ' ');
-
-            // Replace double spaces if configured to do so.
-            if (Wordsmith.Configuration.ReplaceDoubleSpaces)
-                txt = txt.FixSpacing();
-
-            // Get the maximum allowed character width.
-            float width = ImGui.GetWindowWidth() - (32 * ImGuiHelpers.GlobalScale);
-
-            // Iterate through each character.
-            int lastSpace = 0;
-            int offset = 0;
-            for (int i = 1; i < txt.Length; ++i)
-            {
-                // If the current character is a space, mark it as a wrap point.
-                if (txt[i] == ' ')
-                    lastSpace = i;
-
-                // If the size of the text is wider than the available size
-                if (ImGui.CalcTextSize(txt.Substring(offset, i - offset)).X > width)
-                {
-                    // Replace the last previous space with a new line
-                    StringBuilder sb = new(txt);
-                    sb[lastSpace] = '\n';
-                    txt = sb.ToString();
-
-                    offset = lastSpace;
-                }
-            }
+            // Wrap the string.
+            txt = WrapString(txt);
 
             // Convert the string back to bytes.
             byte[] bytes = utf8.GetBytes(txt);
@@ -648,6 +760,46 @@ namespace Wordsmith.Gui
         }
 
         /// <summary>
+        /// Takes a string and wraps it based on the current width of the window.
+        /// </summary>
+        /// <param name="text">The string to be wrapped.</param>
+        /// <returns></returns>
+        protected string WrapString(string text)
+        {
+            // Replace all remaining new lines with spaces
+            text = text.Replace('\n', ' ');
+
+            // Replace double spaces if configured to do so.
+            if (Wordsmith.Configuration.ReplaceDoubleSpaces)
+                text = text.FixSpacing();
+
+            // Get the maximum allowed character width.
+            float width = ImGui.GetWindowWidth() - (32 * ImGuiHelpers.GlobalScale);
+
+            // Iterate through each character.
+            int lastSpace = 0;
+            int offset = 0;
+            for (int i = 1; i < text.Length; ++i)
+            {
+                // If the current character is a space, mark it as a wrap point.
+                if (text[i] == ' ')
+                    lastSpace = i;
+
+                // If the size of the text is wider than the available size
+                if (ImGui.CalcTextSize(text.Substring(offset, i - offset)).X > width)
+                {
+                    // Replace the last previous space with a new line
+                    StringBuilder sb = new(text);
+                    sb[lastSpace] = '\n';
+                    text = sb.ToString();
+
+                    offset = lastSpace;
+                }
+            }
+            return text;
+        }
+
+        /// <summary>
         /// Gets a state object that reflects the current state of the pad
         /// </summary>
         /// <returns>Returns a PadState object with the current values of the pad</returns>
@@ -658,7 +810,8 @@ namespace Wordsmith.Gui
                 ChatType = _chatType,
                 ScratchText = _scratch,
                 TellTarget = _telltarget,
-                UseOOC = _useOOC
+                UseOOC = _useOOC,
+                CrossWorld = _crossWorld
             };
         }
         
@@ -679,9 +832,9 @@ namespace Wordsmith.Gui
                 _lastState = newState;
                 _overrideRefresh = false;
             }
-
             else if (_lastState != newState || _refreshRequired)
             {
+                _cancellationTokenSource?.Cancel();
                 _refreshRequired = false;
                 _error = "";
                 _notice = "";
@@ -691,6 +844,8 @@ namespace Wordsmith.Gui
                 _lastState = newState;
                 _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);
                 _nextChunk = 0;
+
+                _scratch = WrapString(_scratch);
             }
         }
     }

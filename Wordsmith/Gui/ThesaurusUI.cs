@@ -191,13 +191,14 @@ namespace Wordsmith.Gui
         {
             if (result != null)
             {
-                if (ImGui.CollapsingHeader($"{result.Query.Trim().CaplitalizeFirst()}##{result.ID}", ImGuiTreeNodeFlags.DefaultOpen))
+                bool vis = true;
+                if (ImGui.CollapsingHeader($"{result.Query.Trim().CaplitalizeFirst()}##{result.ID}", ref vis, ImGuiTreeNodeFlags.DefaultOpen))
                 {
                     ImGui.Indent();
                     foreach (Data.ThesaurusEntry entry in result?.Entries ?? Array.Empty<Data.ThesaurusEntry>())
                         DrawEntry(entry);
 
-                    if (ImGui.Button(" Delete Result ", ImGuiHelpers.ScaledVector2(-1, 20)))
+                    if(!vis)
                         SearchHelper.DeleteResult(result);
                     
                     ImGui.Unindent();

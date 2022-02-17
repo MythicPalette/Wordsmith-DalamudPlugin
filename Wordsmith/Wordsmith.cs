@@ -17,7 +17,7 @@ namespace Wordsmith
         private const string SETTINGS_CMD_STRING = "/wordsmith";
         private const string SCRATCH_CMD_STRING = "/scratchpad";
 
-        public DalamudPluginInterface PluginInterface { get; init; }
+        public static DalamudPluginInterface PluginInterface { get; set; }
         public CommandManager CommandManager { get; init; }
         public static Configuration Configuration { get; set; }
 
@@ -25,11 +25,11 @@ namespace Wordsmith
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
             [RequiredVersion("1.0")] CommandManager commandManager)
         {
-            this.PluginInterface = pluginInterface;
+            PluginInterface = pluginInterface;
             this.CommandManager = commandManager;
 
-            Configuration = this.PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-            Configuration.Initialize(this.PluginInterface);
+            Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
+            Configuration.Initialize(PluginInterface);
 
             // you might normally want to embed resources and load them from the manifest stream
             //var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
@@ -50,10 +50,10 @@ namespace Wordsmith
                 HelpMessage = "Opens a new scratch pad or a specific pad if number given i.e. /scratchpad 5"
             });
 
-            this.PluginInterface.UiBuilder.Draw += DrawUI;
-            this.PluginInterface.UiBuilder.OpenConfigUi += OpenConfig;
+            PluginInterface.UiBuilder.Draw += DrawUI;
+            PluginInterface.UiBuilder.OpenConfigUi += OpenConfig;
 
-            Data.Lang.Init(pluginInterface);
+            Data.Lang.Init();
         }
 
         public void Dispose()
