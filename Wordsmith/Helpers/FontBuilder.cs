@@ -133,42 +133,15 @@ namespace Wordsmith.Helpers
         private void SetUpUserFonts()
         {
             FontData? fontData = null;
-            //if (this.Plugin.Config.GlobalFont.StartsWith(Fonts.IncludedIndicator))
-            //{
-            //    var globalFont = Fonts.GlobalFonts.FirstOrDefault(font => font.Name == this.Plugin.Config.GlobalFont);
-            //    if (globalFont != null)
-            //    {
-            //        var regular = new FaceData(this.GetResource(globalFont.ResourcePath), 1f);
-            //        var italic = new FaceData(this.GetResource(globalFont.ResourcePathItalic), 1f);
-            //        fontData = new FontData(regular, italic);
-            //    }
-            //}
-            //else
-            //{
             fontData = Fonts.GetFont("Balakhani", true);
-            //}
 
             if (fontData == null) return;
-            PluginLog.LogDebug("Got the font.");
-            //{
-            //    this.Plugin.Config.GlobalFont = Fonts.GlobalFonts[0].Name;
-            //    this.Plugin.SaveConfig();
-
-            //    var globalFont = Fonts.GlobalFonts[0];
-            //    var regular = new FaceData(this.GetResource(globalFont.ResourcePath), 1f);
-            //    var italic = new FaceData(this.GetResource(globalFont.ResourcePathItalic), 1f);
-            //    fontData = new FontData(regular, italic);
-            //}
 
             if (this._regularFont.Item1.IsAllocated)
-            {
                 this._regularFont.Item1.Free();
-            }
 
             if (this._italicFont.Item1.IsAllocated)
-            {
                 this._italicFont.Item1.Free();
-            }
 
             this._regularFont = (
                 GCHandle.Alloc(fontData.Regular.Data, GCHandleType.Pinned),
@@ -181,46 +154,6 @@ namespace Wordsmith.Helpers
                 fontData.Italic.Data.Length,
                 fontData.Italic.Ratio
             );
-
-            //FontData? jpFontData = null;
-            //if (this.Plugin.Config.JapaneseFont.StartsWith(Fonts.IncludedIndicator))
-            //{
-            //    var jpFont = Fonts.JapaneseFonts.FirstOrDefault(item => item.Item1 == this.Plugin.Config.JapaneseFont);
-            //    if (jpFont != default)
-            //    {
-            //        jpFontData = new FontData(
-            //            new FaceData(this.GetResource(jpFont.Item2), 1f),
-            //            null
-            //        );
-            //    }
-            //}
-            //else
-            //{
-            //  jpFontData = Fonts.GetFont(this.Plugin.Config.JapaneseFont, false);
-            //}
-
-            //if (jpFontData == null)
-            //{
-            //    this.Plugin.Config.JapaneseFont = Fonts.JapaneseFonts[0].Item1;
-            //    this.Plugin.SaveConfig();
-
-            //    var jpFont = Fonts.JapaneseFonts[0];
-            //    jpFontData = new FontData(
-            //        new FaceData(this.GetResource(jpFont.Item2), 1f),
-            //        null
-            //    );
-            //}
-
-            //if (this._jpFont.Item1.IsAllocated)
-            //{
-            //    this._jpFont.Item1.Free();
-            //}
-
-            //this._jpFont = (
-            //    GCHandle.Alloc(jpFontData.Regular.Data, GCHandleType.Pinned),
-            //    jpFontData.Regular.Data.Length,
-            //    jpFontData.Regular.Ratio
-            //);
         }
 
         private void BuildFonts()
@@ -241,14 +174,6 @@ namespace Wordsmith.Helpers
                     this._ranges.Data
                 );
 
-                //ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
-                //    this._jpFont.Item1.AddrOfPinnedObject(),
-                //    this._jpFont.Item2,
-                //    Wordsmith.Configuration.JpFontSize,
-                //    this._fontCfgMerge,
-                //    this._jpRange.Data
-                //);
-
                 ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
                     this._gameSymFont.Item1.AddrOfPinnedObject(),
                     this._gameSymFont.Item2,
@@ -265,14 +190,6 @@ namespace Wordsmith.Helpers
                     this._fontCfg,
                     this._ranges.Data
                 );
-
-                //ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
-                //    this._jpFont.Item1.AddrOfPinnedObject(),
-                //    this._jpFont.Item2,
-                //    Wordsmith.Configuration.JpFontSize,
-                //    this._fontCfgMerge,
-                //    this._jpRange.Data
-                //);
 
                 ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
                     this._gameSymFont.Item1.AddrOfPinnedObject(),
