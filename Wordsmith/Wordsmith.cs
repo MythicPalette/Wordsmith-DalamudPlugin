@@ -1,25 +1,34 @@
 ﻿using System;
-using System.IO;
-using System.Reflection;
+using System.Linq;
 using Dalamud.Game.Command;
+using Dalamud.Data;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Logging;
+
+using XivCommon;
+using XivCommon.Functions.ContextMenu;
+using XivCommon.Functions.ContextMenu.Inventory;
+using Lumina.Excel.GeneratedSheets;
 
 namespace Wordsmith
 {
     public sealed class Wordsmith : IDalamudPlugin
     {
-
         public static readonly string AppName = "Wordsmith";
         public string Name => AppName;
         private const string THES_CMD_STRING = "/thesaurus";
         private const string SETTINGS_CMD_STRING = "/wordsmith";
         private const string SCRATCH_CMD_STRING = "/scratchpad";
 
-        public static DalamudPluginInterface PluginInterface { get; set; }
-        public CommandManager CommandManager { get; init; }
-        public static Configuration Configuration { get; set; }
+        internal static DalamudPluginInterface PluginInterface { get; set; } = null!;
+        internal CommandManager CommandManager { get; init; }
+        internal static Configuration Configuration { get; private set; } = null!;
+
+        internal static XivCommonBase XivCommon { get; private set; } = null!;
+
+        [PluginService]
+        internal static DataManager DataManager { get; private set; } = null!;
 
         public Wordsmith(
             [RequiredVersion("1.0")] DalamudPluginInterface pluginInterface,
@@ -29,7 +38,6 @@ namespace Wordsmith
             this.CommandManager = commandManager;
 
             Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
-            Configuration.Initialize(PluginInterface);
 
             // you might normally want to embed resources and load them from the manifest stream
             //var imagePath = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "goat.png");
@@ -50,8 +58,13 @@ namespace Wordsmith
                 HelpMessage = "Opens a new scratch pad or a specific pad if number given i.e. /scratchpad 5"
             });
 
-            PluginInterface.UiBuilder.Draw += DrawUI;
-            PluginInterface.UiBuilder.OpenConfigUi += OpenConfig;
+            PluginInterface.UiBuilder.Draw += WordsmithUI.Draw;
+            PluginInterface.UiBuilder.OpenConfigUi += WordsmithUI.ShowSettings;
+
+            // Setup the context menu.
+            XivCommon = new XivCommonBase(Hooks.ContextMenu);
+
+            XivCommon.Functions.ContextMenu.OpenContextMenu += OnContextMenu;
 
             Data.Lang.Init();
         }
@@ -61,10 +74,12 @@ namespace Wordsmith
             this.CommandManager.RemoveHandler(THES_CMD_STRING);
             this.CommandManager.RemoveHandler(SETTINGS_CMD_STRING);
             this.CommandManager.RemoveHandler(SCRATCH_CMD_STRING);
+
+            XivCommon.Functions.ContextMenu.OpenContextMenu -= this.OnContextMenu;
         }
 
         private void OnMainCommand(string command, string args) => WordsmithUI.ShowThesaurus();
-        private void OnSettingsCommand(string command, string args) => OpenConfig();
+        private void OnSettingsCommand(string command, string args) => WordsmithUI.ShowSettings();
         private void OnScratchCommand(string command, string args)
         {
             int x;
@@ -74,19 +89,25 @@ namespace Wordsmith
                 WordsmithUI.ShowScratchPad(-1);
         }
 
-        private void DrawUI()
+        private void OnContextMenu(ContextMenuOpenArgs args)
         {
-            try { WordsmithUI.WindowSystem.Draw(); }
-            catch (InvalidOperationException e)
-            {
-                // If the message isn't about collection being modified, log it. Otherwise
-                // Discard the error.
-                if(!e.Message.StartsWith("Collection was modified"))
-                    PluginLog.LogError($"{e.Message}");
-            }
-            catch (Exception e) { PluginLog.LogError($"{e} :: {e.Message}"); }
-        }
+            // If the user doesn't want the context menu option return from the function.
+            if (!Configuration.AddContextMenuOption)
+                return;
 
-        private void OpenConfig() => WordsmithUI.ShowSettings();
+            // Get the "Send Tell" option.
+            int index = args.Items.FindIndex(a => a is NativeContextMenuItem n && n.Name.TextValue == "Send Tell");
+
+            // If there is no "Send Tell" option exit the function.
+            if (index < 0)
+                return;
+
+            // Get the world name.
+            World? w = DataManager.Excel.GetSheet<World>()?.GetRow(args.ObjectWorld);
+
+            // If the world name was found, create a scratch pad targetting the player@world.
+            if (w != null)
+                args.Items.Insert(index + 1, new NormalContextMenuItem("Tell in Scratch Pad", selectedArgs => WordsmithUI.ShowScratchPad($"{args.Text}@{w?.Name}")));
+        }
     }
 }

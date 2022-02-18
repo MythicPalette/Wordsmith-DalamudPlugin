@@ -337,6 +337,11 @@ namespace Wordsmith.Gui
             }
         }
 
+        protected void DrawOpenPadsTab()
+        {
+
+        }
+
         protected void DrawFooter()
         {
             if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 4))

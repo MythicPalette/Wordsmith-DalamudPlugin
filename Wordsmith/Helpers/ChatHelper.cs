@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using Dalamud.Logging;
 
 namespace Wordsmith.Helpers
 {
@@ -19,9 +17,9 @@ namespace Wordsmith.Helpers
             UTF8Encoding encoder = new();
 
             // Get the number of bytes taken by the header.
-            // Note that we remove 5 bytes right off of the top as a buffer zone.
+            // Note that we remove 10 bytes right off of the top as a safety zone.
             // We then cut the bytes out required for the header and for the continuation marker.
-            int availableBytes = 495 - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
+            int availableBytes = 490 - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
 
             // If the user is typing into OOC, remove 6 more bytes from the available bytes for the (( )) tags.
             if (OOC)
@@ -46,9 +44,18 @@ namespace Wordsmith.Helpers
                 //results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}{(offset < text.Length ? " (c)" : "")}");
                 results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}");
             }
-            for (int i = 0; i < (Wordsmith.Configuration.MarkLastChunk ? results.Count : results.Count - 1); ++i)
-                results[i] += Wordsmith.Configuration.ContinuationMarker.Replace("#c", (i+1).ToString()).Replace("#m", results.Count.ToString());
 
+            // If there is more than one result we want to do continuation markers
+            if (results.Count > 1)
+            {
+                // Iterate through the chunks and append the continuation marker. We have to do this
+                // in a separate loop from when we created the chunks in case the user adds the #m tag
+                // to their continuation marker and we need to know the total number of chunks.
+                for (int i = 0; i < (Wordsmith.Configuration.MarkLastChunk ? results.Count : results.Count - 1); ++i)
+                    results[i] += $" {Wordsmith.Configuration.ContinuationMarker.Replace("#c", (i + 1).ToString()).Replace("#m", results.Count.ToString())}";
+            }
+
+            // Return the results.
             return results.ToArray();
         }
 

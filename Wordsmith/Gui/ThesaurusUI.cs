@@ -119,7 +119,7 @@ namespace Wordsmith.Gui
                     ImGui.EndChild();
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //Plugin.PluginUi.RaiseAlert(e.Message);
             }

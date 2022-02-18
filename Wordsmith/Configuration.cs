@@ -14,9 +14,13 @@ namespace Wordsmith
         public bool ResearchToTop { get; set; } = true;
 
         // Scratch Pad settings
-        public string[] CrossWorldLinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
-        public string[] LinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
         public bool DeleteClosedScratchPads { get; set; } = true;
+
+        /// <summary>
+        /// When true, a context menu item is added to context menus that contain 
+        /// the "Send Tell" command.
+        /// </summary>
+        public bool AddContextMenuOption { get; set; } = true;
 
         /// <summary>
         /// If true, the spellchecker will not attempt to match words ending in a hyphen.
@@ -98,12 +102,17 @@ namespace Wordsmith
         /// </summary>
         public string DictionaryFile { get; set; } = "lang_en";
 
+        /// <summary>
+        /// Contains the nicknames of all Cross-World Linkshells
+        /// </summary>
+        public string[] CrossWorldLinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
+
+        /// <summary>
+        /// Contains the names of all normal Linkshells.
+        /// </summary>
+        public string[] LinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
+
         // the below exist just to make saving less cumbersome
-
-        [NonSerialized]
-        private DalamudPluginInterface? pluginInterface;
-
-        public void Initialize(DalamudPluginInterface pluginInterface) => this.pluginInterface = pluginInterface;
 
         public void ResetToDefault()
         {
@@ -132,8 +141,8 @@ namespace Wordsmith
         }
         public void Save()
         {
-            this.pluginInterface!.SavePluginConfig(this);
-            pluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+            Wordsmith.PluginInterface.SavePluginConfig(this);
+            Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
         }
         
     }

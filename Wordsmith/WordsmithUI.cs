@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using Dalamud.Logging;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Gui;
+using ImGuiNET;
+using Dalamud.Interface;
 
 namespace Wordsmith
 {
@@ -18,6 +21,7 @@ namespace Wordsmith
         // passing in the image here just for simplicity
         public static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
         public static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
+        public static void ShowScratchPad(string tellTarget) => _windows.Add(new ScratchPadUI(tellTarget));
         public static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
         public static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
         public static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
@@ -34,9 +38,11 @@ namespace Wordsmith
 
             // If the result is null, create a new window
             if (w == null)
+                #pragma warning disable CS8604 // Possible null reference argument.
                 _windows.Add(Activator.CreateInstance(typeof(T)) as Window);
-            
-            // If the result wasn't null, open the window
+                #pragma warning restore CS8604 // Possible null reference argument.
+
+                // If the result wasn't null, open the window
             else
                 w.IsOpen = true;
             
@@ -45,6 +51,19 @@ namespace Wordsmith
         {
             _windows.Remove(w);
             WindowSystem.RemoveWindow(w);
+        }
+
+        public static void Draw()
+        {
+            try { WordsmithUI.WindowSystem.Draw(); }
+            catch (InvalidOperationException e)
+            {
+                // If the message isn't about collection being modified, log it. Otherwise
+                // Discard the error.
+                if (!e.Message.StartsWith("Collection was modified"))
+                    PluginLog.LogError($"{e.Message}");
+            }
+            catch (Exception e) { PluginLog.LogError($"{e} :: {e.Message}"); }
         }
     }
 }

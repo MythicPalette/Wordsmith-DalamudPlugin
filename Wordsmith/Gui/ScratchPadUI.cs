@@ -64,10 +64,18 @@ namespace Wordsmith.Gui
         #region Constants
         protected static readonly string[] _chatOptions = new string[] { "None", "Emote (/em)", "Reply (/r)", "Say (/s)", "Party (/p)", "FC (/fc)", "Shout (/sh)", "Yell (/y)", "Tell (/t)", "Linkshells", "Echo" };
         protected static readonly string[] _chatHeaders = new string[] { "", "/em", "/r", "/s", "/p", "/fc", "/sh", "/y", "/t", "", "/e" };
-        protected const int CHAT_NONE = 0;
-        protected const int CHAT_TELL = 8;
-        protected const int CHAT_LS = 9;
-        protected const int CHAT_ECHO = 10;
+        public const int CHAT_NONE = 0;
+        public const int CHAT_EMOTE = 1;
+        public const int CHAT_REPLY = 2;
+        public const int CHAT_SAY = 3;
+        public const int CHAT_PARTY = 4;
+        public const int CHAT_FC = 5;
+        public const int CHAT_SHOUT = 6;
+        public const int CHAT_YELL = 7;
+        public const int CHAT_TELL = 8;
+        public const int CHAT_LS = 9;
+        public const int CHAT_ECHO = 10;
+
         protected const int ENTER_KEY = 0xD;
         #endregion
 
@@ -171,6 +179,14 @@ namespace Wordsmith.Gui
             Flags |= ImGuiWindowFlags.NoScrollWithMouse;
             Flags |= ImGuiWindowFlags.MenuBar;
         }
+        
+        public ScratchPadUI(string tellTarget) : this()
+        {
+            _chatType = CHAT_TELL;
+            _telltarget = tellTarget;
+        }
+
+        public ScratchPadUI(int chatType) : this() => _chatType = chatType;
 
         /// <summary>
         /// Gets the height of the footer.
@@ -597,8 +613,12 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void DoCopyToClipboard()
         {
+            // If there are no chunks to copy exit the function.
+            if ((_chunks?.Length ?? 0) == 0)
+                return;
+
             // Copy the next chunk over.
-            ImGui.SetClipboardText(_chunks?[_nextChunk++] ?? "");
+            ImGui.SetClipboardText(_chunks?[_nextChunk++]);
 
             // If we're not at the last chunk, return.
             if (_nextChunk < _chunks?.Length)
