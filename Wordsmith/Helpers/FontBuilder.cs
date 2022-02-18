@@ -130,30 +130,6 @@ namespace Wordsmith.Helpers
             this._fontCfgMerge.Destroy();
         }
 
-        //private void Draw()
-        //{
-        //    this.DefaultText = ImGui.GetStyle().Colors[(int)ImGuiCol.Text];
-
-        //    var font = this.RegularFont.HasValue;
-
-        //    if (font)
-        //    {
-        //        ImGui.PushFont(this.RegularFont!.Value);
-        //    }
-
-        //    if (font)
-        //    {
-        //        ImGui.PopFont();
-        //    }
-        //}
-
-        //private byte[] GetResource(string name)
-        //{
-        //    var stream = this.GetType().Assembly.GetManifestResourceStream(name)!;
-        //    var memory = new MemoryStream();
-        //    stream.CopyTo(memory);
-        //    return memory.ToArray();
-        //}
         private void SetUpUserFonts()
         {
             FontData? fontData = null;

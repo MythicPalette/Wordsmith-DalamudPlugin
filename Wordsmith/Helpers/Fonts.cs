@@ -11,36 +11,6 @@ namespace Wordsmith.Helpers
     // TODO rewrite class with own font implementation.
     internal static class Fonts
     {
-        internal const string IncludedIndicator = "Chat 2: ";
-
-        internal static readonly Font[] GlobalFonts = {
-        new(
-            $"{IncludedIndicator}Noto Sans",
-            "ChatTwo.fonts.NotoSans-Regular.ttf",
-            "ChatTwo.fonts.NotoSans-Italic.ttf"
-        ),
-        new(
-            $"{IncludedIndicator}Noto Serif",
-            "ChatTwo.fonts.NotoSerif-Regular.ttf",
-            "ChatTwo.fonts.NotoSerif-Italic.ttf"
-        ),
-        new(
-            $"{IncludedIndicator}Open Sans",
-            "ChatTwo.fonts.OpenSans-Regular.ttf",
-            "ChatTwo.fonts.OpenSans-Italic.ttf"
-        ),
-        new(
-            $"{IncludedIndicator}Roboto",
-            "ChatTwo.fonts.Roboto-Regular.ttf",
-            "ChatTwo.fonts.Roboto-Italic.ttf"
-        ),
-    };
-
-        internal static readonly (string, string)[] JapaneseFonts = {
-        ($"{IncludedIndicator}Noto Sans JP", "ChatTwo.fonts.NotoSansJP-Regular.otf"),
-        // ($"{IncludedIndicator}Noto Serif JP", "ChatTwo.fonts.NotoSerifJP-Regular.otf"),
-    };
-
         internal static List<string> GetFonts()
         {
             var fonts = new List<string>();
