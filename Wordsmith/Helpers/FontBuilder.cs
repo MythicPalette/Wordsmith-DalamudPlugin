@@ -80,9 +80,7 @@ namespace Wordsmith.Helpers
 
                 // "Enclosed Alphanumerics" (partial) https://www.compart.com/en/unicode/block/U+2460
                 for (var i = 0x2460; i <= 0x24B5; i++)
-                {
                     builder.AddChar((char)i);
-                }
 
                 builder.AddChar('⓪');
 
