@@ -143,7 +143,7 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Gets the slash command (if one exists) and the tell target if one is needed.
         /// </summary>
-        protected string GetFullChatHeader()
+        internal string GetFullChatHeader()
         {
             if (_chatType == CHAT_NONE)
                 return "";

@@ -191,6 +191,40 @@ namespace Wordsmith.Gui
                     //ImGui.TextColored(new(255, 0, 0, 255), "WARNING: Experimental.");
                     //ImGui.TextWrapped($"These are experimental features and may have more bugs than usual, including game-crashing bugs. While I have done my best to ensure this doesn't happen, these are still experimental options until proven stable.");
                     //ImGui.Checkbox($"Scratch Pad Multi Line Text Entry", ref _scratchSingleLineInput);
+
+                    ImGui.Separator();
+                    ImGui.Text("Open Scratch Pads.");
+                    if (ImGui.BeginTable($"SettingsPadListTable", 3))
+                    {
+                        ImGui.TableSetupColumn("SettingsUIPadListIDColumn", ImGuiTableColumnFlags.WidthFixed, 25 * ImGuiHelpers.GlobalScale);
+                        ImGui.TableSetupColumn("SettingsUIPadListDescColumn", ImGuiTableColumnFlags.WidthStretch, 1);
+                        ImGui.TableSetupColumn("SettingsUIPadListCloseColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale);
+
+                        ImGui.TableNextColumn();
+                        ImGui.TableHeader("ID##SettingsUIPadListColumnHeader");
+                        ImGui.TableNextColumn();
+                        ImGui.TableHeader("Chat Header##SettingsUIPadListColumnHeader.");
+                        ImGui.TableNextColumn();
+                        ImGui.TableHeader("##SettingsUIPadListColumnHeader");
+
+
+                        foreach(Window w in WordsmithUI.Windows)
+                        {
+                            if (w is ScratchPadUI pad)
+                            {
+                                ImGui.TableNextColumn();
+                                ImGui.Text(pad.ID.ToString());
+
+                                ImGui.TableNextColumn();
+                                ImGui.Text(pad.GetFullChatHeader().Length > 0 ? pad.GetFullChatHeader() : "None");
+
+                                ImGui.TableNextColumn();
+                                if (ImGui.Button($"Close##SettingsUIPadListClose{pad.ID}", new(-1, 25 * ImGuiHelpers.GlobalScale)))
+                                    pad.OnClose();
+                            }
+                        }
+                        ImGui.EndTable();
+                    }
                     ImGui.EndChild();
                 }
                 ImGui.EndTabItem();
@@ -335,11 +369,6 @@ namespace Wordsmith.Gui
 
                 ImGui.EndTabItem();
             }
-        }
-
-        protected void DrawOpenPadsTab()
-        {
-
         }
 
         protected void DrawFooter()
