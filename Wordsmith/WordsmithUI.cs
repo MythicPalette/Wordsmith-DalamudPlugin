@@ -1,11 +1,6 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using Dalamud.Logging;
-using Dalamud.Interface.Windowing;
+﻿using Dalamud.Interface.Windowing;
 using Wordsmith.Gui;
-using ImGuiNET;
-using Dalamud.Interface;
+using Wordsmith.Helpers;
 
 namespace Wordsmith
 {
@@ -13,10 +8,14 @@ namespace Wordsmith
     // to do any cleanup
     public static class WordsmithUI
     {
-        private static List<Window> _windows = new();
-        public static Window[] Windows => _windows.ToArray();
+        private static List<Window> _windows { get; set; } = new();
+        public static Window[] Windows { get => _windows.ToArray(); }
 
-        public static readonly WindowSystem WindowSystem = new WindowSystem("Wordsmith");
+        public static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
+
+        public static FontBuilder FontBuilder { get; private set; } = null!;
+
+        public static void Init() => FontBuilder = new();
 
         // passing in the image here just for simplicity
         public static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
@@ -38,9 +37,7 @@ namespace Wordsmith
 
             // If the result is null, create a new window
             if (w == null)
-                #pragma warning disable CS8604 // Possible null reference argument.
-                _windows.Add(Activator.CreateInstance(typeof(T)) as Window);
-                #pragma warning restore CS8604 // Possible null reference argument.
+                _windows.Add((Activator.CreateInstance(typeof(T)) as Window)!);
 
                 // If the result wasn't null, open the window
             else

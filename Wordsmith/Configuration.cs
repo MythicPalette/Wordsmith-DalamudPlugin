@@ -1,7 +1,4 @@
 ﻿using Dalamud.Configuration;
-using Dalamud.Plugin;
-using System.Collections.Generic;
-using System;
 
 namespace Wordsmith
 {
@@ -12,6 +9,9 @@ namespace Wordsmith
 
         public int SearchHistoryCount { get; set; } = 10;
         public bool ResearchToTop { get; set; } = true;
+
+        public int FontSize { get; set; } = 24;
+        public int JpFontSize { get; set; } = 12;
 
         // Scratch Pad settings
         public bool DeleteClosedScratchPads { get; set; } = true;
