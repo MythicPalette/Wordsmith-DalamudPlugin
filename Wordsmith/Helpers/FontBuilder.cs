@@ -90,7 +90,6 @@ namespace Wordsmith.Helpers
                 builder.Destroy();
             }
             BuildRange(out this._ranges, null, ImGui.GetIO().Fonts.GetGlyphRangesDefault());
-            BuildRange(out this._jpRange, GlyphRangesJapanese.GlyphRanges);
             this.SetUpUserFonts();
 
             var gameSym = File.ReadAllBytes(Path.Combine(Wordsmith.PluginInterface.DalamudAssetDirectory.FullName, "UIRes", "gamesym.ttf"));
