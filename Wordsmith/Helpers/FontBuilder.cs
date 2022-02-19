@@ -16,6 +16,7 @@ namespace Wordsmith.Helpers
         private ImFontConfigPtr _fontCfg;
         private ImFontConfigPtr _fontCfgMerge;
         private (GCHandle, int, float) _regularFont;
+        private (GCHandle, int, float) _italicFont;
         private (GCHandle, int, float) _jpFont;
         private (GCHandle, int) _gameSymFont;
 
@@ -38,13 +39,13 @@ namespace Wordsmith.Helpers
         {
             this._fontCfg = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
             {
-                FontDataOwnedByAtlas = false,
+                FontDataOwnedByAtlas = false
             };
 
             this._fontCfgMerge = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
             {
                 FontDataOwnedByAtlas = false,
-                MergeMode = true,
+                MergeMode = true
             };
 
             BuildRange(out this._ranges, null, ImGui.GetIO().Fonts.GetGlyphRangesDefault());
@@ -64,6 +65,7 @@ namespace Wordsmith.Helpers
         private static unsafe void BuildRange(out ImVector result, IReadOnlyList<ushort>? chars, params IntPtr[] ranges)
         {
             ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
+
             // text
             foreach (IntPtr range in ranges)
                 builder.AddRanges(range);
@@ -122,23 +124,73 @@ namespace Wordsmith.Helpers
 
         private void SetUpUserFonts()
         {
-            FontData? fontData = Fonts.GetFont("Balakhani", true);
+            try
+            {
+                //FontData? fontData = Fonts.GetFont("notofont", true);
+                FontData? fontData = new FontData(
+                    new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Regular.ttf"), 1f),
+                    new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Italic.ttf"), 1f)
+                    );
 
-            if (fontData == null) return;
+                if (fontData == null) return;
 
-            if (this._regularFont.Item1.IsAllocated)
-                this._regularFont.Item1.Free();
+                if (this._regularFont.Item1.IsAllocated)
+                    this._regularFont.Item1.Free();
 
-            this._regularFont = (
-                GCHandle.Alloc(fontData.Regular.Data, GCHandleType.Pinned),
-                fontData.Regular.Data.Length,
-                fontData.Regular.Ratio
-            );
+                if (this._italicFont.Item1.IsAllocated)
+                    this._italicFont.Item1.Free();
 
-            this._jpFont = (
-                GCHandle.Alloc(fontData.Regular.Data, GCHandleType.Pinned),
-                fontData.Regular.Data.Length,
-                fontData.Regular.Ratio);
+                this._regularFont = (
+                    GCHandle.Alloc(fontData.Regular.Data, GCHandleType.Pinned),
+                    fontData.Regular.Data.Length,
+                    fontData.Regular.Ratio
+                );
+
+                this._italicFont = (
+                    GCHandle.Alloc(fontData.Italic!.Data, GCHandleType.Pinned),
+                    fontData.Italic.Data.Length,
+                    fontData.Italic.Ratio
+                    );
+
+                FontData? jpFontData = new FontData(
+                    new FaceData(this.GetResource("Wordsmith.Resources.NotoSansJP-Regular.otf"), 1f),
+                    null
+                    );
+
+                if (this._jpFont.Item1.IsAllocated)
+                    this._jpFont.Item1.Free();
+
+                this._jpFont = (
+                    GCHandle.Alloc(jpFontData.Regular.Data, GCHandleType.Pinned),
+                    jpFontData.Regular.Data.Length,
+                    jpFontData.Regular.Ratio
+                    );
+            }
+            catch (Exception e)
+            {
+                PluginLog.LogError($"{e}");
+            }
+        }
+
+        private byte[] GetResource(string name)
+        {
+            try
+            {
+                string[] names = this.GetType().Assembly.GetManifestResourceNames();
+                Stream stream = this.GetType().Assembly.GetManifestResourceStream(name)!;
+                if (stream == null)
+                    return Array.Empty <byte>();
+
+                MemoryStream memStream = new();
+
+                stream.CopyTo(memStream);
+                return memStream.ToArray();
+            }
+            catch (Exception e)
+            {
+                PluginLog.LogError($"{e.Message}");
+            }
+            return Array.Empty<byte>();
         }
 
         private void BuildFonts()

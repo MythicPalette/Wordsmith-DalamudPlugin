@@ -213,7 +213,7 @@ namespace Wordsmith.Gui
             DrawHeader();
 
             if (WordsmithUI.FontBuilder.Enabled)
-                ImGui.PushFont(WordsmithUI.FontBuilder.ItalicFont!.Value);
+                ImGui.PushFont(WordsmithUI.FontBuilder.RegularFont!.Value);
 
             DrawChunkDisplay();
 

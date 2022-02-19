@@ -17,9 +17,15 @@
 
   <ItemGroup>
     <Content Include="..\dictionaries\**">
-    <Link>%(RecursiveDir)\Dictionaries\%(Filename)%(Extension)</Link>
-    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>%(RecursiveDir)\Dictionaries\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\NotoSans-Italic.ttf" />
+    <None Remove="Resources\NotoSans-Regular.ttf" />
+    <None Remove="Resources\NotoSansJP-Regular.otf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +37,12 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <RepositoryUrl>https://github.com/LadyDefile/Wordsmith</RepositoryUrl>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\NotoSans-Italic.ttf" />
+    <EmbeddedResource Include="Resources\NotoSans-Regular.ttf" />
+    <EmbeddedResource Include="Resources\NotoSansJP-Regular.otf" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DalamudPackager" Version="2.1.5" />
