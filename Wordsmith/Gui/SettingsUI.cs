@@ -1,9 +1,6 @@
-﻿using System.Linq;
-using Dalamud.Interface;
+﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using System.IO;
-using Wordsmith.Extensions;
 
 namespace Wordsmith.Gui
 {

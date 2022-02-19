@@ -1,10 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.IO;
-using Dalamud.Logging;
-using Dalamud.Plugin;
-
+﻿
 namespace Wordsmith.Data
 {
     public static class Lang

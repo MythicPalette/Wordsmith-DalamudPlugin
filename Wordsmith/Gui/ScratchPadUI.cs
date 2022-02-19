@@ -1,15 +1,8 @@
-﻿using System;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading;
+﻿using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 using ImGuiNET;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
-using Dalamud.Logging;
-using Wordsmith.Extensions;
 
 namespace Wordsmith.Gui
 {
@@ -218,6 +211,10 @@ namespace Wordsmith.Gui
         {
             DrawMenu();
             DrawHeader();
+
+            if (WordsmithUI.FontBuilder.Enabled)
+                ImGui.PushFont(WordsmithUI.FontBuilder.RegularFont!.Value);
+
             DrawChunkDisplay();
 
             // Draw the old, single line input
@@ -227,6 +224,9 @@ namespace Wordsmith.Gui
             // Draw multi-line input.
             else
                 DrawMultilineTextInput();
+
+            if (WordsmithUI.FontBuilder.Enabled)
+                ImGui.PopFont();
 
             DrawWordReplacement();
             DrawFooter();

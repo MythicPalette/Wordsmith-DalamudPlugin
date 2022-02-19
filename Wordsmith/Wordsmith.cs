@@ -1,14 +1,19 @@
-﻿using System;
-using System.Linq;
+﻿global using System;
+global using System.IO;
+global using System.Linq;
+global using System.Text;
+global using System.Numerics;
+global using System.Collections.Generic;
+global using Dalamud.Logging;
+global using Wordsmith.Extensions;
+
 using Dalamud.Game.Command;
 using Dalamud.Data;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-using Dalamud.Logging;
 
 using XivCommon;
 using XivCommon.Functions.ContextMenu;
-using XivCommon.Functions.ContextMenu.Inventory;
 using Lumina.Excel.GeneratedSheets;
 
 namespace Wordsmith
@@ -65,7 +70,7 @@ namespace Wordsmith
             XivCommon = new XivCommonBase(Hooks.ContextMenu);
 
             XivCommon.Functions.ContextMenu.OpenContextMenu += OnContextMenu;
-
+            WordsmithUI.Init();
             Data.Lang.Init();
         }
 

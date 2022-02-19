@@ -3,17 +3,12 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>0.2.7</Version>
-    <Description>A roleplay assistant.</Description>
-    <Copyright></Copyright>
+    <Version>0.2.8</Version>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
-  </PropertyGroup>
-
-  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
     <TargetFramework>net5.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -22,9 +17,15 @@
 
   <ItemGroup>
     <Content Include="..\dictionaries\**">
-    <Link>%(RecursiveDir)\Dictionaries\%(Filename)%(Extension)</Link>
-    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <Link>%(RecursiveDir)\Dictionaries\%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\NotoSans-Italic.ttf" />
+    <None Remove="Resources\NotoSans-Regular.ttf" />
+    <None Remove="Resources\NotoSansJP-Regular.otf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,8 +39,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\NotoSans-Italic.ttf" />
+    <EmbeddedResource Include="Resources\NotoSans-Regular.ttf" />
+    <EmbeddedResource Include="Resources\NotoSansJP-Regular.otf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="DalamudPackager" Version="2.1.5" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
+    <PackageReference Include="SharpDX.Direct2D1" Version="4.2.0" />
     <PackageReference Include="XivCommon" Version="4.0.0" />
     <Reference Include="FFXIVClientStructs">
       <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
@@ -84,6 +92,10 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="fonts\" />
   </ItemGroup>
 
 </Project>
