@@ -23,6 +23,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="fonts\**" />
+    <EmbeddedResource Remove="fonts\**" />
+    <None Remove="fonts\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Resources\NotoSans-Italic.ttf" />
     <None Remove="Resources\NotoSans-Regular.ttf" />
     <None Remove="Resources\NotoSansJP-Regular.otf" />
@@ -92,10 +98,6 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="fonts\" />
   </ItemGroup>
 
 </Project>

@@ -774,7 +774,7 @@ namespace Wordsmith.Gui
             for (int i = 0; i < bytes.Length; ++i)
                 data->Buf[i] = bytes[i];
 
-            data->BufTextLen = txt.Length;
+            data->BufTextLen = bytes.Length;
             data->BufDirty = 1;
             return 0;
         }
@@ -794,7 +794,7 @@ namespace Wordsmith.Gui
                 text = text.FixSpacing();
 
             // Get the maximum allowed character width.
-            float width = ImGui.GetWindowWidth() - (32 * ImGuiHelpers.GlobalScale);
+            float width = ImGui.GetWindowContentRegionWidth() - (25 * ImGuiHelpers.GlobalScale);
 
             // Iterate through each character.
             int lastSpace = 0;

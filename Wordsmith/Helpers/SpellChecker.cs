@@ -22,7 +22,7 @@ namespace Wordsmith.Helpers
                     continue;
 
                 string word = CleanWord(words[i].ToLower());
-                if (word == null)
+                if (word.Length < 1)
                     continue;
 
                 if (word.EndsWith('-') && Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
@@ -76,7 +76,7 @@ namespace Wordsmith.Helpers
             str = str.Trim();
 
             if (str.EndsWith("'s"))
-                str = str.Substring(0, str.Length - 2);
+                str = str[0..^2];
 
             // Loop
             do

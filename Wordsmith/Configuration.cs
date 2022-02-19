@@ -33,7 +33,7 @@ namespace Wordsmith
         /// <summary>
         /// The spell checker will attempt to delete these punctuation marks from the beginning and end of every word
         /// </summary>
-        public string PunctuationCleaningList { get; set; } = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/";
+        public string PunctuationCleaningList { get; set; } = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
 
         /// <summary>
         /// Toggles displaying text in copy chunks.
