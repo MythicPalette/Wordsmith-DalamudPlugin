@@ -10,8 +10,9 @@ namespace Wordsmith
         public int SearchHistoryCount { get; set; } = 10;
         public bool ResearchToTop { get; set; } = true;
 
-        public int FontSize { get; set; } = 24;
-        public int JpFontSize { get; set; } = 12;
+        public float FontSize { get; set; } = 17f;
+        public float JpFontSize { get; set; } = 17f;
+        public float SymbolFontSize { get; set; } = 17f;
 
         // Scratch Pad settings
         public bool DeleteClosedScratchPads { get; set; } = true;
