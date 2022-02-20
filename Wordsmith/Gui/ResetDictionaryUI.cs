@@ -23,7 +23,7 @@ namespace Wordsmith.Gui
 
             if (ImGui.Button("Yes##RestoreDefaultSettingsConfirmedButton", ImGuiHelpers.ScaledVector2(120, 20)))
             {
-                // Thesaurus settings.
+                // Spell Check settings.
                 Wordsmith.Configuration.CustomDictionaryEntries = new();
                 Wordsmith.Configuration.Save();
                 IsOpen = false;

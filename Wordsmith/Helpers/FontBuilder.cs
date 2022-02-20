@@ -37,69 +37,84 @@ namespace Wordsmith.Helpers
 
         internal unsafe FontBuilder()
         {
-            this._fontCfg = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
+            try
             {
-                FontDataOwnedByAtlas = false
-            };
+                this._fontCfg = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
+                {
+                    FontDataOwnedByAtlas = false
+                };
 
-            this._fontCfgMerge = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
+                this._fontCfgMerge = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
+                {
+                    FontDataOwnedByAtlas = false,
+                    MergeMode = true
+                };
+
+                BuildRange(out this._ranges, null, ImGui.GetIO().Fonts.GetGlyphRangesDefault());
+                BuildRange(out this._jpRange, GlyphRangesJapanese.GlyphRanges);
+                this.SetUpUserFonts();
+
+                byte[] gameSym = File.ReadAllBytes(Path.Combine(Wordsmith.PluginInterface.DalamudAssetDirectory.FullName, "UIRes", "gamesym.ttf"));
+                this._gameSymFont = (
+                    GCHandle.Alloc(gameSym, GCHandleType.Pinned),
+                    gameSym.Length
+                );
+
+                Wordsmith.PluginInterface.UiBuilder.BuildFonts += this.BuildFonts;
+                Wordsmith.PluginInterface.UiBuilder.RebuildFonts();
+            }
+            catch (Exception e)
             {
-                FontDataOwnedByAtlas = false,
-                MergeMode = true
-            };
-
-            BuildRange(out this._ranges, null, ImGui.GetIO().Fonts.GetGlyphRangesDefault());
-            BuildRange(out this._jpRange, GlyphRangesJapanese.GlyphRanges);
-            this.SetUpUserFonts();
-
-            byte[] gameSym = File.ReadAllBytes(Path.Combine(Wordsmith.PluginInterface.DalamudAssetDirectory.FullName, "UIRes", "gamesym.ttf"));
-            this._gameSymFont = (
-                GCHandle.Alloc(gameSym, GCHandleType.Pinned),
-                gameSym.Length
-            );
-
-            Wordsmith.PluginInterface.UiBuilder.BuildFonts += this.BuildFonts;
-            Wordsmith.PluginInterface.UiBuilder.RebuildFonts();
+                PluginLog.LogError($"Error in FontBuilder(): {e}");
+            }
         }
 
         private static unsafe void BuildRange(out ImVector result, IReadOnlyList<ushort>? chars, params IntPtr[] ranges)
         {
-            ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
-
-            // text
-            foreach (IntPtr range in ranges)
-                builder.AddRanges(range);
-
-            // chars
-            if (chars != null)
+            try
             {
-                for (int i = 0; i < chars.Count; i += 2)
+                ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
+
+                // text
+                foreach (IntPtr range in ranges)
+                    builder.AddRanges(range);
+
+                // chars
+                if (chars != null)
                 {
-                    if (chars[i] == 0)
-                        break;
+                    for (int i = 0; i < chars.Count; i += 2)
+                    {
+                        if (chars[i] == 0)
+                            break;
 
-                    for (uint j = chars[i]; j <= chars[i + 1]; j++)
-                        builder.AddChar((ushort)j);
+                        for (uint j = chars[i]; j <= chars[i + 1]; j++)
+                            builder.AddChar((ushort)j);
+                    }
                 }
+
+                // various symbols
+                builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
+
+                // French
+                builder.AddText("Œœ");
+
+                // Romanian
+                builder.AddText("ĂăÂâÎîȘșȚț");
+
+                // "Enclosed Alphanumerics" (partial) https://www.compart.com/en/unicode/block/U+2460
+                for (var i = 0x2460; i <= 0x24B5; i++)
+                    builder.AddChar((char)i);
+
+                builder.AddChar('⓪');
+
+                builder.BuildRanges(out result);
+                builder.Destroy();
             }
-
-            // various symbols
-            builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
-
-            // French
-            builder.AddText("Œœ");
-
-            // Romanian
-            builder.AddText("ĂăÂâÎîȘșȚț");
-
-            // "Enclosed Alphanumerics" (partial) https://www.compart.com/en/unicode/block/U+2460
-            for (var i = 0x2460; i <= 0x24B5; i++)
-                builder.AddChar((char)i);
-
-            builder.AddChar('⓪');
-
-            builder.BuildRanges(out result);
-            builder.Destroy();
+            catch (Exception e)
+            {
+                PluginLog.LogError($"Error in BuildRange(...): {e}");
+            }
+            result = new();
         }
 
         public void Dispose()

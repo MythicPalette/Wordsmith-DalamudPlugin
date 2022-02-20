@@ -66,37 +66,14 @@ namespace Wordsmith.Data
                 PluginLog.LogWarning($"Configured language file \"{filepath}\" not found. Disabling all spell checking.");
                 return false;
             }
+
             try
             {
-                // Get a stream reader for the file
-                using (StreamReader r = new StreamReader(new FileStream(filepath, FileMode.Open)))
+                string[] lines = File.ReadAllLines(filepath);
+                foreach (string l in lines)
                 {
-                    // Read the file line by line into the the array.
-                    while(!r.EndOfStream)
-                    {
-                        string? line = r.ReadLine()?.Trim();
-
-                        // Ignore null lines.
-                        if (line == null)
-                            continue;
-
-                        // Ignore empty lines.
-                        if (line.Length < 1)
-                            continue;
-
-                        // Ignore comments and notations.
-                        if (line.StartsWith("#"))
-                            continue;
-
-                        // Split the line by spaces and add it to the list of lines.
-                        // This is important for human readability so that cities and other names
-                        // can be written on the same line but registered into the dictionary separately.
-                        // i.e. "Rak'tika Greatwood" can be one line.
-                        //
-                        // The dictionary is not case sensitive so trim and ToLower() each word.
-                        _wordlist.AddRange(line.Split(" ").Select(l => l.Trim().ToLower()));
-                    }
-                    r.Close();
+                    if (!l.StartsWith("#") && l.Trim().Length > 0)
+                        _wordlist.Add(l);
                 }
                 return true;
             }

@@ -13,6 +13,7 @@ namespace Wordsmith.Gui
         private bool _researchToTopChange = Wordsmith.Configuration.ResearchToTop;
 
         // Scratch Pad settings.
+        private bool _contextMenu = Wordsmith.Configuration.AddContextMenuOption;
         private bool _deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
         private bool _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
         private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
@@ -115,6 +116,10 @@ namespace Wordsmith.Gui
             {
                 if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
                 {
+                    // Add to context menu.
+                    ImGui.Checkbox("Add to context menu.", ref _contextMenu);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("If enabled the option \"Tell in Scratch\" will be added to\ncontext menus that have \"Send Tell\".");
                     // Auto-Clear Scratch Pad
                     ImGui.Checkbox("Auto-clear Scratch Pad", ref _autoClear);
                     if (ImGui.IsItemHovered())
@@ -415,6 +420,7 @@ namespace Wordsmith.Gui
             _researchToTopChange = Wordsmith.Configuration.ResearchToTop;
 
             // Scratch Pad settings.
+            _contextMenu = Wordsmith.Configuration.AddContextMenuOption;
             _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
             _deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
             _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
@@ -446,6 +452,9 @@ namespace Wordsmith.Gui
                 Wordsmith.Configuration.ResearchToTop = _researchToTopChange;
 
             // Scratch Pad settings.
+            if (_contextMenu != Wordsmith.Configuration.AddContextMenuOption)
+                Wordsmith.Configuration.AddContextMenuOption = _contextMenu;
+
             if (_autoClear != Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
                 Wordsmith.Configuration.AutomaticallyClearAfterLastCopy = _autoClear;
 
@@ -493,7 +502,6 @@ namespace Wordsmith.Gui
             }
 
             // Linkshell settings
-
             if (_linkshells != Wordsmith.Configuration.LinkshellNames)
                 Wordsmith.Configuration.LinkshellNames = _linkshells;
 

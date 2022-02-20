@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>0.2.8</Version>
+    <Version>0.3.1</Version>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
     <LangVersion>preview</LangVersion>
     <TargetFramework>net5.0-windows</TargetFramework>
@@ -42,6 +42,7 @@
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <RepositoryUrl>https://github.com/LadyDefile/Wordsmith</RepositoryUrl>
+    <PackageReleaseNotes>* fixed a major bug where context menus that included "Tell in Scratch" would have certain options do the action of the options beneath them. The only fix was to move "Tell in Scratch" to the bottom of the menu.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -91,6 +92,15 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="..\dictionaries\lang_en">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="..\dictionaries\lang_en_complete">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

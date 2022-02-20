@@ -109,11 +109,12 @@ namespace Wordsmith.Gui
         /// Contains all of the variables related to chat text.
         /// </summary>
         #region Chat Text
-        protected string _scratch = "";
         /// <summary>
         /// Returns a trimmed, single-line version of scratch.
         /// </summary>
         protected string ScratchString => _scratch.Trim().Replace('\n', ' ');
+        protected string _scratch = "";
+        protected string _clearedScratch = "";
         protected int _scratchBufferSize = 4096;
         protected bool _useOOC = false;
         protected string[]? _chunks;
@@ -276,7 +277,7 @@ namespace Wordsmith.Gui
                 {
                     // Clear text.
                     if (ImGui.MenuItem($"Clear##ScratchPad{ID}TextClearMenuItem"))
-                        _scratch = "";
+                        DoClearText();
 
                     // TSpell Check
                     if (ImGui.MenuItem($"Spell Check##ScratchPad{ID}SpellCheckMenuItem"))
@@ -534,8 +535,7 @@ namespace Wordsmith.Gui
 
                 // Draw the clear button.
                 ImGui.TableNextColumn();
-                if (ImGui.Button($"Clear##Scratch{ID}", ImGuiHelpers.ScaledVector2(-1, 25)))
-                    _scratch = "";
+                DrawClearButton();
 
                 // If spell check is disabled, make the button dark so it appears as though it is disabled.
                 if (!Data.Lang.Enabled)
@@ -608,6 +608,36 @@ namespace Wordsmith.Gui
             }
         }
 
+
+        /// <summary>
+        /// Draws the copy button depending on how many chunks are available.
+        /// </summary>
+        protected void DrawClearButton()
+        {
+            // If there is more than 1 chunk.
+            if (_clearedScratch.Length > 0)
+            {
+                if (ImGui.Button($"Clear##ScratchPad{ID}", new(ImGui.GetColumnWidth() - (23 * ImGuiHelpers.GlobalScale), 25 * ImGuiHelpers.GlobalScale)))
+                    DoClearText();
+
+                // Push the font and draw the next chunk button with no spacing.
+                ImGui.PushFont(UiBuilder.IconFont);
+                ImGui.SameLine(0, 0);
+                if (ImGui.Button($"{(char)0xF0E2}##{ID}UndoClearButton", ImGuiHelpers.ScaledVector2(25, 25)))
+                {
+                    _scratch = _clearedScratch;
+                    _clearedScratch = "";
+                }
+                // Reset the font.
+                ImGui.PushFont(UiBuilder.DefaultFont);
+            }
+            else // If there is only one chunk simply draw a normal button.
+            {
+                if (ImGui.Button($"Clear##ScratchPad{ID}", new(-1, 25 * ImGuiHelpers.GlobalScale)))
+                    DoClearText();
+            }
+        }
+
         /// <summary>
         /// Gets the next chunk of text and copies it to the player's clipboard.
         /// </summary>
@@ -629,7 +659,25 @@ namespace Wordsmith.Gui
 
             // If configured to clear text after last copy
             if (Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
-                _scratch = "";
+                DoClearText();
+        }
+
+        /// <summary>
+        /// Moves the text from the textbox to a hidden variable in case the user
+        /// wants to undo the change.
+        /// </summary>
+        protected void DoClearText()
+        {
+            PluginLog.LogDebug("Doing clear");
+            // Ignore empty strings.
+            if (_scratch.Length == 0)
+                return;
+
+            // Copy the string to the history variable.
+            _clearedScratch = _scratch;
+
+            // Clear scratch.
+            _scratch = "";
         }
 
         /// <summary>
@@ -775,6 +823,7 @@ namespace Wordsmith.Gui
                 data->Buf[i] = bytes[i];
 
             data->BufTextLen = bytes.Length;
+            data->CursorPos = txt.Length;
             data->BufDirty = 1;
             return 0;
         }
@@ -787,18 +836,19 @@ namespace Wordsmith.Gui
         protected string WrapString(string text)
         {
             // Replace all remaining new lines with spaces
-            text = text.Replace('\n', ' ');
+            text = text.Replace(" \n", " ").Replace("\n", "");
 
             // Replace double spaces if configured to do so.
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
                 text = text.FixSpacing();
 
             // Get the maximum allowed character width.
-            float width = ImGui.GetWindowContentRegionWidth() - (25 * ImGuiHelpers.GlobalScale);
+            float width = ImGui.GetWindowContentRegionWidth() - (35 * ImGuiHelpers.GlobalScale);
 
             // Iterate through each character.
             int lastSpace = 0;
             int offset = 0;
+            int line = 0;
             for (int i = 1; i < text.Length; ++i)
             {
                 // If the current character is a space, mark it as a wrap point.
@@ -806,14 +856,24 @@ namespace Wordsmith.Gui
                     lastSpace = i;
 
                 // If the size of the text is wider than the available size
-                if (ImGui.CalcTextSize(text.Substring(offset, i - offset)).X > width)
+                float txtWidth = ImGui.CalcTextSize(text.Substring(offset, i - offset)).X;
+                if (txtWidth + 10*ImGuiHelpers.GlobalScale > width)
                 {
+                    PluginLog.LogDebug($"{++line}\t::Text width {ImGui.CalcTextSize(text.Substring(offset, i-offset))} :: width {width}");
                     // Replace the last previous space with a new line
                     StringBuilder sb = new(text);
-                    sb[lastSpace] = '\n';
-                    text = sb.ToString();
 
-                    offset = lastSpace;
+                    if (lastSpace <= offset)
+                    {
+                        sb.Insert(i, '\n');
+                        offset = ++i;
+                    }
+                    else
+                    {
+                        sb.Insert(lastSpace+1, '\n');
+                        offset = lastSpace+1;
+                    }
+                    text = sb.ToString();
                 }
             }
             return text;
@@ -854,6 +914,9 @@ namespace Wordsmith.Gui
             }
             else if (_lastState != newState || _refreshRequired)
             {
+                if (_scratch != "")
+                    _clearedScratch = "";
+
                 _cancellationTokenSource?.Cancel();
                 _refreshRequired = false;
                 _error = "";
@@ -864,8 +927,6 @@ namespace Wordsmith.Gui
                 _lastState = newState;
                 _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);
                 _nextChunk = 0;
-
-                _scratch = WrapString(_scratch);
             }
         }
     }

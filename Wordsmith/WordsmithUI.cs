@@ -62,5 +62,10 @@ namespace Wordsmith
             }
             catch (Exception e) { PluginLog.LogError($"{e} :: {e.Message}"); }
         }
+
+        public static void Dispose()
+        {
+            FontBuilder.Dispose();
+        }
     }
 }

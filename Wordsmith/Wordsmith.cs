@@ -79,6 +79,7 @@ namespace Wordsmith
             this.CommandManager.RemoveHandler(THES_CMD_STRING);
             this.CommandManager.RemoveHandler(SETTINGS_CMD_STRING);
             this.CommandManager.RemoveHandler(SCRATCH_CMD_STRING);
+            WordsmithUI.Dispose();
 
             XivCommon.Functions.ContextMenu.OpenContextMenu -= this.OnContextMenu;
         }
@@ -112,7 +113,7 @@ namespace Wordsmith
 
             // If the world name was found, create a scratch pad targetting the player@world.
             if (w != null)
-                args.Items.Insert(index + 1, new NormalContextMenuItem("Tell in Scratch Pad", selectedArgs => WordsmithUI.ShowScratchPad($"{args.Text}@{w?.Name}")));
+                args.Items.Insert(args.Items.Count, new NormalContextMenuItem("Tell in Scratch Pad", selectedArgs => WordsmithUI.ShowScratchPad($"{args.Text}@{w?.Name}")));
         }
     }
 }
