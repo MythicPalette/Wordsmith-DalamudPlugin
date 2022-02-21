@@ -410,7 +410,11 @@ namespace Wordsmith.Gui
                 // We still perform this check on the property for ShowTextInChunks in case the user is using single line input.
                 // If ShowTextInChunks is enabled, we show the text in its chunked state.
                 if (Wordsmith.Configuration.ShowTextInChunks)
+                {
                     ImGui.TextWrapped($"{string.Join("\n\n", _chunks ?? new string[] { "" })}");
+                    ImGui.SetScrollFromPosY(ImGui.GetScrollMaxY());
+                }
+
 
                 // If it's disabled and the user has enabled UseOldSingleLineInput then we still need to draw a display for them.
                 else
@@ -823,7 +827,7 @@ namespace Wordsmith.Gui
                 data->Buf[i] = bytes[i];
 
             data->BufTextLen = bytes.Length;
-            data->CursorPos = txt.Length;
+            //data->CursorPos = txt.Length;
             data->BufDirty = 1;
             return 0;
         }
@@ -836,7 +840,7 @@ namespace Wordsmith.Gui
         protected string WrapString(string text)
         {
             // Replace all remaining new lines with spaces
-            text = text.Replace(" \n", " ").Replace("\n", "");
+            text = text.Replace('\n', ' ');//(" \n", " ").Replace("\n", "");
 
             // Replace double spaces if configured to do so.
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
@@ -863,16 +867,18 @@ namespace Wordsmith.Gui
                     // Replace the last previous space with a new line
                     StringBuilder sb = new(text);
 
-                    if (lastSpace <= offset)
-                    {
-                        sb.Insert(i, '\n');
-                        offset = ++i;
-                    }
-                    else
-                    {
-                        sb.Insert(lastSpace+1, '\n');
-                        offset = lastSpace+1;
-                    }
+                    //if (lastSpace <= offset)
+                    //{
+                    //    sb.Insert(i, '\n');
+                    //    offset = ++i;
+                    //}
+                    //else
+                    //{
+                    //    sb.Insert(lastSpace+1, '\n');
+                    //    offset = lastSpace+1;
+                    //}
+                    sb[lastSpace] = '\n';
+                    offset = lastSpace;
                     text = sb.ToString();
                 }
             }
