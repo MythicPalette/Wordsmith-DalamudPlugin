@@ -70,7 +70,7 @@ namespace Wordsmith
             XivCommon = new XivCommonBase(Hooks.ContextMenu);
 
             XivCommon.Functions.ContextMenu.OpenContextMenu += OnContextMenu;
-            WordsmithUI.Init();
+            //WordsmithUI.Init();
             Data.Lang.Init();
         }
 
