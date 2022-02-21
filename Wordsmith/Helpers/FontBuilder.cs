@@ -174,7 +174,6 @@ namespace Wordsmith.Helpers
 
         private byte[] GetResource(string name)
         {
-            string[] names = this.GetType().Assembly.GetManifestResourceNames();
             Stream stream = this.GetType().Assembly.GetManifestResourceStream(name)!;
             if (stream == null)
                 return Array.Empty <byte>();
@@ -182,12 +181,16 @@ namespace Wordsmith.Helpers
             MemoryStream memStream = new();
 
             stream.CopyTo(memStream);
-            return memStream.ToArray();
+            stream.Dispose();
+
+            byte[] result = memStream.ToArray();
+            memStream.Dispose();
+            
+            return result;
         }
 
         private void BuildFonts()
         {
-            
             this.RegularFont = null;
 
             // load regular noto sans and merge in jp + game icons
