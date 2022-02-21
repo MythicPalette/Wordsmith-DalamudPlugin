@@ -290,7 +290,7 @@ namespace Wordsmith.Gui
                         if (ImGui.BeginMenu($"Chunks##ScratchPad{ID}ChunksMenu"))
                         {
                             // Create a copy menu item for each individual chunk.
-                            for (int i=0; i<_chunks.Length; ++i)
+                            for (int i=0; i<_chunks!.Length; ++i)
                                 if (ImGui.MenuItem($"Copy Chunk {i+1}##ScratchPad{ID}ChunkMenuItem{i}"))
                                     ImGui.SetClipboardText(_chunks[i]);
 
