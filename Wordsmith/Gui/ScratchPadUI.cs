@@ -213,7 +213,7 @@ namespace Wordsmith.Gui
             DrawMenu();
             DrawHeader();
 
-            if (WordsmithUI.FontBuilder.Enabled)
+            if (WordsmithUI.FontBuilder?.Enabled ?? false)
                 ImGui.PushFont(WordsmithUI.FontBuilder.RegularFont!.Value);
 
             DrawChunkDisplay();
@@ -226,7 +226,7 @@ namespace Wordsmith.Gui
             else
                 DrawMultilineTextInput();
 
-            if (WordsmithUI.FontBuilder.Enabled)
+            if (WordsmithUI.FontBuilder?.Enabled ?? false)
                 ImGui.PopFont();
 
             DrawWordReplacement();
@@ -928,6 +928,11 @@ namespace Wordsmith.Gui
                 _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);
                 _nextChunk = 0;
             }
+        }
+
+        public void Dispose()
+        {
+            _scratch = "";
         }
     }
 }

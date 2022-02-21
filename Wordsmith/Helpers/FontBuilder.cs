@@ -34,39 +34,31 @@ namespace Wordsmith.Helpers
 
         public bool Enabled { get => this.RegularFont.HasValue; }
 
-
         internal unsafe FontBuilder()
         {
-            try
+            this._fontCfg = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
             {
-                this._fontCfg = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
-                {
-                    FontDataOwnedByAtlas = false
-                };
+                FontDataOwnedByAtlas = false
+            };
 
-                this._fontCfgMerge = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
-                {
-                    FontDataOwnedByAtlas = false,
-                    MergeMode = true
-                };
-
-                BuildRange(out this._ranges, null, ImGui.GetIO().Fonts.GetGlyphRangesDefault());
-                BuildRange(out this._jpRange, GlyphRangesJapanese.GlyphRanges);
-                this.SetUpUserFonts();
-
-                byte[] gameSym = File.ReadAllBytes(Path.Combine(Wordsmith.PluginInterface.DalamudAssetDirectory.FullName, "UIRes", "gamesym.ttf"));
-                this._gameSymFont = (
-                    GCHandle.Alloc(gameSym, GCHandleType.Pinned),
-                    gameSym.Length
-                );
-
-                Wordsmith.PluginInterface.UiBuilder.BuildFonts += this.BuildFonts;
-                Wordsmith.PluginInterface.UiBuilder.RebuildFonts();
-            }
-            catch (Exception e)
+            this._fontCfgMerge = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
             {
-                PluginLog.LogError($"Error in FontBuilder(): {e}");
-            }
+                FontDataOwnedByAtlas = false,
+                MergeMode = true
+            };
+
+            BuildRange(out this._ranges, null, ImGui.GetIO().Fonts.GetGlyphRangesDefault());
+            BuildRange(out this._jpRange, GlyphRangesJapanese.GlyphRanges);
+            this.SetUpUserFonts();
+
+            byte[] gameSym = File.ReadAllBytes(Path.Combine(Wordsmith.PluginInterface.DalamudAssetDirectory.FullName, "UIRes", "gamesym.ttf"));
+            this._gameSymFont = (
+                GCHandle.Alloc(gameSym, GCHandleType.Pinned),
+                gameSym.Length
+            );
+
+            Wordsmith.PluginInterface.UiBuilder.BuildFonts += this.BuildFonts;
+            Wordsmith.PluginInterface.UiBuilder.RebuildFonts();
         }
 
         private static unsafe void BuildRange(out ImVector result, IReadOnlyList<ushort>? chars, params IntPtr[] ranges)
@@ -139,112 +131,90 @@ namespace Wordsmith.Helpers
 
         private void SetUpUserFonts()
         {
-            try
-            {
-                //FontData? fontData = Fonts.GetFont("notofont", true);
-                FontData? fontData = new FontData(
-                    new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Regular.ttf"), 1f),
-                    new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Italic.ttf"), 1f)
-                    );
-
-                if (fontData == null) return;
-
-                if (this._regularFont.Item1.IsAllocated)
-                    this._regularFont.Item1.Free();
-
-                if (this._italicFont.Item1.IsAllocated)
-                    this._italicFont.Item1.Free();
-
-                this._regularFont = (
-                    GCHandle.Alloc(fontData.Regular.Data, GCHandleType.Pinned),
-                    fontData.Regular.Data.Length,
-                    fontData.Regular.Ratio
+            FontData? fontData = new FontData(
+                new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Regular.ttf"), 1f),
+                new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Italic.ttf"), 1f)
                 );
 
-                this._italicFont = (
-                    GCHandle.Alloc(fontData.Italic!.Data, GCHandleType.Pinned),
-                    fontData.Italic.Data.Length,
-                    fontData.Italic.Ratio
-                    );
+            if (fontData == null) return;
 
-                FontData? jpFontData = new FontData(
-                    new FaceData(this.GetResource("Wordsmith.Resources.NotoSansJP-Regular.otf"), 1f),
-                    null
-                    );
+            if (this._regularFont.Item1.IsAllocated)
+                this._regularFont.Item1.Free();
 
-                if (this._jpFont.Item1.IsAllocated)
-                    this._jpFont.Item1.Free();
+            if (this._italicFont.Item1.IsAllocated)
+                this._italicFont.Item1.Free();
 
-                this._jpFont = (
-                    GCHandle.Alloc(jpFontData.Regular.Data, GCHandleType.Pinned),
-                    jpFontData.Regular.Data.Length,
-                    jpFontData.Regular.Ratio
-                    );
-            }
-            catch (Exception e)
-            {
-                PluginLog.LogError($"{e}");
-            }
+            this._regularFont = (
+                GCHandle.Alloc(fontData.Regular.Data, GCHandleType.Pinned),
+                fontData.Regular.Data.Length,
+                fontData.Regular.Ratio
+            );
+
+            this._italicFont = (
+                GCHandle.Alloc(fontData.Italic!.Data, GCHandleType.Pinned),
+                fontData.Italic.Data.Length,
+                fontData.Italic.Ratio
+                );
+
+            FontData? jpFontData = new FontData(
+                new FaceData(this.GetResource("Wordsmith.Resources.NotoSansJP-Regular.otf"), 1f),
+                null
+                );
+
+            if (this._jpFont.Item1.IsAllocated)
+                this._jpFont.Item1.Free();
+
+            this._jpFont = (
+                GCHandle.Alloc(jpFontData.Regular.Data, GCHandleType.Pinned),
+                jpFontData.Regular.Data.Length,
+                jpFontData.Regular.Ratio
+                );
+            
         }
 
         private byte[] GetResource(string name)
         {
-            try
-            {
-                string[] names = this.GetType().Assembly.GetManifestResourceNames();
-                Stream stream = this.GetType().Assembly.GetManifestResourceStream(name)!;
-                if (stream == null)
-                    return Array.Empty <byte>();
+            string[] names = this.GetType().Assembly.GetManifestResourceNames();
+            Stream stream = this.GetType().Assembly.GetManifestResourceStream(name)!;
+            if (stream == null)
+                return Array.Empty <byte>();
 
-                MemoryStream memStream = new();
+            MemoryStream memStream = new();
 
-                stream.CopyTo(memStream);
-                return memStream.ToArray();
-            }
-            catch (Exception e)
-            {
-                PluginLog.LogError($"{e.Message}");
-            }
-            return Array.Empty<byte>();
+            stream.CopyTo(memStream);
+            return memStream.ToArray();
         }
 
         private void BuildFonts()
         {
-            try
-            {
-                this.RegularFont = null;
+            
+            this.RegularFont = null;
 
-                this.SetUpUserFonts();
+            // load regular noto sans and merge in jp + game icons
+            this.RegularFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
+                this._regularFont.Item1.AddrOfPinnedObject(),
+                this._regularFont.Item2,
+                Wordsmith.Configuration.FontSize,
+                this._fontCfg,
+                this._ranges.Data
+            );
 
-                // load regular noto sans and merge in jp + game icons
-                this.RegularFont = ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
-                    this._regularFont.Item1.AddrOfPinnedObject(),
-                    this._regularFont.Item2,
-                    Wordsmith.Configuration.FontSize,
-                    this._fontCfg,
-                    this._ranges.Data
-                );
+            ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
+                this._jpFont.Item1.AddrOfPinnedObject(),
+                this._jpFont.Item2,
+                Wordsmith.Configuration.JpFontSize,
+                this._fontCfgMerge,
+                this._jpRange.Data
+            );
 
-                ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
-                    this._jpFont.Item1.AddrOfPinnedObject(),
-                    this._jpFont.Item2,
-                    Wordsmith.Configuration.JpFontSize,
-                    this._fontCfgMerge,
-                    this._jpRange.Data
-                );
-
-                ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
-                    this._gameSymFont.Item1.AddrOfPinnedObject(),
-                    this._gameSymFont.Item2,
-                    Wordsmith.Configuration.SymbolFontSize,
-                    this._fontCfgMerge,
-                    this._symRange.AddrOfPinnedObject()
-                );
-            }
-            catch (Exception e)
-            {
-                PluginLog.LogFatal($"{e}");
-            }
+            ImGui.GetIO().Fonts.AddFontFromMemoryTTF(
+                this._gameSymFont.Item1.AddrOfPinnedObject(),
+                this._gameSymFont.Item2,
+                Wordsmith.Configuration.SymbolFontSize,
+                this._fontCfgMerge,
+                this._symRange.AddrOfPinnedObject()
+            );
+            
         }
     }
 }
