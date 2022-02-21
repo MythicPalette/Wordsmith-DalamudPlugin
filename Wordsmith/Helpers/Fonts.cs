@@ -7,8 +7,7 @@ namespace Wordsmith.Helpers
     /// <summary>
     /// This class is taken directly from https://git.annaclemens.io/ascclemens/ChatTwo/src/branch/main
     /// </summary>
-    
-    // TODO rewrite class with own font implementation.
+    /// 
     internal static class Fonts
     {
         internal static List<string> GetFonts()
