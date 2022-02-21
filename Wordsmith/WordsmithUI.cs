@@ -14,8 +14,7 @@ namespace Wordsmith
         public static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
 
         public static FontBuilder FontBuilder { get; private set; } = null!;
-
-        public static void Init() => FontBuilder = new();
+        //public static void Init() => FontBuilder = new();
 
         // passing in the image here just for simplicity
         public static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
