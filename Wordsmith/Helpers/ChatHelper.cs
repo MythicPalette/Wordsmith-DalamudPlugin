@@ -15,12 +15,11 @@ namespace Wordsmith.Helpers
 
             // Get the number of bytes taken by the header.
             // Note that we remove 10 bytes right off of the top as a safety zone.
-            // We then cut the bytes out required for the header and for the continuation marker.
+            // We then cut the bytes out required for the header, continuation marker, and OOC tags.
             int availableBytes = 490 - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
 
-            // If the user is typing into OOC, remove 6 more bytes from the available bytes for the (( )) tags.
-            if (OOC)
-                availableBytes -= 6;
+            // Cut the length of the OOC from the available bytes if OOC is on.
+            availableBytes -= (OOC ? encoder.GetByteCount(Wordsmith.Configuration.OocOpeningTag + Wordsmith.Configuration.OocClosingTag) : 0);
 
             // Create a list to hold all of our strings.
             List<string> results = new();
@@ -39,7 +38,7 @@ namespace Wordsmith.Helpers
                 // Add the string to the list with the header and, if offset is not at
                 // the end of the string yet, add the continuation marker for the player.
                 //results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}{(offset < text.Length ? " (c)" : "")}");
-                results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}");
+                results.Add($"{header} {(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
             }
 
             // If there is more than one result we want to do continuation markers

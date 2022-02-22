@@ -18,6 +18,8 @@ namespace Wordsmith.Gui
         private bool _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
         private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
         private bool _onSentence = Wordsmith.Configuration.BreakOnSentence;
+        private string _oocOpening = Wordsmith.Configuration.OocOpeningTag;
+        private string _oocClosing = Wordsmith.Configuration.OocClosingTag;
         private string _sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
         private string _encapTerminators = Wordsmith.Configuration.EncapsulationCharacters;
         private string _continueMarker = Wordsmith.Configuration.ContinuationMarker;
@@ -120,6 +122,7 @@ namespace Wordsmith.Gui
                     ImGui.Checkbox("Add to context menu.", ref _contextMenu);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("If enabled the option \"Tell in Scratch\" will be added to\ncontext menus that have \"Send Tell\".");
+                    ImGui.Separator();
                     // Auto-Clear Scratch Pad
                     ImGui.Checkbox("Auto-clear Scratch Pad", ref _autoClear);
                     if (ImGui.IsItemHovered())
@@ -142,6 +145,23 @@ namespace Wordsmith.Gui
                     ImGui.Checkbox("Split Text On Sentence##SettingsUICheckbox", ref _onSentence);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words.");
+                    ImGui.Separator();
+
+                    // OOC Tags.
+                    ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
+                    ImGui.InputText("##OocOpeningTagInputText", ref _oocOpening, 5);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("The opening tag for your OOC text.");
+
+                    ImGui.SameLine(0, 2);
+                    ImGui.Text("OOC Tags");
+
+                    ImGui.SameLine(0, 2);
+                    ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
+                    ImGui.InputText("##OocClosingTagInputText", ref _oocClosing, 5);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("The closing tag for your OOC text.");
+
                     ImGui.Separator();
 
                     // Sentence terminators
@@ -426,6 +446,8 @@ namespace Wordsmith.Gui
             _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
             _showChunks = Wordsmith.Configuration.ShowTextInChunks;
             _onSentence = Wordsmith.Configuration.BreakOnSentence;
+            _oocOpening = Wordsmith.Configuration.OocOpeningTag;
+            _oocClosing = Wordsmith.Configuration.OocClosingTag;
             _sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
             _encapTerminators = Wordsmith.Configuration.EncapsulationCharacters;
             _markLastChunk = Wordsmith.Configuration.MarkLastChunk;
@@ -469,6 +491,12 @@ namespace Wordsmith.Gui
 
             if (_onSentence != Wordsmith.Configuration.BreakOnSentence)
                 Wordsmith.Configuration.BreakOnSentence = _onSentence;
+
+            if (_oocOpening != Wordsmith.Configuration.OocOpeningTag)
+                Wordsmith.Configuration.OocOpeningTag = _oocOpening;
+
+            if (_oocClosing != Wordsmith.Configuration.OocClosingTag)
+                Wordsmith.Configuration.OocClosingTag = _oocClosing;
 
             if (_sentenceTerminators != Wordsmith.Configuration.SplitPointDefinitions)
                 Wordsmith.Configuration.SplitPointDefinitions = _sentenceTerminators;
