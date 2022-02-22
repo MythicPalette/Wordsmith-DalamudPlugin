@@ -672,7 +672,6 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void DoClearText()
         {
-            PluginLog.LogDebug("Doing clear");
             // Ignore empty strings.
             if (_scratch.Length == 0)
                 return;
@@ -863,20 +862,8 @@ namespace Wordsmith.Gui
                 float txtWidth = ImGui.CalcTextSize(text.Substring(offset, i - offset)).X;
                 if (txtWidth + 10*ImGuiHelpers.GlobalScale > width)
                 {
-                    PluginLog.LogDebug($"{++line}\t::Text width {ImGui.CalcTextSize(text.Substring(offset, i-offset))} :: width {width}");
                     // Replace the last previous space with a new line
                     StringBuilder sb = new(text);
-
-                    //if (lastSpace <= offset)
-                    //{
-                    //    sb.Insert(i, '\n');
-                    //    offset = ++i;
-                    //}
-                    //else
-                    //{
-                    //    sb.Insert(lastSpace+1, '\n');
-                    //    offset = lastSpace+1;
-                    //}
                     sb[lastSpace] = '\n';
                     offset = lastSpace;
                     text = sb.ToString();
