@@ -92,7 +92,7 @@ namespace Wordsmith
         /// </summary>
         public bool UseOldSingleLineInput { get; set; } = false;
 
-        // Spell Check settings.
+        #region Spell Checker Settings
         /// <summary>
         /// Holds the dictionary of words added by the user.
         /// </summary>
@@ -102,7 +102,9 @@ namespace Wordsmith
         /// The file to be loaded into Lang dictionary.
         /// </summary>
         public string DictionaryFile { get; set; } = "lang_en";
+        #endregion
 
+        #region Linkshell Settings
         /// <summary>
         /// Contains the nicknames of all Cross-World Linkshells
         /// </summary>
@@ -112,8 +114,7 @@ namespace Wordsmith
         /// Contains the names of all normal Linkshells.
         /// </summary>
         public string[] LinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
-
-        // the below exist just to make saving less cumbersome
+        #endregion
 
         public void ResetToDefault()
         {

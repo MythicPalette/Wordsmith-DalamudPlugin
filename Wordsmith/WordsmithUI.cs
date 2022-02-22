@@ -47,8 +47,6 @@ namespace Wordsmith
         {
             _windows.Remove(w);
             WindowSystem.RemoveWindow(w);
-            if (w is ScratchPadUI pad)
-                pad.Dispose();
         }
 
         public static void Draw()

@@ -21,38 +21,23 @@ namespace Wordsmith.Helpers
                 if (float.TryParse(words[i].Replace(",", ""), out float discard))
                     continue;
 
-                string word = CleanWord(words[i].ToLower());
+                string word = CleanWord(words[i]);
+                string lowercased = word.ToLower();
                 if (word.Length < 1)
                     continue;
 
                 if (word.EndsWith('-') && Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
                     continue;
 
-                string? result = Lang.WordList.FirstOrDefault(w => w.ToLower() == word || w.ToLower() == $"{word}'s");
+                string? result = Lang.WordList.FirstOrDefault(w => w.ToLower() == lowercased);
 
-                // Compare lowercase first then check again with capitalization
+                // if result is null then the word is not in the dictionary.
                 if (result == null)
                 {
-                    // Found a potentially misspelled word.
-
-                    // Check it as a possible numeral (i.e. 31st)
-                    if (word.EndsWith("1st") ||
-                        word.EndsWith("2nd") ||
-                        word.EndsWith("3rd") ||
-                        word.EndsWith("4th") ||
-                        word.EndsWith("5th") ||
-                        word.EndsWith("6th") ||
-                        word.EndsWith("7th") ||
-                        word.EndsWith("8th") ||
-                        word.EndsWith("9th") ||
-                        (word.EndsWith("0th") && word.Length > 3))
-                    {
-
-                        // It ends with the correct values to be a number but are there only
-                        // numbers ahead of the last two letters. We can discard the float value
-                        if (float.TryParse(word.Replace(",", "").Substring(0, word.Length - 2), out float val))
-                            continue; // It was a number, so continue the loop.
-                    }
+                    // Check it as a possible number by trying to parse a number after remove "st", "nd", "rd", and "th" from it.
+                    if (float.TryParse(word.Replace(",", "").Replace("st", "").Replace("nd", "").Replace("rd", "").Replace("th", ""), out float val))
+                        continue; // It was a number, so continue the loop.
+                    
 
                     // If we reached this code, we were not able to locate a proper match for the word.
                     // Add the index to the list.
@@ -60,7 +45,7 @@ namespace Wordsmith.Helpers
                 }
             }
 
-            // No errors so return.
+            // Done checking all of the words, return the results.
             return results.ToArray();
         }
 

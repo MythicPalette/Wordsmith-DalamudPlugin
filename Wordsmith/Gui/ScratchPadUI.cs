@@ -88,7 +88,7 @@ namespace Wordsmith.Gui
         #region Pad State
         protected PadState _lastState = new();
         protected bool _refreshRequired = false;
-        protected bool _overrideRefresh = false;
+        protected bool _preserveCorrections = false;
         protected string _error = "";
         protected string _notice = "";
         #endregion
@@ -226,13 +226,6 @@ namespace Wordsmith.Gui
             else
                 DrawMultilineTextInput();
 
-            if (WordsmithUI.FontBuilder?.Enabled ?? false)
-                ImGui.PopFont();
-
-            DrawWordReplacement();
-            DrawFooter();
-
-            // At the end of each draw function, wrap the text
             // We do this here in case the window is being resized and we want
             // to rewrap the text in the textbox.
             if (ImGui.GetWindowWidth() > _lastWidth + 0.1 || ImGui.GetWindowWidth() < _lastWidth - 0.1)
@@ -247,6 +240,12 @@ namespace Wordsmith.Gui
                 // Update the last known width.
                 _lastWidth = ImGui.GetWindowWidth();
             }
+
+            if (WordsmithUI.FontBuilder?.Enabled ?? false)
+                ImGui.PopFont();
+
+            DrawWordReplacement();
+            DrawFooter();
         }
 
         /// <summary>
@@ -732,38 +731,42 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void OnReplace()
         {
-            try
+            // If the text box is not empty when the user hits enter then
+            // update the text.
+            if (_replaceText.Length > 0)
             {
-                // If the text box is not empty
-                if (_replaceText.Length > 0)
-                {
-                    // Get the first object
-                    Data.WordCorrection correct = _corrections[0];
+                // Get the first object
+                Data.WordCorrection correct = _corrections[0];
 
-                    // Break apart the words.
-                    string[] words = _scratch.Replace('\n', ' ').Split(' ');
+                // Break apart the words in the sentence.
+                string[] words = _scratch
+                    .Replace('\n', ' ')
+                    .Split(' ');
 
-                    // Replace the content of the word in question.
-                    words[correct.Index] = _replaceText + words[correct.Index].Remove(0, correct.Original.Length);
+                // Replace the content of the word in question.
+                words[correct.Index] = words[correct.Index].Replace(correct.Original, _replaceText);
 
-                    _overrideRefresh = true;
-                    // Replace the user's original text with the new words.
-                    _scratch = string.Join(' ', words);
+                // Preserving corrections prevents the Update method from
+                // clearing the list of corrections even though the text
+                // in the box has changed.
+                _preserveCorrections = true;
 
-                    // Clear out replacement text.
-                    _replaceText = "";
-                }
+                // Replace the user's original text with the new words.
+                _scratch = string.Join(' ', words);
 
-                // Remove the spelling error.
-                _corrections.RemoveAt(0);
+                // Clear out replacement text.
+                _replaceText = "";
 
-                if (_corrections.Count == 0)
-                    _overrideRefresh = false;
+                // Rewrap the text string.
+                _scratch = WrapString(_scratch);
             }
-            catch (Exception e)
-            {
-                PluginLog.LogError(e.ToString());
-            }
+
+            // Remove the spelling error.
+            _corrections.RemoveAt(0);
+
+            // If corrections are not emptied then disable preserve.
+            if (_corrections.Count == 0)
+                _preserveCorrections = false;
         }
 
         /// <summary>
@@ -807,9 +810,25 @@ namespace Wordsmith.Gui
 
             // If the event flags are/contain CallbackEdit, the user either copy/pasted or entered a key.
             if ((data->EventFlag & ImGuiInputTextFlags.CallbackEdit) == ImGuiInputTextFlags.CallbackEdit
-                && ImGui.IsKeyPressed(ENTER_KEY))
-                // If the string ends in a new line, remove it.
-                txt = txt.TrimEnd('\n', '\r');
+                && ImGui.IsKeyPressed(ENTER_KEY)) // If the key they hit was enter
+            {
+                // Verify that the text length is greater than 1.
+                if (txt.Length > 1)
+                {
+                    // If the user hit enter simply rebuild the string without the new line at the cursor.
+                    txt = txt[0..(data->CursorPos - 1)] + txt[data->CursorPos..^0];
+
+                    // Move the cursor back as if the user never hit enter.
+                    data->CursorPos -= 1;
+                }
+                else
+                {
+                    // In this case, the text length was 1 or 0 and the user hit enter so we can simply
+                    // blank the text and reset cursor position to 0.
+                    txt = "";
+                    data->CursorPos = 0;
+                }
+            }
 
             // Wrap the string.
             txt = WrapString(txt);
@@ -825,9 +844,16 @@ namespace Wordsmith.Gui
             for (int i = 0; i < bytes.Length; ++i)
                 data->Buf[i] = bytes[i];
 
+            // Assign the new buffer text length. This is the
+            // number of bytes that make up the text, not the number
+            // of characters in the text.
             data->BufTextLen = bytes.Length;
-            //data->CursorPos = txt.Length;
+
+            // Flag the buffer as dirty so ImGui will rebuild the buffer
+            // and redraw the text in the InputText.
             data->BufDirty = 1;
+
+            // Return 0 to signal no errors.
             return 0;
         }
 
@@ -838,6 +864,10 @@ namespace Wordsmith.Gui
         /// <returns></returns>
         protected string WrapString(string text)
         {
+            // If the string is empty then just return it.
+            if (text.Length == 0)
+                return text;
+
             // Replace all remaining new lines with spaces
             text = text.Replace('\n', ' ');//(" \n", " ").Replace("\n", "");
 
@@ -846,12 +876,11 @@ namespace Wordsmith.Gui
                 text = text.FixSpacing();
 
             // Get the maximum allowed character width.
-            float width = ImGui.GetWindowContentRegionWidth() - (35 * ImGuiHelpers.GlobalScale);
+            float width = _lastWidth - (35 * ImGuiHelpers.GlobalScale);
 
             // Iterate through each character.
             int lastSpace = 0;
             int offset = 0;
-            int line = 0;
             for (int i = 1; i < text.Length; ++i)
             {
                 // If the current character is a space, mark it as a wrap point.
@@ -900,32 +929,33 @@ namespace Wordsmith.Gui
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
                 _scratch = _scratch.FixSpacing();
 
-            if (_overrideRefresh)
+            if (_lastState != newState || _refreshRequired)
             {
-                _lastState = newState;
-                _overrideRefresh = false;
-            }
-            else if (_lastState != newState || _refreshRequired)
-            {
+                // If the user has entered text then clear the _clearedScratch variable.
                 if (_scratch != "")
                     _clearedScratch = "";
 
+                // Cancel any outstanding tokens.
                 _cancellationTokenSource?.Cancel();
+
+                // Reset refreshRequired;
                 _refreshRequired = false;
+
+                // Clear errors and notices.
                 _error = "";
                 _notice = "";
 
-                _corrections = new();
+                // If not preserving the error list, clear it.
+                if (!_preserveCorrections)
+                    _corrections = new();
 
+                // Update the last state.
                 _lastState = newState;
+
+                // Rebuild chunks and reset chunk position counter.
                 _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);
                 _nextChunk = 0;
             }
-        }
-
-        public void Dispose()
-        {
-            _scratch = "";
         }
     }
 }
