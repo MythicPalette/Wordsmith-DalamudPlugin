@@ -29,6 +29,7 @@ Chunk Headers (highlighted by a red box in the screenshots above) are the text t
 ![Screenshot_55](https://user-images.githubusercontent.com/67084868/155079327-64ce60ed-4acb-4910-bb00-05f8af15fd35.png)
 
 Continuation markers are those things you put at the end of a post to tell the other reader that there is more coming. A lot of people put (c) or <c> or something like that. Well, Wordsmith handles that for you automatically and you can even customize what it places. It even handles special placeholders.
+  
 ![Screenshot_56](https://user-images.githubusercontent.com/67084868/155079563-484b9fd6-7905-464f-9549-3d7d7932181c.png)
 
 When you customize your continuation marker, if you put a placeholder, Wordsmith will automatically replace it with the relevant information. For instance, #c is replaced with the current chunk number while #m is the maximum number it will go up to. So if you did "(Chunk #c of #m)" as your continuation marker, it would wrote "(Chunk 1 of 3)" then "(Chunk 2 of 3)" then, finally, "(Chunk 3 of 3)" for you. I personally use (#c/#m). Feel free to get creative or use a classic like (c).
