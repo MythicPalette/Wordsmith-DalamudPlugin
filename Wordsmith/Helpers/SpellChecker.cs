@@ -38,7 +38,25 @@ namespace Wordsmith.Helpers
                     if (float.TryParse(word.Replace(",", "").Replace("st", "").Replace("nd", "").Replace("rd", "").Replace("th", ""), out float val))
                         continue; // It was a number, so continue the loop.
                     
+                    // Check if the word is a hyphenation such as "crazy-like".
+                    if (word.Split('-').Length > 1)
+                    {
+                        // Test each word in the hyphenation.
+                        foreach(string subword in word.Split('-'))
+                        {
+                            // If the word is a blank or it isn't in the dictionary then jump to adding it to the list
+                            // of misspelled words.
+                            if (word.Length == 0 || Lang.WordList.FirstOrDefault(w => w.ToLower() == subword) == null)
+                                goto jumppoint;
+                        }
 
+                        // If we reach this point, all of the subwords checked out as real words.
+                        // Continue the main loop to prevent adding hyphenated combinations from
+                        // being added.
+                        continue;
+                    }
+
+                    jumppoint:
                     // If we reached this code, we were not able to locate a proper match for the word.
                     // Add the index to the list.
                     results.Add(new() { Original = word, Index = i });
