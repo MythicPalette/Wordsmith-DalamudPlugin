@@ -50,9 +50,8 @@ namespace Wordsmith.Helpers
                                 goto jumppoint;
                         }
 
-                        // If we reach this point, all of the subwords checked out as real words.
-                        // Continue the main loop to prevent adding hyphenated combinations from
-                        // being added.
+                        // If we reach this point, all of the subwords checked out as properly spelt words.
+                        // Continue the main loop to prevent adding hyphenated combinations to the results.
                         continue;
                     }
 
