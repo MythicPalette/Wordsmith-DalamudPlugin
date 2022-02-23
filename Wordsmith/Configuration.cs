@@ -58,7 +58,7 @@ namespace Wordsmith
         /// <summary>
         /// Specifies the continuation marker to use at the end of each chunk.
         /// </summary>
-        internal string ContinuationMarker { get; set; } = "(c)";
+        internal string ContinuationMarker { get; set; } = "(#c/#m)";
 
         /// <summary>
         /// The tag to use at the begining of the OOC statement.
