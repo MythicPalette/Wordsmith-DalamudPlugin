@@ -404,21 +404,32 @@ namespace Wordsmith.Gui
             // Draw the chunk display
             if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - GetFooterHeight())))
             {
-                ImGui.SetNextItemWidth(-1);
 
                 // We still perform this check on the property for ShowTextInChunks in case the user is using single line input.
                 // If ShowTextInChunks is enabled, we show the text in its chunked state.
                 if (Wordsmith.Configuration.ShowTextInChunks)
                 {
-                    ImGui.TextWrapped($"{string.Join("\n\n", _chunks ?? new string[] { "" })}");
-                    ImGui.SetScrollFromPosY(ImGui.GetScrollMaxY());
+                    for (int i = 0; i < (_chunks?.Length ?? 0); ++i)
+                    {
+                        // If not the first chunk, add a spacing.
+                        if (i > 0)
+                            ImGui.Spacing();
+
+                        // Put a separator at the top of the chunk.
+                        ImGui.Separator();
+
+                        // Set width and display the chunk.
+                        ImGui.SetNextItemWidth(-1);
+                        ImGui.TextWrapped(_chunks![i]);
+                    }
                 }
-
-
                 // If it's disabled and the user has enabled UseOldSingleLineInput then we still need to draw a display for them.
                 else
+                {
+                    ImGui.SetNextItemWidth(-1);
                     ImGui.TextWrapped($"{GetFullChatHeader()}{(_useOOC ? "(( " : "")}{ScratchString}{(_useOOC ? " ))" : "")}");
-
+                }
+                
                 ImGui.EndChild();
             }
             ImGui.Separator();
