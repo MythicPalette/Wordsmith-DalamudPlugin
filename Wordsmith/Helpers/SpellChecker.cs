@@ -29,10 +29,10 @@ namespace Wordsmith.Helpers
                 if (word.EndsWith('-') && Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
                     continue;
 
-                string? result = Lang.WordList.FirstOrDefault(w => w.ToLower() == lowercased);
+                //string? result = Lang.WordList.FirstOrDefault(w => w.ToLower() == lowercased);
 
                 // if result is null then the word is not in the dictionary.
-                if (result == null)
+                if (!Lang.isWord(lowercased))
                 {
                     // Check it as a possible number by trying to parse a number after remove "st", "nd", "rd", and "th" from it.
                     if (float.TryParse(word.Replace(",", "").Replace("st", "").Replace("nd", "").Replace("rd", "").Replace("th", ""), out float val))
@@ -46,7 +46,7 @@ namespace Wordsmith.Helpers
                         {
                             // If the word is a blank or it isn't in the dictionary then jump to adding it to the list
                             // of misspelled words.
-                            if (word.Length == 0 || Lang.WordList.FirstOrDefault(w => w.ToLower() == subword) == null)
+                            if (word.Length == 0 || !Lang.isWord(subword))//Lang.WordList.FirstOrDefault(w => w.ToLower() == subword) == null)
                                 goto jumppoint;
                         }
 
