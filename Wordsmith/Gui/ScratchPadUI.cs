@@ -404,7 +404,6 @@ namespace Wordsmith.Gui
             // Draw the chunk display
             if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - GetFooterHeight())))
             {
-
                 // We still perform this check on the property for ShowTextInChunks in case the user is using single line input.
                 // If ShowTextInChunks is enabled, we show the text in its chunked state.
                 if (Wordsmith.Configuration.ShowTextInChunks)
