@@ -6,17 +6,18 @@ namespace Wordsmith.Data
         /// <summary>
         /// Returns an array with all of the words in the current dictionary.
         /// </summary>
-        public static string[] WordList => _wordlist.ToArray();
 
         /// <summary>
         /// List of all of the words in the current dictionary.
         /// </summary>
-        private static List<string> _wordlist = new();
+        private static Dictionary<string, bool> _wordlist = new();
 
         /// <summary>
         /// Active becomes true after Init() has successfully loaded a language file.
         /// </summary>
         public static bool Enabled { get; private set; } = false;
+
+        public static bool isWord(string key) => _wordlist.TryGetValue(key, out bool ignore);
 
         /// <summary>
         /// Load the language file and enable spell checks.
@@ -32,7 +33,8 @@ namespace Wordsmith.Data
                 return false;
             }
             // Add all of the custom dictionary entries to the dictionary
-            _wordlist.AddRange(Wordsmith.Configuration.CustomDictionaryEntries);
+            foreach (string word in Wordsmith.Configuration.CustomDictionaryEntries)
+                _wordlist[word.Trim().ToLower()] = true;
 
             // Set the dictionary to enabled.
             Enabled = true;
@@ -73,7 +75,7 @@ namespace Wordsmith.Data
                 foreach (string l in lines)
                 {
                     if (!l.StartsWith("#") && l.Trim().Length > 0)
-                        _wordlist.Add(l);
+                        _wordlist[l.Trim().ToLower()] = true;
                 }
                 return true;
             }
@@ -87,12 +89,12 @@ namespace Wordsmith.Data
         public static bool AddDictionaryEntry(string text)
         {
             // If the word is already in the dictionary, disregard.
-            if (_wordlist.FirstOrDefault(w => w.ToLower() == text.ToLower().Trim()) != null)
-                return false;
+            //if (_wordlist.FirstOrDefault(w => w.ToLower() == text.ToLower().Trim()) != null)
+            //    return false;
 
             // Add the word to the currently loaded dictionary.
-            _wordlist.Add(text.ToLower().Trim());
-
+            //_wordlist.Add(text.ToLower().Trim(), true);
+            _wordlist[text.ToLower().Trim()] = true;
             // Add the word to the configuration option.
             Wordsmith.Configuration.CustomDictionaryEntries.Add(text.ToLower().Trim());
 
