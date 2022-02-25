@@ -420,7 +420,7 @@ namespace Wordsmith.Gui
 
                 ImGui.TableNextColumn();
                 // Cancel button
-                if (ImGui.Button("Cancel", ImGuiHelpers.ScaledVector2(-1, 25)))
+                if (ImGui.Button("Close", ImGuiHelpers.ScaledVector2(-1, 25)))
                     IsOpen = false;
 
                 ImGui.EndTable();
