@@ -89,11 +89,15 @@ namespace Wordsmith.Gui
         protected PadState _lastState = new();
         protected bool _refreshRequired = false;
         protected bool _preserveCorrections = false;
-        protected string _error = "";
-        protected string _notice = "";
         #endregion
 
         protected List<Data.WordCorrection> _corrections = new();
+
+        #region Alerts
+        protected List<string> _errors = new();
+        protected List<string> _notices = new();
+        protected bool _spellChecked = false;
+        #endregion
 
         /// <summary>
         /// Contains all of the variables related to the chat header
@@ -189,7 +193,7 @@ namespace Wordsmith.Gui
         /// <returns></returns>
         public float GetFooterHeight(bool IncludeTextbox = true)
         {
-            float result = 60;
+            float result = 70;
             if (!Wordsmith.Configuration.DeleteClosedScratchPads)
                 result += 28;
 
@@ -211,41 +215,55 @@ namespace Wordsmith.Gui
         public override void Draw()
         {
             DrawMenu();
+            DrawAlerts();
             DrawHeader();
 
-            if (WordsmithUI.FontBuilder?.Enabled ?? false)
-                ImGui.PushFont(WordsmithUI.FontBuilder.RegularFont!.Value);
-
-            DrawChunkDisplay();
-
-            // Draw the old, single line input
-            if (Wordsmith.Configuration.UseOldSingleLineInput)
-                DrawSingleLineTextInput();
-
-            // Draw multi-line input.
-            else
-                DrawMultilineTextInput();
-
-            // We do this here in case the window is being resized and we want
-            // to rewrap the text in the textbox.
-            if (ImGui.GetWindowWidth() > _lastWidth + 0.1 || ImGui.GetWindowWidth() < _lastWidth - 0.1)
+            if (ImGui.BeginChild($"ScratchPad{ID}MainBodyChild", new(0, -1)))
             {
-                // Don't flag to ignore text edit if the window was just opened
-                if (_lastWidth > 0.1)
-                    _ignoreTextEdit = true;
+                if (WordsmithUI.FontBuilder?.Enabled ?? false)
+                    ImGui.PushFont(WordsmithUI.FontBuilder.RegularFont!.Value);
 
-                // Rewrap scratch
-                _scratch = WrapString(_scratch);
+                DrawChunkDisplay();
 
-                // Update the last known width.
-                _lastWidth = ImGui.GetWindowWidth();
+                // Draw the old, single line input
+                if (Wordsmith.Configuration.UseOldSingleLineInput)
+                    DrawSingleLineTextInput();
+
+                // Draw multi-line input.
+                else
+                    DrawMultilineTextInput();
+
+                // We do this here in case the window is being resized and we want
+                // to rewrap the text in the textbox.
+                if (ImGui.GetWindowWidth() > _lastWidth + 0.1 || ImGui.GetWindowWidth() < _lastWidth - 0.1)
+                {
+                    // Don't flag to ignore text edit if the window was just opened.
+                    if (_lastWidth > 0.1)
+                        _ignoreTextEdit = true;
+
+                    // Turn _preserveCorrections on in case the user has incorrectly
+                    // spelled words while resizing.
+                    _preserveCorrections = true;
+
+                    // Rewrap scratch
+                    _scratch = WrapString(_scratch);
+
+                    // Update the last known width.
+                    _lastWidth = ImGui.GetWindowWidth();
+                }
+
+                if (WordsmithUI.FontBuilder?.Enabled ?? false)
+                    ImGui.PopFont();
+
+                // Draw the word replacement form.
+                DrawWordReplacement();
+
+                // Draw the buttons at the bottom of the screen.
+                DrawFooter();
+
+                // Close the child widget.
+                ImGui.EndChild();
             }
-
-            if (WordsmithUI.FontBuilder?.Enabled ?? false)
-                ImGui.PopFont();
-
-            DrawWordReplacement();
-            DrawFooter();
         }
 
         /// <summary>
@@ -274,9 +292,15 @@ namespace Wordsmith.Gui
                 // Text menu
                 if (ImGui.BeginMenu($"Text##ScratchPad{ID}TextMenu"))
                 {
-                    // Clear text.
-                    if (ImGui.MenuItem($"Clear##ScratchPad{ID}TextClearMenuItem"))
-                        DoClearText();
+                    // Show undo clear text option.
+                    if (_clearedScratch.Length > 0)
+                        if (ImGui.MenuItem($"Undo Clear##ScratchPad{ID}TextUndoClearMenuItem"))
+                            UndoClearText();
+
+                    // Show the clear text option.
+                    else
+                        if (ImGui.MenuItem($"Clear##ScratchPad{ID}TextClearMenuItem"))
+                            DoClearText();
 
                     // TSpell Check
                     if (ImGui.MenuItem($"Spell Check##ScratchPad{ID}SpellCheckMenuItem"))
@@ -323,20 +347,6 @@ namespace Wordsmith.Gui
         /// </summary>
         protected void DrawHeader()
         {
-            // Display errors
-            if (_error != "")
-            {
-                ImGui.TextColored(new(255, 0, 0, 255), _error);
-                ImGui.Separator();
-            }
-
-            // Display notifications
-            if (_notice != "")
-            {
-                ImGui.Text(_notice);
-                ImGui.Separator();
-            }
-
             // If we're in Tell or Linkshell mode we need an extra column.
             int columns = 2 + (_chatType >= CHAT_TELL && _chatType != CHAT_ECHO ? 1 : 0);
             if (ImGui.BeginTable($"##ScratchPad{ID}HeaderTable", columns))
@@ -387,6 +397,44 @@ namespace Wordsmith.Gui
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("Enables or disables OOC double parenthesis.");
                 ImGui.EndTable();
+            }
+        }
+
+        protected void DrawAlerts()
+        {
+            List<(string Message, int Level)> alerts = new();
+
+            // Display errors
+            if (_errors.Count > 0)
+            {
+                foreach (string err in _errors)
+                    alerts.Add(new(err, -1));
+            }
+
+            // Display notices.
+            if (_notices.Count > 0)
+            {
+                foreach (string n in _notices)
+                    alerts.Add(new(n, 0));
+            }
+
+            // Display spelling error message
+            if ((_corrections?.Count ?? 0) > 0)
+                alerts.Add(new($"Found {_corrections!.Count} spelling errors.", -1));
+            else if (_spellChecked)
+                alerts.Add(new($"No spelling errors found!", 0));
+
+            // If there are no alerts, return.
+            if (alerts.Count == 0)
+                return;
+
+            // Draw all alerts.
+            foreach ((string Message, int Level) alert in alerts)
+            {
+                if (alert.Level == -1)
+                    ImGui.TextColored(new(255, 0, 0, 255), alert.Message);
+                else
+                    ImGui.Text(alert.Message);
             }
         }
 
@@ -507,6 +555,7 @@ namespace Wordsmith.Gui
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 230 * ImGuiHelpers.GlobalScale);
                 _replaceText = correct.Original;
+
                 if (ImGui.InputText($"##ScratchPad{ID}ReplaceTextTextbox", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
                     OnReplace();
 
@@ -637,10 +686,8 @@ namespace Wordsmith.Gui
                 ImGui.PushFont(UiBuilder.IconFont);
                 ImGui.SameLine(0, 0);
                 if (ImGui.Button($"{(char)0xF0E2}##{ID}UndoClearButton", ImGuiHelpers.ScaledVector2(25, 25)))
-                {
-                    _scratch = _clearedScratch;
-                    _clearedScratch = "";
-                }
+                    UndoClearText();
+
                 // Reset the font.
                 ImGui.PushFont(UiBuilder.DefaultFont);
             }
@@ -692,6 +739,12 @@ namespace Wordsmith.Gui
             _scratch = "";
         }
 
+        protected void UndoClearText()
+        {
+            _scratch = _clearedScratch;
+            _clearedScratch = "";
+        }
+
         /// <summary>
         /// Clears out any error messages or notices and runs the spell checker.
         /// </summary>
@@ -701,8 +754,7 @@ namespace Wordsmith.Gui
             _cancellationTokenSource?.Cancel();
 
             // Clear any errors and notifications.
-            _error = "";
-            _notice = "Checking your spelling...";
+            _notices.Add("Checking your spelling...");
 
             // Don't spell check an empty input.
             if (_scratch.Length == 0)
@@ -724,16 +776,8 @@ namespace Wordsmith.Gui
             // Clear any old corrections to prevent them from stacking.
             _corrections = new();
             _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch.Replace('\n', ' ').Trim()));
-
-            // Clear any errors or noticies.
-            _error = "";
-            _notice = "";
-
-            // Post the new error or notice.
-            if (_corrections.Count > 0)
-                _error = $"Found {_corrections.Count} spelling errors.";
-            else
-                _notice = "No spelling errors found.";
+            _spellChecked = true;
+            _notices.Remove("Checking your spelling...");
         }
 
         /// <summary>
@@ -951,13 +995,13 @@ namespace Wordsmith.Gui
                 // Reset refreshRequired;
                 _refreshRequired = false;
 
-                // Clear errors and notices.
-                _error = "";
-                _notice = "";
-
                 // If not preserving the error list, clear it.
                 if (!_preserveCorrections)
+                {
                     _corrections = new();
+                    _spellChecked = false;
+                }
+                _preserveCorrections = false;
 
                 // Update the last state.
                 _lastState = newState;
