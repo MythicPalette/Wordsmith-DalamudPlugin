@@ -3,28 +3,26 @@ namespace Wordsmith.Data
 {
     public static class Lang
     {
-        /// <summary>
-        /// Returns an array with all of the words in the current dictionary.
-        /// </summary>
-
-        /// <summary>
-        /// List of all of the words in the current dictionary.
-        /// </summary>
-        private static Dictionary<string, bool> _wordlist = new();
+        private static HashSet<string> _dictionary = new();
 
         /// <summary>
         /// Active becomes true after Init() has successfully loaded a language file.
         /// </summary>
         public static bool Enabled { get; private set; } = false;
 
-        public static bool isWord(string key) => _wordlist.TryGetValue(key, out bool ignore);
+        /// <summary>
+        /// Verifies that the string exists in the hash table.
+        /// </summary>
+        /// <param name="key">String to search for.</param>
+        /// <returns><see langword="true"/> if the word is in the dictionary.</returns>
+        public static bool isWord(string key) => _dictionary.Contains(key);
 
         /// <summary>
         /// Load the language file and enable spell checks.
         /// </summary>
         public static bool Init()
         {
-            _wordlist = new();
+            _dictionary = new();
 
             // Alert the user if the dictionary file fails to load
             if (!LoadLanguageFile())
@@ -34,7 +32,7 @@ namespace Wordsmith.Data
             }
             // Add all of the custom dictionary entries to the dictionary
             foreach (string word in Wordsmith.Configuration.CustomDictionaryEntries)
-                _wordlist[word.Trim().ToLower()] = true;
+                _dictionary.Add(word.Trim().ToLower());
 
             // Set the dictionary to enabled.
             Enabled = true;
@@ -44,7 +42,7 @@ namespace Wordsmith.Data
         /// <summary>
         /// Reinitialize the dictionary.
         /// </summary>
-        /// <returns></returns>
+        /// <returns><see langword="true"/> if succesfully reinitialized.</returns>
         public static bool Reinit()
         {
             if (Init())
@@ -75,7 +73,7 @@ namespace Wordsmith.Data
                 foreach (string l in lines)
                 {
                     if (!l.StartsWith("#") && l.Trim().Length > 0)
-                        _wordlist[l.Trim().ToLower()] = true;
+                        _dictionary.Add(l.Trim().ToLower());
                 }
                 return true;
             }
@@ -86,21 +84,30 @@ namespace Wordsmith.Data
             }
         }
 
-        public static bool AddDictionaryEntry(string text)
+        /// <summary>
+        /// Attempts to add a file to the dictionary.
+        /// </summary>
+        /// <param name="word">String to search.</param>
+        /// <returns><see langword="true"/> if the word was not in the dictionary already.</returns>
+        public static bool AddDictionaryEntry(string word)
         {
             // If the word is already in the dictionary, disregard.
             //if (_wordlist.FirstOrDefault(w => w.ToLower() == text.ToLower().Trim()) != null)
             //    return false;
 
             // Add the word to the currently loaded dictionary.
-            //_wordlist.Add(text.ToLower().Trim(), true);
-            _wordlist[text.ToLower().Trim()] = true;
-            // Add the word to the configuration option.
-            Wordsmith.Configuration.CustomDictionaryEntries.Add(text.ToLower().Trim());
+            if (_dictionary.Add(word.Trim().ToLower()))
+            {
+                // If the word was added succesfully
+                // Add the word to the configuration option.
+                Wordsmith.Configuration.CustomDictionaryEntries.Add(word.ToLower().Trim());
 
-            // Save the configuration.
-            Wordsmith.Configuration.Save();
-            return true;
+                // Save the configuration.
+                Wordsmith.Configuration.Save();
+                return true;
+            }
+
+            return false;
         }
     }
 }
