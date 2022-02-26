@@ -18,9 +18,6 @@ namespace Wordsmith.Gui
         }
         public override void Draw()
         {
-            if (ImGui.Button("ChangeName##ChangeNameButton"))
-                this.WindowName = "New Window Name.";
-
             if (ImGui.BeginTabBar($"{Wordsmith.AppName}HelpTabBar"))
             {
                 // General tab.
