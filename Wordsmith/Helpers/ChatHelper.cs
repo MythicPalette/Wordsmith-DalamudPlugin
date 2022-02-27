@@ -37,8 +37,8 @@ namespace Wordsmith.Helpers
 
                 // Add the string to the list with the header and, if offset is not at
                 // the end of the string yet, add the continuation marker for the player.
-                //results.Add($"{header} {(OOC ? "(( " : "")}{str}{(OOC ? " ))" : "")}{(offset < text.Length ? " (c)" : "")}");
-                results.Add($"{header} {(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
+                if (str.Trim().Length > 0)
+                    results.Add($"{header} {(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str.Trim()}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
             }
 
             // If there is more than one result we want to do continuation markers
@@ -90,12 +90,16 @@ namespace Wordsmith.Helpers
                         lastSpace = length;
 
                     if (Wordsmith.Configuration.BreakOnSentence && lastSentence > 0)
-                        return text.Substring(offset, lastSentence);
+                        return text[offset..lastSentence];
                     else
                         // get the substring starting from offset. If the character at offset+length is a space,
                         // split there. If not, go back to the last space found.
-                        return text.Substring(offset, (text[offset+length] == ' ' ? length : lastSpace));
+                        return text[offset..(text[offset + length] == ' ' ? length : lastSpace)];
                 }
+
+                // If the current character is a new line.
+                else if (text[offset + length] == '\n')
+                    return text[offset..(offset + length)];
 
                 // Check if the current character is a space.
                 if (text[offset + length] == ' ')
@@ -123,7 +127,7 @@ namespace Wordsmith.Helpers
 
             // If we make it here, the remaining string from offset to end of string is all
             // all within the given byte limit so return the remaining substring.
-            return text.Substring(offset);
+            return text[offset..^0];
         }
     }
 }

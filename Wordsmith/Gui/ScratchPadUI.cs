@@ -69,6 +69,8 @@ namespace Wordsmith.Gui
         public const int CHAT_LS = 9;
         public const int CHAT_ECHO = 10;
 
+        protected const string WRAP_MARKER = "\r\r\n";
+
         protected const int ENTER_KEY = 0xD;
         #endregion
 
@@ -116,7 +118,7 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Returns a trimmed, single-line version of scratch.
         /// </summary>
-        protected string ScratchString => _scratch.Trim().Replace('\n', ' ');
+        protected string ScratchString =>  _scratch.Trim().Replace("\r\r\n", " ");
         protected string _scratch = "";
         protected string _clearedScratch = "";
         protected int _scratchBufferSize = 4096;
@@ -245,8 +247,12 @@ namespace Wordsmith.Gui
                     // spelled words while resizing.
                     _preserveCorrections = true;
 
+                    // Ignore cursor position requirement because we aren't adjusting that
+                    // just rewrapping.
+                    int ignore = 0;
+
                     // Rewrap scratch
-                    _scratch = WrapString(_scratch);
+                    _scratch = WrapString(_scratch, ref ignore);
 
                     // Update the last known width.
                     _lastWidth = ImGui.GetWindowWidth();
@@ -494,10 +500,10 @@ namespace Wordsmith.Gui
             if (ImGui.InputTextWithHint($"##TextEntryBox{ID}", "Type Here...", ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, ImGuiInputTextFlags.EnterReturnsTrue))
             {
                 // Respond according to user-defined action in settings.
-                if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 1)
+                if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.SpellCheck)
                     DoSpellCheck();
 
-                else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 2)
+                else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.CopyNextChunk)
                     DoCopyToClipboard();
             }
         }
@@ -529,10 +535,10 @@ namespace Wordsmith.Gui
             if(ImGui.IsItemFocused() && ImGui.IsKeyPressed(ENTER_KEY))
             {
                 // If the user hits enter, run the user-defined action.
-                if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 1)
+                if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.SpellCheck)
                     DoSpellCheck();
 
-                else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == 2)
+                else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.CopyNextChunk)
                     DoCopyToClipboard();
             }
         }
@@ -811,8 +817,9 @@ namespace Wordsmith.Gui
                 // Clear out replacement text.
                 _replaceText = "";
 
+                int ignore = 0;
                 // Rewrap the text string.
-                _scratch = WrapString(_scratch);
+                _scratch = WrapString(_scratch, ref ignore);
             }
 
             // Remove the spelling error.
@@ -864,7 +871,8 @@ namespace Wordsmith.Gui
 
             // If the event flags are/contain CallbackEdit, the user either copy/pasted or entered a key.
             if ((data->EventFlag & ImGuiInputTextFlags.CallbackEdit) == ImGuiInputTextFlags.CallbackEdit
-                && ImGui.IsKeyPressed(ENTER_KEY)) // If the key they hit was enter
+                && ImGui.IsKeyPressed(ENTER_KEY)
+                && Wordsmith.Configuration.ScratchPadTextEnterBehavior != Enums.EnterKeyAction.NewLine) // If the key they hit was enter
             {
                 // Verify that the text length is greater than 1.
                 if (txt.Length > 1)
@@ -884,8 +892,9 @@ namespace Wordsmith.Gui
                 }
             }
 
+            int pos = data->CursorPos;
             // Wrap the string.
-            txt = WrapString(txt);
+            txt = WrapString(txt, ref pos);
 
             // Convert the string back to bytes.
             byte[] bytes = utf8.GetBytes(txt);
@@ -903,6 +912,8 @@ namespace Wordsmith.Gui
             // of characters in the text.
             data->BufTextLen = bytes.Length;
 
+            data->CursorPos = pos;
+
             // Flag the buffer as dirty so ImGui will rebuild the buffer
             // and redraw the text in the InputText.
             data->BufDirty = 1;
@@ -916,15 +927,62 @@ namespace Wordsmith.Gui
         /// </summary>
         /// <param name="text">The string to be wrapped.</param>
         /// <returns></returns>
-        protected string WrapString(string text)
+        protected string WrapString(string text, ref int cursorPos)
         {
             // If the string is empty then just return it.
             if (text.Length == 0)
                 return text;
 
-            // Replace all remaining new lines with spaces
-            text = text.Replace('\n', ' ');//(" \n", " ").Replace("\n", "");
+            // Trim any return carriages off the end. This can happen if the user
+            // backspaces a new line character off of the end.
+            text = text.TrimEnd('\r');
 
+            // If the user enters any character at the end of a line it will
+            // break the wrap marker so scan for any broken wrap makers.
+            for (int i = 0; i < text.Length -3; ++i)
+            {
+                // If the character is a return carriage.
+                if (text[i] == '\r')
+                {
+                    // if the second character is a return carriage.
+                    if (text[i+1] == '\r')
+                    {
+                        // if the third character is NOT new line.
+                        if (text[i+2] != '\n')
+                        {
+                            // if the fourth character IS new line
+                            if (text[i+3] == '\n')
+                            {
+                                // By reaching this point, we've established that
+                                // a character has been wedged between the return
+                                // carriage characters and the new line character.
+
+                                // First, remove the new line characters.
+                                text = text[0..i] + text[(i + 2)..^0];
+
+                                // Now replace the new line with a space.
+                                text = text[0..(i+1)] + " " + text[(i+2)..^0];
+
+                                cursorPos -= 2;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Replace all wrap markers with spaces and adjust cursor offset
+            while (text.Contains(WRAP_MARKER))
+            {
+                int idx = text.IndexOf(WRAP_MARKER);
+                text = text[0..idx] + " " + text[(idx + WRAP_MARKER.Length)..^0];
+
+                // We adjust the cursor position by one less than the wrap marker
+                // length to account for the space that replaces it.
+                if (idx < cursorPos)
+                    cursorPos -= WRAP_MARKER.Length - 1;
+                
+            }
+            
             // Replace double spaces if configured to do so.
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
                 text = text.FixSpacing();
@@ -947,8 +1005,16 @@ namespace Wordsmith.Gui
                 {
                     // Replace the last previous space with a new line
                     StringBuilder sb = new(text);
-                    sb[lastSpace] = '\n';
-                    offset = lastSpace;
+                    //sb[lastSpace] = '\n';
+                    sb.Remove(lastSpace, 1);
+                    sb.Insert(lastSpace, WRAP_MARKER);
+                    offset = lastSpace + WRAP_MARKER.Length - 1;
+                    i += WRAP_MARKER.Length - 1;
+
+                    // We subtract 1 from the total length of the wrap marker
+                    // to account for the space being replaced.
+                    if (lastSpace < cursorPos)
+                        cursorPos += WRAP_MARKER.Length - 1;
                     text = sb.ToString();
                 }
             }

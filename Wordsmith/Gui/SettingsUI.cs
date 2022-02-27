@@ -26,7 +26,7 @@ namespace Wordsmith.Gui
         private bool _markLastChunk = Wordsmith.Configuration.MarkLastChunk;
         private bool _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
         private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
-        private int _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
+        private int _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
         private bool _scratchSingleLineInput = Wordsmith.Configuration.UseOldSingleLineInput;
 
         // Dictionary Settings
@@ -200,7 +200,8 @@ namespace Wordsmith.Gui
 
                     // Enter Key Behavior
                     ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
-                    ImGui.Combo("Enter Key Behavior", ref _scratchEnter, new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
+                    string[] enterKeyActions = Enum.GetNames(typeof(Enums.EnterKeyAction));
+                    ImGui.Combo("Enter Key Behavior", ref _scratchEnter, enterKeyActions, enterKeyActions.Length);//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Defines what action to take when the user hits enter in the text entry.");
                     ImGui.Separator();
@@ -452,7 +453,7 @@ namespace Wordsmith.Gui
             _encapTerminators = Wordsmith.Configuration.EncapsulationCharacters;
             _markLastChunk = Wordsmith.Configuration.MarkLastChunk;
             _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
-            _scratchEnter = Wordsmith.Configuration.ScratchPadTextEnterBehavior;
+            _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
             _scratchSingleLineInput = Wordsmith.Configuration.UseOldSingleLineInput;
 
             // Spell Check Settings
@@ -513,8 +514,8 @@ namespace Wordsmith.Gui
             if (_scratchMaxTextLen != Wordsmith.Configuration.ScratchPadMaximumTextLength)
                 Wordsmith.Configuration.ScratchPadMaximumTextLength = _scratchMaxTextLen;
 
-            if (_scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
-                Wordsmith.Configuration.ScratchPadTextEnterBehavior = _scratchEnter;
+            if ((Enums.EnterKeyAction)_scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
+                Wordsmith.Configuration.ScratchPadTextEnterBehavior = (Enums.EnterKeyAction)_scratchEnter;
 
             if (_scratchSingleLineInput != Wordsmith.Configuration.UseOldSingleLineInput)
                 Wordsmith.Configuration.UseOldSingleLineInput = _scratchSingleLineInput;

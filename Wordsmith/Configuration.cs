@@ -85,7 +85,7 @@ namespace Wordsmith
         /// <summary>
         /// Decides behavior when hitting enter in Scratch Pad text entry.
         /// </summary>
-        public int ScratchPadTextEnterBehavior { get; set; } = 0;
+        public Enums.EnterKeyAction ScratchPadTextEnterBehavior { get; set; } = Enums.EnterKeyAction.None;
 
         /// <summary>
         /// Maximum length of input on ScratchPads
