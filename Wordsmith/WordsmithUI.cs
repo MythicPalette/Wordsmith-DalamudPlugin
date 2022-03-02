@@ -65,7 +65,11 @@ namespace Wordsmith
         public static void Dispose()
         {
             FontBuilder?.Dispose();
+
+            // Get the entire array of windows
             Window[] windows = _windows.ToArray();
+
+            // Remove each window from both lists.
             foreach (Window w in windows)
                 RemoveWindow(w);
         }
