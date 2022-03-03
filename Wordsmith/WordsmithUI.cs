@@ -6,20 +6,20 @@ namespace Wordsmith
 {
     // It is good to have this be disposable in general, in case you ever need it
     // to do any cleanup
-    public static class WordsmithUI
+    internal static class WordsmithUI
     {
         private static List<Window> _windows { get; set; } = new();
-        public static Window[] Windows { get => _windows.ToArray(); }
-        public static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
+        internal static Window[] Windows { get => _windows.ToArray(); }
+        internal static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
 
         // passing in the image here just for simplicity
-        public static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
-        public static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
-        public static void ShowScratchPad(string tellTarget) => _windows.Add(new ScratchPadUI(tellTarget));
-        public static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
-        public static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
-        public static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
-        public static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
+        internal static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
+        internal static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
+        internal static void ShowScratchPad(string tellTarget) => _windows.Add(new ScratchPadUI(tellTarget));
+        internal static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
+        internal static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
+        internal static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
+        internal static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
 
         private static void Show<T>(string name)
         {
@@ -39,13 +39,13 @@ namespace Wordsmith
                 w.IsOpen = true;
             
         }
-        public static void RemoveWindow(Window w)
+        internal static void RemoveWindow(Window w)
         {
             _windows.Remove(w);
             WindowSystem.RemoveWindow(w);
         }
 
-        public static void Draw()
+        internal static void Draw()
         {
             try
             {
@@ -71,9 +71,8 @@ namespace Wordsmith
             catch (Exception e) { PluginLog.LogError($"{e} :: {e.Message}"); }
         }
 
-        public static void Dispose()
+        internal static void Dispose()
         {
-            FontBuilder?.Dispose();
             Window[] windows = _windows.ToArray();
             foreach (Window w in windows)
                 RemoveWindow(w);
