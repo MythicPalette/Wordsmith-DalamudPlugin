@@ -123,6 +123,7 @@ namespace Wordsmith.Gui
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("If enabled the option \"Tell in Scratch\" will be added to\ncontext menus that have \"Send Tell\".");
                     ImGui.Separator();
+
                     // Auto-Clear Scratch Pad
                     ImGui.Checkbox("Auto-clear Scratch Pad", ref _autoClear);
                     if (ImGui.IsItemHovered())
@@ -199,9 +200,16 @@ namespace Wordsmith.Gui
                     ImGui.Separator();
 
                     // Enter Key Behavior
-                    ImGui.SetNextItemWidth(100 * ImGuiHelpers.GlobalScale);
+                    ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
+
+                    // Get all of the enum options.
                     string[] enterKeyActions = Enum.GetNames(typeof(Enums.EnterKeyAction));
-                    ImGui.Combo("Enter Key Behavior", ref _scratchEnter, enterKeyActions, enterKeyActions.Length);//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
+
+                    // Add a space in front of all capital letters.
+                    for (int i = 0; i < enterKeyActions.Length; ++i)
+                        enterKeyActions[i] = enterKeyActions[i].SpaceByCaps();
+
+                    ImGui.Combo("Ctrl+Enter Key Behavior##SettingsUI", ref _scratchEnter, enterKeyActions, enterKeyActions.Length);//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Defines what action to take when the user hits enter in the text entry.");
                     ImGui.Separator();

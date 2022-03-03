@@ -69,7 +69,8 @@ namespace Wordsmith.Gui
         public const int CHAT_LS = 9;
         public const int CHAT_ECHO = 10;
 
-        protected const string WRAP_MARKER = "\r\r\n";
+        protected const string SPACED_WRAP_MARKER = "\r\r";
+        protected const string NOSPACE_WRAP_MARKER = "\r";
 
         protected const int ENTER_KEY = 0xD;
         #endregion
@@ -89,7 +90,6 @@ namespace Wordsmith.Gui
         /// </summary>
         #region Pad State
         protected PadState _lastState = new();
-        protected bool _refreshRequired = false;
         protected bool _preserveCorrections = false;
         #endregion
 
@@ -118,7 +118,7 @@ namespace Wordsmith.Gui
         /// <summary>
         /// Returns a trimmed, single-line version of scratch.
         /// </summary>
-        protected string ScratchString =>  _scratch.Trim().Replace("\r\r\n", " ");
+        protected string ScratchString => _scratch.Trim().Replace(SPACED_WRAP_MARKER + "\n", " ").Replace(NOSPACE_WRAP_MARKER+"\n", "");
         protected string _scratch = "";
         protected string _clearedScratch = "";
         protected int _scratchBufferSize = 4096;
@@ -126,6 +126,8 @@ namespace Wordsmith.Gui
         protected string[]? _chunks;
         protected int _nextChunk = 0;
         #endregion
+
+        protected bool _scrollToBottom = false;
 
         protected float _lastWidth = 0;
         protected bool _ignoreTextEdit = false;
@@ -164,6 +166,9 @@ namespace Wordsmith.Gui
             return result;
         }
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
         public ScratchPadUI() : base($"{Wordsmith.AppName} - Scratch Pad #{_nextID}")
         {
             ID = NextID;
@@ -180,12 +185,21 @@ namespace Wordsmith.Gui
             Flags |= ImGuiWindowFlags.MenuBar;
         }
         
+        /// <summary>
+        /// Initializes a new <see cref="ScratchPadUI"/> object with chat header as Tell and target as
+        /// the given <see cref="string"/> argument.
+        /// </summary>
+        /// <param name="tellTarget">The target to append to the header.</param>
         public ScratchPadUI(string tellTarget) : this()
         {
             _chatType = CHAT_TELL;
             _telltarget = tellTarget;
         }
 
+        /// <summary>
+        /// Initializes a new <see cref="ScratchPadUI"/> object with chat header as the given type.
+        /// </summary>
+        /// <param name="chatType"><see cref="int"/> chat type.</param>
         public ScratchPadUI(int chatType) : this() => _chatType = chatType;
 
         /// <summary>
@@ -214,8 +228,14 @@ namespace Wordsmith.Gui
             return result * ImGuiHelpers.GlobalScale;
         }
 
+        /// <summary>
+        /// The Draw entrypoint for the <see cref="WindowSystem"/> to draw the window.
+        /// </summary>
         public override void Draw()
         {
+            if (Wordsmith.Configuration.RecentlySaved)
+                Refresh();
+
             DrawMenu();
             DrawAlerts();
             DrawHeader();
@@ -406,6 +426,9 @@ namespace Wordsmith.Gui
             }
         }
 
+        /// <summary>
+        /// Draws the alert section of the page over the chat header selection.
+        /// </summary>
         protected void DrawAlerts()
         {
             List<(string Message, int Level)> alerts = new();
@@ -523,16 +546,14 @@ namespace Wordsmith.Gui
             if (!Wordsmith.Configuration.ShowTextInChunks)
                 v = new(-1, (Size?.X ?? 25) - GetFooterHeight(false));
 
-            // Draw the input with multiple callbacks. These callbacks will be
-            // used for managing the word wrapping.
-            ImGui.InputTextMultiline($"##ScratchPad{ID}MultilineTextEntry",
-                ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, v,
+            // If the user has their option set to SpellCheck or Copy then
+            // handle it with an EnterReturnsTrue.
+            if (ImGui.InputTextMultiline($"##ScratchPad{ID}MultilineTextEntry",
+                ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength,
+                v,
                 ImGuiInputTextFlags.CallbackEdit |
-                ImGuiInputTextFlags.NoHorizontalScroll, OnTextEdit);
-
-            // Because InputTextMultiline doesn't trigger EnterReturnsTrue we instead check
-            // if the input has focus and the user pressed the enter key
-            if(ImGui.IsItemFocused() && ImGui.IsKeyPressed(ENTER_KEY))
+                ImGuiInputTextFlags.EnterReturnsTrue,
+                OnTextEdit))
             {
                 // If the user hits enter, run the user-defined action.
                 if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.SpellCheck)
@@ -578,7 +599,7 @@ namespace Wordsmith.Gui
 
                     _corrections.RemoveAt(0);
                     if (_corrections.Count == 0)
-                        _refreshRequired = true;
+                        Refresh();
                 }
             }
         }
@@ -676,7 +697,6 @@ namespace Wordsmith.Gui
             }
         }
 
-
         /// <summary>
         /// Draws the copy button depending on how many chunks are available.
         /// </summary>
@@ -745,6 +765,10 @@ namespace Wordsmith.Gui
             _scratch = "";
         }
 
+        /// <summary>
+        /// Saves the cleared text in case the user wants to undo the clear then
+        /// clears it.
+        /// </summary>
         protected void UndoClearText()
         {
             _scratch = _clearedScratch;
@@ -869,49 +893,28 @@ namespace Wordsmith.Gui
             // memory damage or crashes.
             string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen).TrimStart() : "";
 
-            // If the event flags are/contain CallbackEdit, the user either copy/pasted or entered a key.
-            if ((data->EventFlag & ImGuiInputTextFlags.CallbackEdit) == ImGuiInputTextFlags.CallbackEdit
-                && ImGui.IsKeyPressed(ENTER_KEY)
-                && Wordsmith.Configuration.ScratchPadTextEnterBehavior != Enums.EnterKeyAction.NewLine) // If the key they hit was enter
-            {
-                // Verify that the text length is greater than 1.
-                if (txt.Length > 1)
-                {
-                    // If the user hit enter simply rebuild the string without the new line at the cursor.
-                    txt = txt[0..(data->CursorPos - 1)] + txt[data->CursorPos..^0];
-
-                    // Move the cursor back as if the user never hit enter.
-                    data->CursorPos -= 1;
-                }
-                else
-                {
-                    // In this case, the text length was 1 or 0 and the user hit enter so we can simply
-                    // blank the text and reset cursor position to 0.
-                    txt = "";
-                    data->CursorPos = 0;
-                }
-            }
-
             int pos = data->CursorPos;
-            // Wrap the string.
-            txt = WrapString(txt, ref pos);
+
+            // Wrap the string if there is enough there.
+            if (txt.Length > 0)
+                txt = WrapString(txt, ref pos);
 
             // Convert the string back to bytes.
             byte[] bytes = utf8.GetBytes(txt);
 
-            // Zero out the buffer.
-            for (int i = 0; i < data->BufSize; ++i)
-                data->Buf[i] = 0;
-
             // Replace with new values.
             for (int i = 0; i < bytes.Length; ++i)
                 data->Buf[i] = bytes[i];
+
+            // Terminate the string.
+            data->Buf[bytes.Length] = 0;
 
             // Assign the new buffer text length. This is the
             // number of bytes that make up the text, not the number
             // of characters in the text.
             data->BufTextLen = bytes.Length;
 
+            // Reassing the cursor position to adjust for the change in text lengths.
             data->CursorPos = pos;
 
             // Flag the buffer as dirty so ImGui will rebuild the buffer
@@ -939,48 +942,80 @@ namespace Wordsmith.Gui
 
             // If the user enters any character at the end of a line it will
             // break the wrap marker so scan for any broken wrap makers.
-            for (int i = 0; i < text.Length -3; ++i)
+            for (int i = 0; i < text.Length; ++i)
             {
-                // If the character is a return carriage.
-                if (text[i] == '\r')
+                // Check for a broken wrap marker \r\r#\n where # is any char besides \n.
+                if (
+                    i < text.Length - SPACED_WRAP_MARKER.Length + 1 &&
+                    text[i..(i + SPACED_WRAP_MARKER.Length)] == SPACED_WRAP_MARKER &&
+                    text[i + SPACED_WRAP_MARKER.Length] != '\n' &&
+                    text[i + SPACED_WRAP_MARKER.Length + 1] == '\n')
                 {
-                    // if the second character is a return carriage.
-                    if (text[i+1] == '\r')
+                    // if the fourth character IS new line
+                    if (text[i + 3] == '\n')
                     {
-                        // if the third character is NOT new line.
-                        if (text[i+2] != '\n')
-                        {
-                            // if the fourth character IS new line
-                            if (text[i+3] == '\n')
-                            {
-                                // By reaching this point, we've established that
-                                // a character has been wedged between the return
-                                // carriage characters and the new line character.
+                        // A character has been wedged between the return
+                        // carriage characters and the new line character.
 
-                                // First, remove the new line characters.
-                                text = text[0..i] + text[(i + 2)..^0];
+                        // First, remove the new line characters.
+                        text = text[0..i] + text[(i + 2)..^0];
 
-                                // Now replace the new line with a space.
-                                text = text[0..(i+1)] + " " + text[(i+2)..^0];
+                        // Now replace the new line with a space.
+                        text = text[0..(i + 1)] + " " + text[(i + 2)..^0];
 
-                                cursorPos -= 2;
-                            }
-                        }
+                        // Subtract the length of the spaced marker from the cursor position
+                        if (cursorPos > i)
+                            cursorPos -= 2;
                     }
+                }
+
+                // Check for a broken no-space wrap maker \r#\n where # is any char besides \n.
+                // It's important to also check that
+                else if (
+                    i < text.Length - NOSPACE_WRAP_MARKER.Length + 1 &&      // Ensure that there are enough indices remaining.
+                    text[i..(i + NOSPACE_WRAP_MARKER.Length)] == NOSPACE_WRAP_MARKER &&     // If text starts with the no space marker and
+                    text[i + NOSPACE_WRAP_MARKER.Length] != '\n' &&                         // If the next character is not a new line
+                    text[i + NOSPACE_WRAP_MARKER.Length + 1] == '\n' &&                     // If the character after that is a new line
+                    text[i..(i + SPACED_WRAP_MARKER.Length)] != SPACED_WRAP_MARKER)         // If the characters are not the SPACED marker.
+                {
+
+                    // Remove the \r from the text
+                    text = text[0..i] + text[(i + 1)..^0];
+
+                    // Remove the \n from the text.
+                    text = text[0..(i + 1)] + text[(i + 2)..^0];
+
+                    // Subtract the length of the spaced marker from the cursor position
+                    if (cursorPos > i)
+                        cursorPos -= 2;
+
+                    // Need to iterate that the same index because we have already removed the
+                    // current char at i.
+                    i -= 1;
                 }
             }
 
-            // Replace all wrap markers with spaces and adjust cursor offset
-            while (text.Contains(WRAP_MARKER))
+            // Replace all wrap markers with spaces and adjust cursor offset. Do this before
+            // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
+            while (text.Contains(SPACED_WRAP_MARKER+'\n'))
             {
-                int idx = text.IndexOf(WRAP_MARKER);
-                text = text[0..idx] + " " + text[(idx + WRAP_MARKER.Length)..^0];
+                int idx = text.IndexOf(SPACED_WRAP_MARKER + '\n');
+                text = text[0..idx] + " " + text[(idx + (SPACED_WRAP_MARKER + '\n').Length)..^0];
 
                 // We adjust the cursor position by one less than the wrap marker
                 // length to account for the space that replaces it.
-                if (idx < cursorPos)
-                    cursorPos -= WRAP_MARKER.Length - 1;
+                if (cursorPos > idx)
+                    cursorPos -= SPACED_WRAP_MARKER.Length;
                 
+            }
+
+            while (text.Contains(NOSPACE_WRAP_MARKER+'\n'))
+            {
+                int idx = text.IndexOf(NOSPACE_WRAP_MARKER + '\n');
+                text = text[0..idx] + text[(idx + (NOSPACE_WRAP_MARKER + '\n').Length)..^0];
+
+                if (cursorPos > idx)
+                    cursorPos -= (NOSPACE_WRAP_MARKER + '\n').Length;
             }
             
             // Replace double spaces if configured to do so.
@@ -1005,16 +1040,30 @@ namespace Wordsmith.Gui
                 {
                     // Replace the last previous space with a new line
                     StringBuilder sb = new(text);
-                    //sb[lastSpace] = '\n';
-                    sb.Remove(lastSpace, 1);
-                    sb.Insert(lastSpace, WRAP_MARKER);
-                    offset = lastSpace + WRAP_MARKER.Length - 1;
-                    i += WRAP_MARKER.Length - 1;
 
-                    // We subtract 1 from the total length of the wrap marker
-                    // to account for the space being replaced.
-                    if (lastSpace < cursorPos)
-                        cursorPos += WRAP_MARKER.Length - 1;
+                    if (lastSpace > offset)
+                    {
+                        sb.Remove(lastSpace, 1);
+                        sb.Insert(lastSpace, SPACED_WRAP_MARKER+'\n');
+                        offset = lastSpace + SPACED_WRAP_MARKER.Length;
+                        i += SPACED_WRAP_MARKER.Length;
+
+                        // Adjust cursor position for the marker but not
+                        // the new line as the new line is replacing the space.
+                        if (lastSpace < cursorPos)
+                            cursorPos += SPACED_WRAP_MARKER.Length;
+                    }
+                    else
+                    {
+                        sb.Insert(i, NOSPACE_WRAP_MARKER + '\n');
+                        offset = i + NOSPACE_WRAP_MARKER.Length;
+                        i += NOSPACE_WRAP_MARKER.Length;
+
+                        // Adjust cursor position for the marker and the
+                        // new line since both are inserted.
+                        if (cursorPos > i - NOSPACE_WRAP_MARKER.Length)
+                            cursorPos += NOSPACE_WRAP_MARKER.Length + 1;
+                    }
                     text = sb.ToString();
                 }
             }
@@ -1044,38 +1093,41 @@ namespace Wordsmith.Gui
         {
             base.Update();
 
-            PadState newState = GetState();
-
             if (Wordsmith.Configuration.ReplaceDoubleSpaces)
                 _scratch = _scratch.FixSpacing();
 
-            if (_lastState != newState || _refreshRequired)
+            _scrollToBottom = _lastState.ScratchText != _scratch;
+
+            if (_lastState != GetState())
+                Refresh();
+        }
+
+        /// <summary>
+        /// Updates the window.
+        /// </summary>
+        internal void Refresh()
+        {
+            // If the user has entered text then clear the _clearedScratch variable.
+            if (_scratch != "")
+                _clearedScratch = "";
+
+            // Cancel any outstanding tokens.
+            _cancellationTokenSource?.Cancel();
+
+            // If not preserving the error list, clear it.
+            if (!_preserveCorrections)
             {
-                // If the user has entered text then clear the _clearedScratch variable.
-                if (_scratch != "")
-                    _clearedScratch = "";
-
-                // Cancel any outstanding tokens.
-                _cancellationTokenSource?.Cancel();
-
-                // Reset refreshRequired;
-                _refreshRequired = false;
-
-                // If not preserving the error list, clear it.
-                if (!_preserveCorrections)
-                {
-                    _corrections = new();
-                    _spellChecked = false;
-                }
-                _preserveCorrections = false;
-
-                // Update the last state.
-                _lastState = newState;
-
-                // Rebuild chunks and reset chunk position counter.
-                _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);
-                _nextChunk = 0;
+                _corrections = new();
+                _spellChecked = false;
             }
+            _preserveCorrections = false;
+
+            // Update the last state.
+            _lastState = GetState();
+
+            // Rebuild chunks and reset chunk position counter.
+            _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);
+            _nextChunk = 0;
         }
     }
 }

@@ -2,6 +2,6 @@
 {
     public enum EnterKeyAction
     {
-        None, NewLine, SpellCheck, CopyNextChunk
+        None, SpellCheck, CopyNextChunk
     }
 }

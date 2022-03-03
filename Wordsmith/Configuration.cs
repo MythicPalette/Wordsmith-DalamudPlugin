@@ -5,6 +5,9 @@ namespace Wordsmith
     [Serializable]
     public class Configuration : IPluginConfiguration
     {
+        [NonSerialized]
+        internal bool RecentlySaved = false;
+
         public int Version { get; set; } = 0;
 
         public int SearchHistoryCount { get; set; } = 10;
@@ -157,7 +160,7 @@ namespace Wordsmith
         {
             Wordsmith.PluginInterface.SavePluginConfig(this);
             Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+            RecentlySaved = true;
         }
-        
     }
 }

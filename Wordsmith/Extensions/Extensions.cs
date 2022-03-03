@@ -65,6 +65,28 @@ namespace Wordsmith.Extensions
             return s;
         }
 
+        public static string SpaceByCaps(this string s)
+        {
+            // If there aren't at least two characters then return.
+            if (s.Length < 2)
+                return s;
+
+            string result = s[0].ToString();
+
+            // Iterate through each character not in the first index
+            foreach (char c in s[1..^0])
+            {
+                // If the character is a capital letter, add a space to the result.
+                if ("ABCDEFGHIJKLMNOPQRSTUVWXYZ".Contains(c))
+                    result += " ";
+
+                // Add the character to the result.
+                result += c;
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Removes all double spaces from a string.
         /// </summary>

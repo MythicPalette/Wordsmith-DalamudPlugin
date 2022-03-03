@@ -51,7 +51,20 @@ namespace Wordsmith
 
         public static void Draw()
         {
-            try { WordsmithUI.WindowSystem.Draw(); }
+            try
+            {
+                // Check if the configuration was recently saved before drawing. This is to prevent
+                // resetting the RecentlySaved bool to "false" if the state changed in the middle of
+                // the draw function.
+                bool resetConfigSaved = Wordsmith.Configuration.RecentlySaved;
+
+                // Draw all windows.
+                WordsmithUI.WindowSystem.Draw();
+
+                // Set RecentlySaved to false if it has already had a full cycle.
+                if (resetConfigSaved)
+                    Wordsmith.Configuration.RecentlySaved = false;
+            }
             catch (InvalidOperationException e)
             {
                 // If the message isn't about collection being modified, log it. Otherwise

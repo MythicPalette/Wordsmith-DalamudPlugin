@@ -34,7 +34,6 @@ namespace Wordsmith.Helpers
                 // Add the length of the string to the offset.
                 offset += str.Length;
 
-
                 // Add the string to the list with the header and, if offset is not at
                 // the end of the string yet, add the continuation marker for the player.
                 if (str.Trim().Length > 0)
@@ -63,7 +62,7 @@ namespace Wordsmith.Helpers
         /// <param name="byteLimit">The maximum byte length of the return.</param>
         /// <exception cref="IndexOutOfRangeException">Offset is out of range of text.</exception>
         /// <returns>A string that is under the byte limit.</returns>
-        protected static string SubstringByByteCount(string text, int offset, int byteLimit)
+        protected static string SubstringByByteCount(string text, in int offset, in int byteLimit)
         {
             // If the offset is out of index, throw an out of range exception
             if (offset >= text.Length)
@@ -72,34 +71,34 @@ namespace Wordsmith.Helpers
             // Designate a text encoder so we don't reinitialize a new one every time.
             UTF8Encoding encoder = new UTF8Encoding();
 
-            // Iterate over all of the characters after the offset. i=offset+1 so that the
-            // length is a minimum of 1 on the first comparison. Last space is where the string
-            // should be broken at for readability.
+            // Create a variable to hold the last known space and last known sentence marker
             int lastSpace = -1;
             int lastSentence = -1;
+
+            // Start with a character length of 1 and try increasing lengths.
             for (int length=1; length+offset<text.Length; ++length)
             {
                 // If the current length would be over the byte limit
                 if (encoder.GetByteCount(text.Substring(offset, length)) > byteLimit)
                 {
-                    // reduce the length by one.
+                    // reduce the length by one as we've officially crossed the maximum byte count.
                     --length;
 
                     // If we never found a space, we'll have to split the string at length regardless.
                     if (lastSpace == -1)
                         lastSpace = length;
 
-                    if (Wordsmith.Configuration.BreakOnSentence && lastSentence > 0)
-                        return text[offset..lastSentence];
+                    if (Wordsmith.Configuration.BreakOnSentence && lastSentence > 0 && lastSentence > offset)
+                        return text.Substring(offset, lastSentence);
                     else
                         // get the substring starting from offset. If the character at offset+length is a space,
                         // split there. If not, go back to the last space found.
-                        return text[offset..(text[offset + length] == ' ' ? length : lastSpace)];
+                        return text.Substring(offset, (text[offset + length] == ' ' ? length : lastSpace));
                 }
 
                 // If the current character is a new line.
                 else if (text[offset + length] == '\n')
-                    return text[offset..(offset + length)];
+                    return text.Substring(offset, length);
 
                 // Check if the current character is a space.
                 if (text[offset + length] == ' ')
