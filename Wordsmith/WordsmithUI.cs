@@ -10,9 +10,7 @@ namespace Wordsmith
     {
         private static List<Window> _windows { get; set; } = new();
         public static Window[] Windows { get => _windows.ToArray(); }
-
         public static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
-        public static FontBuilder? FontBuilder { get; private set; } = null!; //new();
 
         // passing in the image here just for simplicity
         public static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");

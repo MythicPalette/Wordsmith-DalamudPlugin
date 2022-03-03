@@ -242,9 +242,6 @@ namespace Wordsmith.Gui
 
             if (ImGui.BeginChild($"ScratchPad{ID}MainBodyChild", new(0, -1)))
             {
-                if (WordsmithUI.FontBuilder?.Enabled ?? false)
-                    ImGui.PushFont(WordsmithUI.FontBuilder.RegularFont!.Value);
-
                 DrawChunkDisplay();
 
                 // Draw the old, single line input
@@ -277,9 +274,6 @@ namespace Wordsmith.Gui
                     // Update the last known width.
                     _lastWidth = ImGui.GetWindowWidth();
                 }
-
-                if (WordsmithUI.FontBuilder?.Enabled ?? false)
-                    ImGui.PopFont();
 
                 // Draw the word replacement form.
                 DrawWordReplacement();
