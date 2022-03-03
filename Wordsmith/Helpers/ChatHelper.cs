@@ -1,132 +1,131 @@
 ﻿
-namespace Wordsmith.Helpers
+namespace Wordsmith.Helpers;
+
+public class ChatHelper
 {
-    public class ChatHelper
+    /// <summary>
+    /// Takes inputs and returns it as a collection of strings that are ready to be sent, all under 500 bytes.
+    /// </summary>
+    /// <param name="header">The header to place at the front of each string (i.e. /tell Player Name@World)</param>
+    /// <param name="text">The text to be conferted into strings.</param>
+    /// <returns>Returns an array of strings, all under 500 bytes to prepare for sending.</returns>
+    public static string[] FFXIVify(string header, string text, bool OOC)
     {
-        /// <summary>
-        /// Takes inputs and returns it as a collection of strings that are ready to be sent, all under 500 bytes.
-        /// </summary>
-        /// <param name="header">The header to place at the front of each string (i.e. /tell Player Name@World)</param>
-        /// <param name="text">The text to be conferted into strings.</param>
-        /// <returns>Returns an array of strings, all under 500 bytes to prepare for sending.</returns>
-        public static string[] FFXIVify(string header, string text, bool OOC)
+        UTF8Encoding encoder = new();
+
+        // Get the number of bytes taken by the header.
+        // Note that we remove 10 bytes right off of the top as a safety zone.
+        // We then cut the bytes out required for the header, continuation marker, and OOC tags.
+        int availableBytes = 490 - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
+
+        // Cut the length of the OOC from the available bytes if OOC is on.
+        availableBytes -= (OOC ? encoder.GetByteCount(Wordsmith.Configuration.OocOpeningTag + Wordsmith.Configuration.OocClosingTag) : 0);
+
+        // Create a list to hold all of our strings.
+        List<string> results = new();
+
+        // Break the string into smaller sizes.
+        int offset = 0;
+        while (offset < text.Length)
         {
-            UTF8Encoding encoder = new();
+            // Get the current possible string.
+            string str = SubstringByByteCount(text, offset, availableBytes);
 
-            // Get the number of bytes taken by the header.
-            // Note that we remove 10 bytes right off of the top as a safety zone.
-            // We then cut the bytes out required for the header, continuation marker, and OOC tags.
-            int availableBytes = 490 - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
+            // Add the length of the string to the offset.
+            offset += str.Length;
 
-            // Cut the length of the OOC from the available bytes if OOC is on.
-            availableBytes -= (OOC ? encoder.GetByteCount(Wordsmith.Configuration.OocOpeningTag + Wordsmith.Configuration.OocClosingTag) : 0);
-
-            // Create a list to hold all of our strings.
-            List<string> results = new();
-
-            // Break the string into smaller sizes.
-            int offset = 0;
-            while (offset < text.Length)
-            {
-                // Get the current possible string.
-                string str = SubstringByByteCount(text, offset, availableBytes);
-
-                // Add the length of the string to the offset.
-                offset += str.Length;
-
-                // Add the string to the list with the header and, if offset is not at
-                // the end of the string yet, add the continuation marker for the player.
-                if (str.Trim().Length > 0)
-                    results.Add($"{header} {(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str.Trim()}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
-            }
-
-            // If there is more than one result we want to do continuation markers
-            if (results.Count > 1)
-            {
-                // Iterate through the chunks and append the continuation marker. We have to do this
-                // in a separate loop from when we created the chunks in case the user adds the #m tag
-                // to their continuation marker and we need to know the total number of chunks.
-                for (int i = 0; i < (Wordsmith.Configuration.MarkLastChunk ? results.Count : results.Count - 1); ++i)
-                    results[i] += $" {Wordsmith.Configuration.ContinuationMarker.Replace("#c", (i + 1).ToString()).Replace("#m", results.Count.ToString())}";
-            }
-
-            // Return the results.
-            return results.ToArray();
+            // Add the string to the list with the header and, if offset is not at
+            // the end of the string yet, add the continuation marker for the player.
+            if (str.Trim().Length > 0)
+                results.Add($"{header} {(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str.Trim()}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
         }
 
-        /// <summary>
-        /// Gets a substring based on maximum number of bytes allowed.
-        /// </summary>
-        /// <param name="text">Text to get the substring from</param>
-        /// <param name="offset">The starting index of the substring.</param>
-        /// <param name="byteLimit">The maximum byte length of the return.</param>
-        /// <exception cref="IndexOutOfRangeException">Offset is out of range of text.</exception>
-        /// <returns>A string that is under the byte limit.</returns>
-        protected static string SubstringByByteCount(string text, in int offset, in int byteLimit)
+        // If there is more than one result we want to do continuation markers
+        if (results.Count > 1)
         {
-            // If the offset is out of index, throw an out of range exception
-            if (offset >= text.Length)
-                throw new IndexOutOfRangeException();
+            // Iterate through the chunks and append the continuation marker. We have to do this
+            // in a separate loop from when we created the chunks in case the user adds the #m tag
+            // to their continuation marker and we need to know the total number of chunks.
+            for (int i = 0; i < (Wordsmith.Configuration.MarkLastChunk ? results.Count : results.Count - 1); ++i)
+                results[i] += $" {Wordsmith.Configuration.ContinuationMarker.Replace("#c", (i + 1).ToString()).Replace("#m", results.Count.ToString())}";
+        }
 
-            // Designate a text encoder so we don't reinitialize a new one every time.
-            UTF8Encoding encoder = new UTF8Encoding();
+        // Return the results.
+        return results.ToArray();
+    }
 
-            // Create a variable to hold the last known space and last known sentence marker
-            int lastSpace = -1;
-            int lastSentence = -1;
+    /// <summary>
+    /// Gets a substring based on maximum number of bytes allowed.
+    /// </summary>
+    /// <param name="text">Text to get the substring from</param>
+    /// <param name="offset">The starting index of the substring.</param>
+    /// <param name="byteLimit">The maximum byte length of the return.</param>
+    /// <exception cref="IndexOutOfRangeException">Offset is out of range of text.</exception>
+    /// <returns>A string that is under the byte limit.</returns>
+    protected static string SubstringByByteCount(string text, in int offset, in int byteLimit)
+    {
+        // If the offset is out of index, throw an out of range exception
+        if (offset >= text.Length)
+            throw new IndexOutOfRangeException();
 
-            // Start with a character length of 1 and try increasing lengths.
-            for (int length=1; length+offset<text.Length; ++length)
+        // Designate a text encoder so we don't reinitialize a new one every time.
+        UTF8Encoding encoder = new UTF8Encoding();
+
+        // Create a variable to hold the last known space and last known sentence marker
+        int lastSpace = -1;
+        int lastSentence = -1;
+
+        // Start with a character length of 1 and try increasing lengths.
+        for (int length=1; length+offset<text.Length; ++length)
+        {
+            // If the current length would be over the byte limit
+            if (encoder.GetByteCount(text.Substring(offset, length)) > byteLimit)
             {
-                // If the current length would be over the byte limit
-                if (encoder.GetByteCount(text.Substring(offset, length)) > byteLimit)
-                {
-                    // reduce the length by one as we've officially crossed the maximum byte count.
-                    --length;
+                // reduce the length by one as we've officially crossed the maximum byte count.
+                --length;
 
-                    // If we never found a space, we'll have to split the string at length regardless.
-                    if (lastSpace == -1)
-                        lastSpace = length;
-
-                    if (Wordsmith.Configuration.BreakOnSentence && lastSentence > 0 && lastSentence > offset)
-                        return text.Substring(offset, lastSentence);
-                    else
-                        // get the substring starting from offset. If the character at offset+length is a space,
-                        // split there. If not, go back to the last space found.
-                        return text.Substring(offset, (text[offset + length] == ' ' ? length : lastSpace));
-                }
-
-                // If the current character is a new line.
-                else if (text[offset + length] == '\n')
-                    return text.Substring(offset, length);
-
-                // Check if the current character is a space.
-                if (text[offset + length] == ' ')
-                {
-                    // If it is, take note of it.
+                // If we never found a space, we'll have to split the string at length regardless.
+                if (lastSpace == -1)
                     lastSpace = length;
 
-                    // If the character is a split point 
-                    if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 1]))
-                        lastSentence = length;
+                if (Wordsmith.Configuration.BreakOnSentence && lastSentence > 0 && lastSentence > offset)
+                    return text.Substring(offset, lastSentence);
+                else
+                    // get the substring starting from offset. If the character at offset+length is a space,
+                    // split there. If not, go back to the last space found.
+                    return text.Substring(offset, (text[offset + length] == ' ' ? length : lastSpace));
+            }
 
-                    // If there are more characters previous
-                    else if (offset+length -2 >= 0)
+            // If the current character is a new line.
+            else if (text[offset + length] == '\n')
+                return text.Substring(offset, length);
+
+            // Check if the current character is a space.
+            if (text[offset + length] == ' ')
+            {
+                // If it is, take note of it.
+                lastSpace = length;
+
+                // If the character is a split point 
+                if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 1]))
+                    lastSentence = length;
+
+                // If there are more characters previous
+                else if (offset+length -2 >= 0)
+                {
+                    // Check if we have a case of encapsulation like (Hello.)
+                    if(Wordsmith.Configuration.EncapsulationCharacters.Contains(text[offset+length-1]))
                     {
-                        // Check if we have a case of encapsulation like (Hello.)
-                        if(Wordsmith.Configuration.EncapsulationCharacters.Contains(text[offset+length-1]))
-                        {
-                            // If the character is a split point 
-                            if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 2]))
-                                lastSentence = length;
-                        }
+                        // If the character is a split point 
+                        if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 2]))
+                            lastSentence = length;
                     }
                 }
             }
-
-            // If we make it here, the remaining string from offset to end of string is all
-            // all within the given byte limit so return the remaining substring.
-            return text[offset..^0];
         }
+
+        // If we make it here, the remaining string from offset to end of string is all
+        // all within the given byte limit so return the remaining substring.
+        return text[offset..^0];
     }
 }

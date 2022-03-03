@@ -1,7 +1,6 @@
-﻿namespace Wordsmith.Enums
+﻿namespace Wordsmith.Enums;
+
+public enum EnterKeyAction
 {
-    public enum EnterKeyAction
-    {
-        None, SpellCheck, CopyNextChunk
-    }
+    None, SpellCheck, CopyNextChunk
 }

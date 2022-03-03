@@ -1,9 +1,8 @@
 ﻿
-namespace Wordsmith.Data
+namespace Wordsmith.Data;
+
+public class WordCorrection
 {
-    public class WordCorrection
-    {
-        public int Index = -1;
-        public string Original = "";
-    }
+    public int Index = -1;
+    public string Original = "";
 }
