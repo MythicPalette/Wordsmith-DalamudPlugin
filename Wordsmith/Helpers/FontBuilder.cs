@@ -2,23 +2,18 @@
 using Dalamud.Interface;
 using ImGuiNET;
 
-/// <summary>
-/// Most of the code in this file is from https://git.annaclemens.io/ascclemens/ChatTwo/src/branch/main
-/// </summary>
-
 namespace Wordsmith.Helpers
 {
     public class FontBuilder : IDisposable
     {
         internal ImFontPtr? RegularFont { get; private set; }
-        internal Vector4 DefaultText { get; private set; }
 
         private ImFontConfigPtr _fontCfg;
         private ImFontConfigPtr _fontCfgMerge;
-        private (GCHandle, int, float) _regularFont;
-        private (GCHandle, int, float) _italicFont;
-        private (GCHandle, int, float) _jpFont;
-        private (GCHandle, int) _gameSymFont;
+        private (GCHandle Handle, int Size) _regularFont;
+        private (GCHandle Handle, int Size) _italicFont;
+        private (GCHandle Handle, int Size) _jpFont;
+        private (GCHandle Handle, int Size) _gameSymFont;
 
         private readonly ImVector _ranges;
         private readonly ImVector _jpRange;
@@ -36,11 +31,14 @@ namespace Wordsmith.Helpers
 
         internal unsafe FontBuilder()
         {
+            // For regular font
             this._fontCfg = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
             {
                 FontDataOwnedByAtlas = false
             };
 
+            // Enable merging for italic, jp, and symbols so they all become part of the same
+            // font object in the atlas.
             this._fontCfgMerge = new ImFontConfigPtr(ImGuiNative.ImFontConfig_ImFontConfig())
             {
                 FontDataOwnedByAtlas = false,
@@ -49,7 +47,7 @@ namespace Wordsmith.Helpers
 
             BuildRange(out this._ranges, null, ImGui.GetIO().Fonts.GetGlyphRangesDefault());
             BuildRange(out this._jpRange, GlyphRangesJapanese.GlyphRanges);
-            this.SetUpUserFonts();
+            this.SetupFont();
 
             byte[] gameSym = File.ReadAllBytes(Path.Combine(Wordsmith.PluginInterface.DalamudAssetDirectory.FullName, "UIRes", "gamesym.ttf"));
             this._gameSymFont = (
@@ -63,65 +61,65 @@ namespace Wordsmith.Helpers
 
         private static unsafe void BuildRange(out ImVector result, IReadOnlyList<ushort>? chars, params IntPtr[] ranges)
         {
-            try
+            ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
+
+            // text
+            foreach (IntPtr range in ranges)
+                builder.AddRanges(range);
+
+            // chars
+            if (chars != null)
             {
-                ImFontGlyphRangesBuilderPtr builder = new ImFontGlyphRangesBuilderPtr(ImGuiNative.ImFontGlyphRangesBuilder_ImFontGlyphRangesBuilder());
-
-                // text
-                foreach (IntPtr range in ranges)
-                    builder.AddRanges(range);
-
-                // chars
-                if (chars != null)
+                for (int i = 0; i < chars.Count; i += 2)
                 {
-                    for (int i = 0; i < chars.Count; i += 2)
-                    {
-                        if (chars[i] == 0)
-                            break;
+                    if (chars[i] == 0)
+                        break;
 
-                        for (uint j = chars[i]; j <= chars[i + 1]; j++)
-                            builder.AddChar((ushort)j);
-                    }
+                    for (uint j = chars[i]; j <= chars[i + 1]; j++)
+                        builder.AddChar((ushort)j);
                 }
+            }
 
-                // various symbols
-                builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
+            // various symbols
+            builder.AddText("←→↑↓《》■※☀★★☆♥♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～");
 
-                // French
-                builder.AddText("Œœ");
+            // French
+            builder.AddText("Œœ");
 
-                // Romanian
-                builder.AddText("ĂăÂâÎîȘșȚț");
+            // Romanian
+            builder.AddText("ĂăÂâÎîȘșȚț");
 
-                // "Enclosed Alphanumerics" (partial) https://www.compart.com/en/unicode/block/U+2460
-                for (var i = 0x2460; i <= 0x24B5; i++)
-                    builder.AddChar((char)i);
+            // Enclosed Alphanumerics
+            for (var i = 0x2460; i <= 0x24B5; i++)
+                builder.AddChar((char)i);
 
-                builder.AddChar('⓪');
+            builder.AddChar('⓪');
 
-                builder.BuildRanges(out result);
+            builder.BuildRanges(out result);
                 builder.Destroy();
-            }
-            catch (Exception e)
-            {
-                PluginLog.LogError($"Error in BuildRange(...): {e}");
-            }
-            result = new();
         }
 
         public void Dispose()
         {
             Wordsmith.PluginInterface.UiBuilder.BuildFonts -= this.BuildFonts;
 
+            // Free regular
             if (this._regularFont.Item1.IsAllocated)
                 this._regularFont.Item1.Free();
 
+            // Free italic
+            if (this._italicFont.Item1.IsAllocated)
+                this._italicFont.Item1.Free();
+
+            // Free JP
             if (this._jpFont.Item1.IsAllocated)
                 this._jpFont.Item1.Free();
 
+            // Free game
             if (this._gameSymFont.Item1.IsAllocated)
                 this._gameSymFont.Item1.Free();
 
+            // Free symbols
             if (this._symRange.IsAllocated)
                 this._symRange.Free();
 
@@ -129,64 +127,49 @@ namespace Wordsmith.Helpers
             this._fontCfgMerge.Destroy();
         }
 
-        private void SetUpUserFonts()
+        private void SetupFont()
         {
-            FontData? fontData = new FontData(
-                new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Regular.ttf"), 1f),
-                new FaceData(this.GetResource("Wordsmith.Resources.NotoSans-Italic.ttf"), 1f)
-                );
-
-            if (fontData == null) return;
-
             if (this._regularFont.Item1.IsAllocated)
                 this._regularFont.Item1.Free();
 
             if (this._italicFont.Item1.IsAllocated)
                 this._italicFont.Item1.Free();
 
-            this._regularFont = (
-                GCHandle.Alloc(fontData.Regular.Data, GCHandleType.Pinned),
-                fontData.Regular.Data.Length,
-                fontData.Regular.Ratio
-            );
-
-            this._italicFont = (
-                GCHandle.Alloc(fontData.Italic!.Data, GCHandleType.Pinned),
-                fontData.Italic.Data.Length,
-                fontData.Italic.Ratio
-                );
-
-            FontData? jpFontData = new FontData(
-                new FaceData(this.GetResource("Wordsmith.Resources.NotoSansJP-Regular.otf"), 1f),
-                null
-                );
-
             if (this._jpFont.Item1.IsAllocated)
                 this._jpFont.Item1.Free();
 
-            this._jpFont = (
-                GCHandle.Alloc(jpFontData.Regular.Data, GCHandleType.Pinned),
-                jpFontData.Regular.Data.Length,
-                jpFontData.Regular.Ratio
+            byte[] regular = this.GetResource("Wordsmith.Resources.NotoSans-Regular.ttf");
+            this._regularFont = (
+                GCHandle.Alloc(regular, GCHandleType.Pinned),
+                regular.Length
+            );
+
+            byte[] italic = this.GetResource("Wordsmith.Resources.NotoSans-Italic.ttf");
+            this._italicFont = (
+                GCHandle.Alloc(italic, GCHandleType.Pinned),
+                italic.Length
                 );
-            
+
+            byte[] jp = this.GetResource("Wordsmith.Resources.NotoSansJP-Regular.otf");
+            this._jpFont = (
+                GCHandle.Alloc(jp, GCHandleType.Pinned),
+                jp.Length
+                );
         }
 
         private byte[] GetResource(string name)
         {
-            Stream stream = this.GetType().Assembly.GetManifestResourceStream(name)!;
-            if (stream == null)
-                return Array.Empty <byte>();
+            using (Stream? stream = this.GetType().Assembly.GetManifestResourceStream(name))
+            {
+                if (stream == null)
+                    return Array.Empty<byte>();
 
-            MemoryStream memStream = new();
-
-            stream.CopyTo(memStream);
-            stream.Dispose();
-
-            byte[] result = memStream.ToArray();
-            memStream.Dispose();
-            
-            return result;
+                using (MemoryStream mem = new())
+                {
+                    stream.CopyTo(mem);
+                    return mem.ToArray();
+                }
+            }
         }
 
         private void BuildFonts()
@@ -217,7 +200,6 @@ namespace Wordsmith.Helpers
                 this._fontCfgMerge,
                 this._symRange.AddrOfPinnedObject()
             );
-            
         }
     }
 }
