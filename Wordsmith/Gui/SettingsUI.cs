@@ -4,9 +4,9 @@ using ImGuiNET;
 
 namespace Wordsmith.Gui;
 
-public class SettingsUI : Window
+public sealed class SettingsUI : Window
 {
-    private const int FOOTER_HEIGHT = 100;
+    private const int FOOTERHEIGHT = 100;
 
     // Thesaurus settings.
     private int _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
@@ -18,6 +18,7 @@ public class SettingsUI : Window
     private bool _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
     private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
     private bool _onSentence = Wordsmith.Configuration.BreakOnSentence;
+    private bool _detectHeader = Wordsmith.Configuration.DetectHeaderInput;
     private string _oocOpening = Wordsmith.Configuration.OocOpeningTag;
     private string _oocClosing = Wordsmith.Configuration.OocClosingTag;
     private string _sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
@@ -27,7 +28,6 @@ public class SettingsUI : Window
     private bool _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
     private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
     private int _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
-    private bool _scratchSingleLineInput = Wordsmith.Configuration.UseOldSingleLineInput;
 
     // Dictionary Settings
     private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
@@ -36,10 +36,6 @@ public class SettingsUI : Window
     // Linkshell Settings
     private string[] _cwlinkshells = Wordsmith.Configuration.CrossWorldLinkshellNames;
     private string[] _linkshells = Wordsmith.Configuration.LinkshellNames;
-
-    // Start with _once at true so the program will load
-    // the configuration values by default.
-    protected bool _once = true;
 
     public SettingsUI() : base($"{Wordsmith.AppName} - Settings")
     {
@@ -50,7 +46,7 @@ public class SettingsUI : Window
         //Size = new(375, 350);
         SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(400, 375),
+            MinimumSize = ImGuiHelpers.ScaledVector2(800, 450),
             MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
         };
 
@@ -85,11 +81,11 @@ public class SettingsUI : Window
         DrawFooter();
     }
 
-    protected void DrawThesaurusTab()
+    private void DrawThesaurusTab()
     {
         if (ImGui.BeginTabItem("Thesaurus##SettingsUITabItem"))
         {
-            if (ImGui.BeginChild("ThesaurusSettingsChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
+            if (ImGui.BeginChild("ThesaurusSettingsChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale)))
             {
                 //Search history count
                 //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
@@ -112,116 +108,126 @@ public class SettingsUI : Window
         }
     }
 
-    protected void DrawScratchPadTab()
+    private void DrawScratchPadTab()
     {
         if (ImGui.BeginTabItem("Scratch Pad##SettingsUITabItem"))
         {
-            if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
+            if (ImGui.BeginChild("SettingsUIScratchPadChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale)))
             {
-                // Add to context menu.
-                ImGui.Checkbox("Add to context menu.", ref _contextMenu);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("If enabled the option \"Tell in Scratch\" will be added to\ncontext menus that have \"Send Tell\".");
-                ImGui.Separator();
+                if (ImGui.BeginTable("SettingsUiScratchPadChildTable", 2, ImGuiTableFlags.BordersH | ImGuiTableFlags.BordersInnerV))
+                {
+                    ImGui.TableSetupColumn("SettingsUiScratchPadChildTableLeftColumn");
+                    ImGui.TableSetupColumn("SettingsUiScratchPadChildTableRightColumn");
 
-                // Auto-Clear Scratch Pad
-                ImGui.Checkbox("Auto-clear Scratch Pad", ref _autoClear);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("Automatically clears text from scratch pad after copying last chunk.");
-                ImGui.Separator();
+                    ImGui.TableNextColumn();
+                    // Add to context menu.
+                    ImGui.Checkbox("Add to context menu.", ref _contextMenu);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("If enabled the option \"Tell in Scratch\" will be added to\ncontext menus that have \"Send Tell\".");
 
-                // Auto Delete Scratch Pads
-                ImGui.Checkbox("Auto-Delete Scratch Pads On Close##SettingsUICheckbox", ref _deleteClosed);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("When enabled it will delete the scratch pad on close.\nWhen disabled you will have a delete button at the bottom.");
-                ImGui.Separator();
+                    ImGui.TableNextColumn();
+                    // Auto-Clear Scratch Pad
+                    ImGui.Checkbox("Auto-clear Scratch Pad", ref _autoClear);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Automatically clears text from scratch pad after copying last chunk.");
 
-                // Show text in chunks.
-                ImGui.Checkbox("Show Text In Chunks##SettingsUICheckbox", ref _showChunks);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("When enabled it will display a large box with text above your entry form.\nThis box will show you how the text will be broken into chunks.\nIn single-line input mode this text will always show but without chunking.");
-                ImGui.Separator();
+                    ImGui.TableNextColumn();
+                    // Auto Delete Scratch Pads
+                    ImGui.Checkbox("Auto-Delete Scratch Pads On Close##SettingsUICheckbox", ref _deleteClosed);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("When enabled it will delete the scratch pad on close.\nWhen disabled you will have a delete button at the bottom.");
 
-                // Split on sentence
-                ImGui.Checkbox("Split Text On Sentence##SettingsUICheckbox", ref _onSentence);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words.");
-                ImGui.Separator();
+                    ImGui.TableNextColumn();
+                    // Show text in chunks.
+                    ImGui.Checkbox("Show Text In Chunks##SettingsUICheckbox", ref _showChunks);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("When enabled it will display a large box with text above your entry form.\nThis box will show you how the text will be broken into chunks.\nIn single-line input mode this text will always show but without chunking.");
 
-                // OOC Tags.
-                ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-                ImGui.InputText("##OocOpeningTagInputText", ref _oocOpening, 5);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("The opening tag for your OOC text.");
+                    ImGui.TableNextColumn();
+                    // Split on sentence
+                    ImGui.Checkbox("Split Text On Sentence##SettingsUICheckbox", ref _onSentence);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words.");
 
-                ImGui.SameLine(0, 2);
-                ImGui.Text("OOC Tags");
+                    // TODO Add user control to disable automatic header parsing.
+                    ImGui.TableNextColumn();
+                    ImGui.Checkbox("Parse Header From Text##SettingsUICheckbox", ref _detectHeader);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("When enabled, typing a header into the input text of a scratch pad will cause\nthe scratchpad to try to parse the desired header automatically.");
 
-                ImGui.SameLine(0, 2);
-                ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-                ImGui.InputText("##OocClosingTagInputText", ref _oocClosing, 5);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("The closing tag for your OOC text.");
+                    ImGui.TableNextColumn();
+                    // OOC Tags.
+                    ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
+                    ImGui.InputText("##OocOpeningTagInputText", ref _oocOpening, 5);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("The opening tag for your OOC text.");
 
-                ImGui.Separator();
+                    ImGui.SameLine(0, 2);
+                    ImGui.Text("OOC Tags");
 
-                // Sentence terminators
-                ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 175 * ImGuiHelpers.GlobalScale);
-                ImGui.InputText("Sentence Terminators##ScratchPadSplitCharsText", ref _sentenceTerminators, 32);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("Each of these characters can mark the end of a sentence when followed by a space of encapsulator.\ni.e. \"A.B\" is not a sentence terminator but \"A. B\" is.");
-                ImGui.Separator();
+                    ImGui.SameLine(0, 2);
+                    ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
+                    ImGui.InputText("##OocClosingTagInputText", ref _oocClosing, 5);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("The closing tag for your OOC text.");
 
-                // Encapsulation terminators
-                ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 175 * ImGuiHelpers.GlobalScale);
-                ImGui.InputText($"Encpasulation Terminators##ScratchPadEncapCharsText", ref _encapTerminators, 32);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip($"Each of these characters ends an encapsulator.\nThis is used with sentence terminators in case of encapsulation for chunk breaks\ni.e. \"A) B\" will not count but \"A.) B\" will.");
-                ImGui.Separator();
+                    ImGui.TableNextColumn();
+                    // Enter Key Behavior
+                    ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
 
-                // Continuation marker
-                ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 175 * ImGuiHelpers.GlobalScale);
-                ImGui.InputText($"Continuation Marker##ScratchPadEncapCharsText", ref _continueMarker, 32);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip($"This is what is appended to the end of your text chunks to notify\nreaders that it isn't finished yet. #c will be replaced with current number and #m will be max number\nSo if you put: (#c/#m) it will say something like.(1/3)");
-                ImGui.Separator();
+                    // Get all of the enum options.
+                    string[] enterKeyActions = Enum.GetNames(typeof(Enums.EnterKeyAction));
 
-                // Mark last chunk
-                ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 175 * ImGuiHelpers.GlobalScale);
-                ImGui.Checkbox($"Continuation Mark On Last Chunk##ScratchPadEncapCharsText", ref _markLastChunk);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip($"This is useful if your continuation marker uses the #c and/or #m\ni.e. (#c/#m) will put (3/3) on last chunk.");
-                ImGui.Separator();
+                    // Add a space in front of all capital letters.
+                    for (int i = 0; i < enterKeyActions.Length; ++i)
+                        enterKeyActions[i] = enterKeyActions[i].SpaceByCaps();
 
+                    ImGui.Combo("Ctrl+Enter Key Behavior##SettingsUI", ref _scratchEnter, enterKeyActions, enterKeyActions.Length);//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Defines what action to take when the user hits enter in the text entry.");
+
+                    float width = ImGui.GetColumnWidth() - (175*ImGuiHelpers.GlobalScale);
+
+                    ImGui.TableNextColumn();
+                    // Sentence terminators
+                    ImGui.SetNextItemWidth(width);
+                    ImGui.InputText("Sentence Terminators##ScratchPadSplitCharsText", ref _sentenceTerminators, 32);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip("Each of these characters can mark the end of a sentence when followed by a space of encapsulator.\ni.e. \"A.B\" is not a sentence terminator but \"A. B\" is.");
+
+
+                    ImGui.TableNextColumn();
+                    // Encapsulation terminators
+                    ImGui.SetNextItemWidth(width);
+                    ImGui.InputText($"Encpasulation Terminators##ScratchPadEncapCharsText", ref _encapTerminators, 32);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip($"Each of these characters ends an encapsulator.\nThis is used with sentence terminators in case of encapsulation for chunk breaks\ni.e. \"A) B\" will not count but \"A.) B\" will.");
+
+
+                    ImGui.TableNextColumn();
+                    // Continuation marker
+                    ImGui.SetNextItemWidth(width);
+                    ImGui.InputText($"Continuation Marker##ScratchPadEncapCharsText", ref _continueMarker, 32);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip($"This is what is appended to the end of your text chunks to notify\nreaders that it isn't finished yet. #c will be replaced with current number and #m will be max number\nSo if you put: (#c/#m) it will say something like.(1/3)");
+
+
+                    ImGui.TableNextColumn();
+                    // Mark last chunk
+                    ImGui.SetNextItemWidth(width);
+                    ImGui.Checkbox($"Continuation Mark On Last Chunk##ScratchPadEncapCharsText", ref _markLastChunk);
+                    if (ImGui.IsItemHovered())
+                        ImGui.SetTooltip($"This is useful if your continuation marker uses the #c and/or #m\ni.e. (#c/#m) will put (3/3) on last chunk.");
+
+
+                    ImGui.EndTable();
+                }
                 // Max Text Length
-                ImGui.DragInt("Max Text Length", ref _scratchMaxTextLen, 128, 512, 8192);
+                float dragWidth = ImGui.GetWindowContentRegionWidth() - (125 * ImGuiHelpers.GlobalScale);
+                ImGui.SetNextItemWidth(dragWidth);
+                ImGui.SliderInt("Max Text Length##CratchPadSettingsSlider", ref _scratchMaxTextLen, 512, 8192);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("This is the buffer size for text input. The higher this value is the more\nmemory consumed up to a maximum of 8MB per Scratch Pad.");
-                ImGui.Separator();
-
-                // Enter Key Behavior
-                ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
-
-                // Get all of the enum options.
-                string[] enterKeyActions = Enum.GetNames(typeof(Enums.EnterKeyAction));
-
-                // Add a space in front of all capital letters.
-                for (int i = 0; i < enterKeyActions.Length; ++i)
-                    enterKeyActions[i] = enterKeyActions[i].SpaceByCaps();
-
-                ImGui.Combo("Ctrl+Enter Key Behavior##SettingsUI", ref _scratchEnter, enterKeyActions, enterKeyActions.Length);//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("Defines what action to take when the user hits enter in the text entry.");
-                ImGui.Separator();
-
-                // Revert Text Entry Mode
-                ImGui.Checkbox($"Revert To Scratch Pad Single Line Text Entry", ref _scratchSingleLineInput);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("Reverts Scratch Pad to using the old, single-line text entry method.");
-                //ImGui.Separator();
-                //ImGui.TextColored(new(255, 0, 0, 255), "WARNING: Experimental.");
-                //ImGui.TextWrapped($"These are experimental features and may have more bugs than usual, including game-crashing bugs. While I have done my best to ensure this doesn't happen, these are still experimental options until proven stable.");
-                //ImGui.Checkbox($"Scratch Pad Multi Line Text Entry", ref _scratchSingleLineInput);
 
                 ImGui.Separator();
                 ImGui.Text("Open Scratch Pads.");
@@ -262,11 +268,11 @@ public class SettingsUI : Window
         }
     }
 
-    protected void DrawSpellCheckTab()
+    private void DrawSpellCheckTab()
     {
         if (ImGui.BeginTabItem("Spell Check##SettingsUITabItem"))
         {
-            if (ImGui.BeginChild("DictionarySettingsChild", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
+            if (ImGui.BeginChild("DictionarySettingsChild", new(-1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale)))
             {
                 // Ignore Hyphen terminated words.
                 ImGui.Checkbox("Ignore Hyphen-Terminated Words##SettingsUICheckbox", ref _ignoreHypen);
@@ -354,11 +360,11 @@ public class SettingsUI : Window
         }
     }
 
-    protected void DrawLinkshellTab()
+    private void DrawLinkshellTab()
     {
         if (ImGui.BeginTabItem("Linkshells##SettingsUITabItem"))
         {
-            if (ImGui.BeginChild("LinkshellsSettingsChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTER_HEIGHT * ImGuiHelpers.GlobalScale)))
+            if (ImGui.BeginChild("LinkshellsSettingsChildFrame", new(-1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale)))
             {
                 ImGui.Text("Linkshell Names");
                 
@@ -402,7 +408,7 @@ public class SettingsUI : Window
         }
     }
 
-    protected void DrawFooter()
+    private void DrawFooter()
     {
         if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 5))
         {
@@ -473,6 +479,7 @@ public class SettingsUI : Window
         _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
         _showChunks = Wordsmith.Configuration.ShowTextInChunks;
         _onSentence = Wordsmith.Configuration.BreakOnSentence;
+        _detectHeader = Wordsmith.Configuration.DetectHeaderInput;
         _oocOpening = Wordsmith.Configuration.OocOpeningTag;
         _oocClosing = Wordsmith.Configuration.OocClosingTag;
         _sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
@@ -480,7 +487,6 @@ public class SettingsUI : Window
         _markLastChunk = Wordsmith.Configuration.MarkLastChunk;
         _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
         _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
-        _scratchSingleLineInput = Wordsmith.Configuration.UseOldSingleLineInput;
 
         // Spell Check Settings
         _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
@@ -519,6 +525,9 @@ public class SettingsUI : Window
         if (_onSentence != Wordsmith.Configuration.BreakOnSentence)
             Wordsmith.Configuration.BreakOnSentence = _onSentence;
 
+        if (_detectHeader != Wordsmith.Configuration.DetectHeaderInput)
+            Wordsmith.Configuration.DetectHeaderInput = _detectHeader;
+
         if (_oocOpening != Wordsmith.Configuration.OocOpeningTag)
             Wordsmith.Configuration.OocOpeningTag = _oocOpening;
 
@@ -542,9 +551,6 @@ public class SettingsUI : Window
 
         if ((Enums.EnterKeyAction)_scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
             Wordsmith.Configuration.ScratchPadTextEnterBehavior = (Enums.EnterKeyAction)_scratchEnter;
-
-        if (_scratchSingleLineInput != Wordsmith.Configuration.UseOldSingleLineInput)
-            Wordsmith.Configuration.UseOldSingleLineInput = _scratchSingleLineInput;
 
         // Spell Check settings.
         if (_fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)

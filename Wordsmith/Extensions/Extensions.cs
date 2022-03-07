@@ -44,7 +44,6 @@ public static class Extensions
             list.Insert(index, obj);
     }
 
-
     /// <summary>
     /// Capitalizes the first letter in a string.
     /// </summary>
@@ -73,15 +72,17 @@ public static class Extensions
 
         string result = s[0].ToString();
 
+        string caps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         // Iterate through each character not in the first index
-        foreach (char c in s[1..^0])
+        for (int i =1; i< s.Length; ++i)// char c in s[1..^0])
         {
-            // If the character is a capital letter, add a space to the result.
-            if ("ABCDEFGHIJKLMNOPQRSTUVWXYZ".Contains(c))
+            // If the character is a capital letter and the letter before
+            // it is not then add a space.
+            if (caps.Contains(s[i]) && !caps.Contains(s[i-1]))
                 result += " ";
 
             // Add the character to the result.
-            result += c;
+            result += s[i];
         }
 
         return result;
@@ -107,6 +108,34 @@ public static class Extensions
         } while (s.Contains("  "));
 
         // Return the correctly spaced string.
+        return s;
+    }
+
+    public static string FixSpacing(this string s, ref int cursorPos)
+    {
+        do
+        {
+            // Get the position of the first double space.
+            int idx = s.IndexOf("  ");
+
+            // If the index is greater than -1;
+            if (idx > -1)
+            {
+                // If the index is 0 just remove the space from the front of the line.
+                if (idx == 0)
+                    s = s[1..^0];
+
+                // Remove the space from inside the string.
+                else
+                    s = s[0..idx] + s[(idx + 1)..^0];
+
+                // If the removed space is at a lower index than the cursor
+                // move the cursor back a space to account for the position change.
+                if (idx <= cursorPos)
+                    cursorPos -= 1;
+            }
+        } while (s.Contains("  "));
+
         return s;
     }
 
