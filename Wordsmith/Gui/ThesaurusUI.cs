@@ -40,56 +40,7 @@ public class ThesaurusUI : Window
     /// </summary>
     public override void Draw()
     {
-        if (!IsOpen) return;
-
-        //DrawMenu();
         DrawWordSearch();
-    }
-
-    /// <summary>
-    /// Draws the menu bar at the top of the screen.
-    /// </summary>
-    protected void DrawMenu()
-    {
-        try
-        {
-            // If we fail to create a menu bar, back out
-            if (ImGui.BeginMenuBar())
-            {
-                if (ImGui.BeginMenu("Scratch Pads##ScratchPadMenu"))
-                {
-                    // New scratchpad button.
-                    if (ImGui.MenuItem($"New Scratch Pad##NewScratchPadMenuItem"))
-                        WordsmithUI.ShowScratchPad(-1); // -1 id always creates a new scratch pad.
-
-                    foreach (ScratchPadUI w in WordsmithUI.Windows.Where(x => x.GetType() == typeof(ScratchPadUI)).ToArray())
-                    {
-                        if (w.GetType() != typeof(ScratchPadUI))
-                        {
-                            Dalamud.Logging.PluginLog.Log("Wrong window type");
-                            continue;
-                        }
-
-                        if (ImGui.MenuItem($"{w.WindowName}"))
-                            WordsmithUI.ShowScratchPad(w.ID);
-                    }
-
-                    ImGui.EndMenu();
-                }
-                if (ImGui.MenuItem($"Settings##{Wordsmith.AppName}SettingsMenuItem"))
-                {
-                    //Plugin.PluginUi.SettingsUI.IsOpen = !Plugin.PluginUi.SettingsUI.IsOpen;
-                    WordsmithUI.ShowSettings();
-                }
-
-                // Close the menu bar.
-                ImGui.EndMenuBar();
-            }
-        }
-        catch(Exception ex)
-        {
-            Dalamud.Logging.PluginLog.Log(ex.Message);
-        }
     }
 
     /// <summary>

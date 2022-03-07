@@ -9,7 +9,7 @@ namespace Wordsmith;
 internal static class WordsmithUI
 {
     private static List<Window> _windows { get; set; } = new();
-    internal static Window[] Windows { get => _windows.ToArray(); }
+    internal static IReadOnlyList<Window> Windows => _windows;
     internal static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
 
     // passing in the image here just for simplicity
@@ -28,7 +28,7 @@ internal static class WordsmithUI
             return;
         
         // Attempt to get the window by name.
-        Window? w = _windows.FirstOrDefault(w => w.WindowName == name);
+        Window? w = WindowSystem.GetWindow(name);
 
         // If the result is null, create a new window
         if (w == null)
