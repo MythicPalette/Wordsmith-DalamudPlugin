@@ -404,16 +404,34 @@ public class SettingsUI : Window
 
     protected void DrawFooter()
     {
-        if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 4))
+        if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 5))
         {
+            ImGui.TableSetupColumn("SettingsUIKoFiButtonColumn", ImGuiTableColumnFlags.WidthFixed, 105 * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("SettingsUITableSpacerColumn", ImGuiTableColumnFlags.WidthStretch, 1);
             ImGui.TableSetupColumn("SettingsUISaveAndCloseButtonColumn", ImGuiTableColumnFlags.WidthFixed, 70 * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("SettingsUIDefaultsButtonColumn", ImGuiTableColumnFlags.WidthFixed, 70 * ImGuiHelpers.GlobalScale);
             ImGui.TableSetupColumn("SettingsUICancelButtonColumn", ImGuiTableColumnFlags.WidthFixed, 70 * ImGuiHelpers.GlobalScale);
 
+
+
             // Leave the first column blank for spacing.
             ImGui.TableNextColumn();
+            try
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.5f, 0, 0, 1f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.5f, 0.3f, 0.3f, 1f));
+                ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.3f, 0.1f, 0.1f, 1f));
+                // TODO Ko-Fi button.
+                if (ImGui.Button("Buy Me A Ko-Fi##SettingsUIBuyAKoFiButton", ImGuiHelpers.ScaledVector2(-1, 25)))
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://ko-fi.com/ladydefile") { UseShellExecute = true });
+            }
+            finally
+            {
+                ImGui.PopStyleColor(3);
+            }
 
+            //Skip the next column.
+            ImGui.TableNextColumn();
             ImGui.TableNextColumn();
             // Save and close buttons
             if (ImGui.Button("Apply", ImGuiHelpers.ScaledVector2(-1, 25)))
