@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using ImGuiNET;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Wordsmith.Enums;
 
 namespace Wordsmith.Gui;
 
@@ -13,11 +14,11 @@ public class ScratchPadUI : Window
     /// </summary>
     protected class PadState
     {
-        public int ChatType;
-        public string ScratchText;
-        public bool UseOOC;
-        public string TellTarget;
-        public bool CrossWorld;
+        internal ChatType ChatType;
+        internal string ScratchText;
+        internal bool UseOOC;
+        internal string TellTarget;
+        internal bool CrossWorld;
         public PadState()
         {
             ChatType = 0;
@@ -55,20 +56,6 @@ public class ScratchPadUI : Window
     /// Contains all of the constants used in this file.
     /// </summary>
     #region Constants
-    protected static readonly string[] _chatOptions = new string[] { "None", "Emote (/em)", "Reply (/r)", "Say (/s)", "Party (/p)", "FC (/fc)", "Shout (/sh)", "Yell (/y)", "Tell (/t)", "Linkshells", "Echo" };
-    protected static readonly string[] _chatHeaders = new string[] { "", "/em", "/r", "/s", "/p", "/fc", "/sh", "/y", "/t", "", "/e" };
-    public const int CHAT_NONE = 0;
-    public const int CHAT_EMOTE = 1;
-    public const int CHAT_REPLY = 2;
-    public const int CHAT_SAY = 3;
-    public const int CHAT_PARTY = 4;
-    public const int CHAT_FC = 5;
-    public const int CHAT_SHOUT = 6;
-    public const int CHAT_YELL = 7;
-    public const int CHAT_TELL = 8;
-    public const int CHAT_LS = 9;
-    public const int CHAT_ECHO = 10;
-
     protected const string SPACED_WRAP_MARKER = "\r\r";
     protected const string NOSPACE_WRAP_MARKER = "\r";
 
@@ -105,7 +92,7 @@ public class ScratchPadUI : Window
     /// Contains all of the variables related to the chat header
     /// </summary>
     #region Chat Header
-    protected int _chatType = 0;
+    internal ChatType _chatType = 0;
     protected string _telltarget = "";
     protected int _linkshell = 0;
     protected bool _crossWorld = false;
@@ -142,25 +129,31 @@ public class ScratchPadUI : Window
     /// </summary>
     protected CancellationTokenSource? _cancellationTokenSource;
 
+    internal string GetDebugString()
+    {
+        string result = $"Pad ID: {this.ID}\nScratchString: {this.ScratchString}\nOOC {_useOOC}\nChunks[{_chunks?.Length ?? 0}]:";
+        foreach ( string s in _chunks ?? Array.Empty<string>() )
+            result += $"\n\t - {s.Replace( "\r", "\\r" ).Replace( "\n", "\\n" )}";
+        return result;
+    }
+
     /// <summary>
     /// Gets the slash command (if one exists) and the tell target if one is needed.
     /// </summary>
     internal string GetFullChatHeader()
     {
-        if (_chatType == CHAT_NONE)
-            return "";
+        if (_chatType == ChatType.None)
+            return _chatType.GetShortHeader();
 
         // Get the slash command.
-        string result = _chatHeaders[_chatType];
+        string result = _chatType.GetShortHeader();
 
         // If /tell get the target or placeholder.
-        if (_chatType == CHAT_TELL)
+        if (_chatType == ChatType.Tell)
             result += $" {_telltarget} ";
 
-        // Generate the linkshell options
-
         // Grab the linkshell command.
-        if (_chatType == CHAT_LS)
+        if (_chatType == ChatType.Linkshell)
             result = $"/{(_crossWorld ? "cw" : "")}linkshell{_linkshell+1}";
 
         return result;
@@ -172,8 +165,6 @@ public class ScratchPadUI : Window
     public ScratchPadUI() : base($"{Wordsmith.AppName} - Scratch Pad #{_nextID}")
     {
         ID = NextID;
-        IsOpen = true;
-        WordsmithUI.WindowSystem.AddWindow(this);
         SizeConstraints = new()
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(400, 300),
@@ -192,7 +183,7 @@ public class ScratchPadUI : Window
     /// <param name="tellTarget">The target to append to the header.</param>
     public ScratchPadUI(string tellTarget) : this()
     {
-        _chatType = CHAT_TELL;
+        _chatType = ChatType.Tell;
         _telltarget = tellTarget;
     }
 
@@ -200,7 +191,7 @@ public class ScratchPadUI : Window
     /// Initializes a new <see cref="ScratchPadUI"/> object with chat header as the given type.
     /// </summary>
     /// <param name="chatType"><see cref="int"/> chat type.</param>
-    public ScratchPadUI(int chatType) : this() => _chatType = chatType;
+    public ScratchPadUI(int chatType) : this() => _chatType = (ChatType)chatType;
 
     /// <summary>
     /// Gets the height of the footer.
@@ -214,13 +205,7 @@ public class ScratchPadUI : Window
             result += 28;
 
         if (IncludeTextbox)
-        {
-            // If using the old, single-line input
-            if (Wordsmith.Configuration.UseOldSingleLineInput)
-                result += 35;
-            else
-                result += 90;
-        }
+            result += 90;
 
         if (_corrections.Count > 0)
             result += 32;
@@ -244,13 +229,8 @@ public class ScratchPadUI : Window
         {
             DrawChunkDisplay();
 
-            // Draw the old, single line input
-            if (Wordsmith.Configuration.UseOldSingleLineInput)
-                DrawSingleLineTextInput();
-
             // Draw multi-line input.
-            else
-                DrawMultilineTextInput();
+            DrawMultilineTextInput();
 
             // We do this here in case the window is being resized and we want
             // to rewrap the text in the textbox.
@@ -357,6 +337,11 @@ public class ScratchPadUI : Window
             if (ImGui.MenuItem($"Help##ScratchPad{ID}HelpMenu"))
                 WordsmithUI.ShowScratchPadHelp();
 
+#if DEBUG
+            if ( ImGui.MenuItem( $"Debug UI##ScratchPad{ID}DebugMenu" ) )
+                WordsmithUI.ShowDebugUI();
+#endif
+
             //end Menu Bar
             ImGui.EndMenuBar();
         }
@@ -367,29 +352,47 @@ public class ScratchPadUI : Window
     /// </summary>
     protected void DrawHeader()
     {
-        // If we're in Tell or Linkshell mode we need an extra column.
-        int columns = 2 + (_chatType >= CHAT_TELL && _chatType != CHAT_ECHO ? 1 : 0);
+        // Set the column count.
+        int columns = 2;
+
+        // If using Tell or Linkshells, we need 3 columns
+        if (_chatType == ChatType.Tell || _chatType == ChatType.Linkshell)
+            ++columns;
+
         if (ImGui.BeginTable($"##ScratchPad{ID}HeaderTable", columns))
         {
             // Setup 2-3 columns depending on the selected chat header.
-            if (_chatType >= CHAT_TELL && _chatType != CHAT_ECHO)
+            if (columns == 3)
             {
                 ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 90 * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn($"ScratchPad{ID}CustomTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2);
             }
             else
                 ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+
             ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale);
 
             // Header selection
             ImGui.TableNextColumn();
             ImGui.SetNextItemWidth(-1);
-            ImGui.Combo($"##ScratchPad{ID}ChatTypeCombo", ref _chatType, _chatOptions, _chatOptions.Length);
+
+            // Get the header options.
+            string[] options = Enum.GetNames(typeof(ChatType));
+
+            // Convert the chat type into a usable int.
+            int ctype = (int)_chatType;
+
+            // Display a combo box and reference ctype. Do not show the last option because it is handled
+            // in a different way.
+            ImGui.Combo($"##ScratchPad{ID}ChatTypeCombo", ref ctype, options, options.Length-1);
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip("Select the chat header.");
 
-            // Chat target bar
-            if (_chatType == CHAT_TELL)
+            // Convert ctype back to ChatType and set _chatType
+            _chatType = (ChatType)ctype;
+
+            // Chat target bar is only shown if the mode is tell
+            if (_chatType == ChatType.Tell)
             {
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
@@ -399,7 +402,7 @@ public class ScratchPadUI : Window
             }
 
             // Linkshell selection
-            else if (_chatType == CHAT_LS)
+            else if (_chatType == ChatType.Linkshell)
             {
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
@@ -467,11 +470,6 @@ public class ScratchPadUI : Window
     /// <param name="FooterHeight">The size of the footer elements.</param>
     protected void DrawChunkDisplay()
     {
-        // If we're not showing text chunks and we're not using single-line input, just don't
-        // show the TextWrapped at all.
-        if (!Wordsmith.Configuration.ShowTextInChunks && !Wordsmith.Configuration.UseOldSingleLineInput)
-            return;
-
         // Draw the chunk display
         if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{ID}ChildFrame", new(-1, (Size?.X ?? 25) - GetFooterHeight())))
         {
@@ -504,25 +502,6 @@ public class ScratchPadUI : Window
         }
         ImGui.Separator();
         ImGui.Spacing();
-    }
-
-    /// <summary>
-    /// Draws a single line entry.
-    /// </summary>
-    protected void DrawSingleLineTextInput()
-    {
-        ImGui.SetNextItemWidth(-1);
-
-        // Draw the single line input
-        if (ImGui.InputTextWithHint($"##TextEntryBox{ID}", "Type Here...", ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength, ImGuiInputTextFlags.EnterReturnsTrue))
-        {
-            // Respond according to user-defined action in settings.
-            if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.SpellCheck)
-                DoSpellCheck();
-
-            else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.CopyNextChunk)
-                DoCopyToClipboard();
-        }
     }
 
     /// <summary>
@@ -728,7 +707,7 @@ public class ScratchPadUI : Window
             return;
 
         // Copy the next chunk over.
-        ImGui.SetClipboardText(_chunks?[_nextChunk++]);
+        ImGui.SetClipboardText(_chunks?[_nextChunk++].Trim());
 
         // If we're not at the last chunk, return.
         if (_nextChunk < _chunks?.Length)
@@ -885,9 +864,13 @@ public class ScratchPadUI : Window
         // a negative number, return a blank string so the rest of the code can continue as normal
         // at which point the buffer will be cleared and BufTextLen will be set to 0, preventing any
         // memory damage or crashes.
-        string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen).TrimStart() : "";
+        string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen) : "";
 
         int pos = data->CursorPos;
+
+        // Check for header input.
+        if (Wordsmith.Configuration.DetectHeaderInput)
+            txt = CheckForHeader(txt, ref pos);
 
         // Wrap the string if there is enough there.
         if (txt.Length > 0)
@@ -920,6 +903,154 @@ public class ScratchPadUI : Window
     }
 
     /// <summary>
+    /// Check for a chat header at the start of a string.
+    /// </summary>
+    /// <param name="text">Text to parse from</param>
+    /// <param name="cursorPos">Cursor position</param>
+    /// <returns></returns>
+    protected string CheckForHeader(string text, ref int cursorPos)
+    {
+        // The text must have a length.
+        if (text.Length > 1)
+        {
+            // Default to ChatType None
+            ChatType head = ChatType.None;
+            int shellNumber = 0;
+
+            // Find a matching header.
+            for (int i = 0; i < Enum.GetValues(typeof(ChatType)).Length; ++i)
+            {
+                // If the string starts with the header for the chat type then mark it
+                if (
+                    (text.StartsWith($"{((ChatType)i).GetShortHeader()} ") || text.StartsWith($"{((ChatType)i).GetLongHeader()} ")) &&
+                    ((ChatType)i).GetShortHeader().Length > 0)
+                {
+                    head = (ChatType)i;
+                }
+
+                // Check if the header type is linkshell or CrossWorldLinkshell
+                else if ((ChatType)i == ChatType.Linkshell || (ChatType)i == ChatType.CrossWorldLinkshell)
+                {
+                    // Linkshells must be checked with numbers appended to them.
+                    for (int x = 1; x <= 8; ++x)
+                    {
+                        // If the number was found, mark the header type and the number.
+                        if (text.StartsWith($"{((ChatType)i).GetShortHeader()}{x} "))
+                        {
+                            head = (ChatType)i;
+                            shellNumber = x;
+                        }
+                    }
+                }
+            }
+
+            PluginLog.LogDebug($"txt :: {text} | head :: {head}");
+
+            //If a chat header was found
+            if (head != ChatType.None)
+            {
+                string headstring = "";
+                // Handle tell
+                if (head == ChatType.Tell)
+                {
+                    // Split the string up.
+                    string[] splits = text.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                    string target = "";
+
+                    if (splits.Length >= 2)
+                    {
+                        // Check for a placeholder
+                        if (splits[1].StartsWith("<") && splits[1].EndsWith(">") && cursorPos >= $"{splits[0]} {splits[1]} ".Length)
+                            target = splits[1];
+
+                        // Check for user name@world
+                        else if (splits.Length >= 3)
+                        {
+
+                            // If the third element contains a @ and it has a space after the world name
+                            if (splits[2].Contains("@") && text.StartsWith($"{splits[0]} {splits[1]} {splits[2]} ") && cursorPos >= $"{splits[0]} {splits[1]} {splits[2]} ".Length)
+                                target = $"{splits[1]} {splits[2]}";
+                        }
+                    }
+
+                    // If a target was found
+                    if (target != "")
+                    {
+                        headstring = $"{splits[0]} {target} ";
+                        _chatType = ChatType.Tell;
+                        _telltarget = target;
+                    }
+                }
+
+                // Handle linkshells
+                else if ((head == ChatType.Linkshell || head == ChatType.CrossWorldLinkshell) && shellNumber > 0)
+                {
+                    // Mark the header string
+                    headstring = $"{head.GetShortHeader()}{shellNumber} ";
+                    
+                    // Mark the shell number and subtract 1 to conver to 0-based index.
+                    _linkshell = shellNumber-1;
+
+                    // Mark crossworld
+                    _crossWorld = head == ChatType.CrossWorldLinkshell;
+
+                    // Currently only using the ChatType.Linkshell
+                    head = ChatType.Linkshell;
+                }
+
+                // If the text starts with a header.
+                else
+                {
+                    // If the text only contains the header then mark the as the headstring
+                    if (
+                        // If the text starts with short header and the cursor is passed the space
+                        (text == $"{head.GetShortHeader()} " && cursorPos >= $"{head.GetShortHeader()} ".Length) ||
+
+                        // If the text starts with the long header and the cursor is passed the space
+                        (text == $"{head.GetLongHeader()} " && cursorPos >= $"{head.GetLongHeader()} ".Length)
+                        )
+                    {
+                        headstring = text;
+                    }
+
+                    // If the text contains more than the header then just remove the header.
+                    else
+                    {
+                        // If the text starts with the short header
+                        if (text.StartsWith($"{head.GetShortHeader()} ") && cursorPos >= $"{head.GetShortHeader()} ".Length)
+                            headstring = $"{head.GetShortHeader()} ";
+
+                        // If the text starts with the long header
+                        else if (text.StartsWith($"{head.GetLongHeader()} ") && cursorPos >= $"{head.GetLongHeader()} ".Length)
+                            headstring = $"{head.GetLongHeader()} ";
+                    }
+                }
+
+                // If a header has been fully identified
+                if (headstring.Length > 0)
+                {
+                    _chatType = head;
+
+                    if (text == headstring)
+                        text = "";
+
+                    // Remove the header from the text.
+                    else
+                        text = text.Substring(headstring.Length);
+
+                    // Reposition the cursor.
+                    cursorPos -= headstring.Length;
+
+                    // Ensure the cursor never has a negative position.
+                    if (cursorPos < 0)
+                        cursorPos = 0;
+                }
+            }
+        }
+        return text;
+    }
+
+    /// <summary>
     /// Takes a string and wraps it based on the current width of the window.
     /// </summary>
     /// <param name="text">The string to be wrapped.</param>
@@ -945,17 +1076,17 @@ public class ScratchPadUI : Window
                 text[i + SPACED_WRAP_MARKER.Length] != '\n' &&
                 text[i + SPACED_WRAP_MARKER.Length + 1] == '\n')
             {
-                // if the fourth character IS new line
-                if (text[i + 3] == '\n')
+                // if the character before the cursor position is a new line
+                if (text[i+ SPACED_WRAP_MARKER.Length + 1] == '\n')
                 {
                     // A character has been wedged between the return
                     // carriage characters and the new line character.
 
                     // First, remove the new line characters.
-                    text = text[0..i] + text[(i + 2)..^0];
+                    text = text[0..i] + text[(i + SPACED_WRAP_MARKER.Length)..^0];
 
                     // Now replace the new line with a space.
-                    text = text[0..(i + 1)] + " " + text[(i + 2)..^0];
+                    text = text[0..(i+1)] + " " + text[(i+SPACED_WRAP_MARKER.Length)..^0];
 
                     // Subtract the length of the spaced marker from the cursor position
                     if (cursorPos > i)
@@ -1014,7 +1145,7 @@ public class ScratchPadUI : Window
         
         // Replace double spaces if configured to do so.
         if (Wordsmith.Configuration.ReplaceDoubleSpaces)
-            text = text.FixSpacing();
+            text = text.FixSpacing(ref cursorPos);
 
         // Get the maximum allowed character width.
         float width = _lastWidth - (35 * ImGuiHelpers.GlobalScale);

@@ -100,10 +100,7 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public bool ReplaceDoubleSpaces { get; set; } = true;
 
-    /// <summary>
-    /// Enables the experimental multiline text input.
-    /// </summary>
-    public bool UseOldSingleLineInput { get; set; } = false;
+    public bool DetectHeaderInput { get; set; } = true;
 
     #region Spell Checker Settings
     /// <summary>
@@ -149,7 +146,7 @@ public class Configuration : IPluginConfiguration
         ScratchPadTextEnterBehavior = 0;
         ScratchPadMaximumTextLength = 4096;
         ReplaceDoubleSpaces = true;
-        UseOldSingleLineInput = false;
+        DetectHeaderInput = true;
 
         // Spell Check settings
         DictionaryFile = "lang_en";

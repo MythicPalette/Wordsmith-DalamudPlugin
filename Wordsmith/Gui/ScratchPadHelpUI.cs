@@ -8,8 +8,6 @@ public class ScratchPadHelpUI : Window
 {
     public ScratchPadHelpUI() : base($"{Wordsmith.AppName} - Help")
     {
-        IsOpen = true;
-        WordsmithUI.WindowSystem.AddWindow(this);
         SizeConstraints = new()
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(300, 450),

@@ -8,8 +8,6 @@ public class RestoreDefaultsUI : Window
 {
     public RestoreDefaultsUI() : base($"{Wordsmith.AppName} - Restore Default Settings")
     {
-        WordsmithUI.WindowSystem.AddWindow(this);
-        IsOpen = true;
         Size = ImGuiHelpers.ScaledVector2(300, 180);
         Flags |= ImGuiWindowFlags.NoScrollbar;
         Flags |= ImGuiWindowFlags.NoScrollWithMouse;

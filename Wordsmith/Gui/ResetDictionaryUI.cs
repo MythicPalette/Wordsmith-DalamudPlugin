@@ -8,8 +8,6 @@ public class ResetDictionaryUI : Window
 {
     public ResetDictionaryUI() : base($"{Wordsmith.AppName} - Reset Dictionary")
     {
-        WordsmithUI.WindowSystem.AddWindow(this);
-        IsOpen = true;
         Size = ImGuiHelpers.ScaledVector2(300, 160);
         Flags |= ImGuiWindowFlags.NoScrollbar;
         Flags |= ImGuiWindowFlags.NoScrollWithMouse;
