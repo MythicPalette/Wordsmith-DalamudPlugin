@@ -5,7 +5,9 @@ using ImGuiNET;
 namespace Wordsmith.Gui;
 
 internal sealed class DebugUI : Window
-{ 
+{
+    internal static bool ShowWordIndex = false;
+
     public DebugUI() : base( $"{Wordsmith.AppName} - Debug" )
     {
         this.SizeConstraints = new()
@@ -22,6 +24,7 @@ internal sealed class DebugUI : Window
     }
     public override void Draw()
     {
+        ImGui.Checkbox( "Show Word Index", ref ShowWordIndex );
         foreach (Window w in WordsmithUI.Windows)
         {
             if (w != null && w is ScratchPadUI pad)

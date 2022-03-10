@@ -520,19 +520,26 @@ public class ScratchPadUI : Window
     protected void DrawChunkItem(string text)
     {
         // Split it into words.
-        string[] words = text.Split(" ");
-
+        string[] words = text.Replace(GetFullChatHeader(), "").Split(" ", StringSplitOptions.RemoveEmptyEntries);
         float width = 0f;
+
+        bool sameLine = false;
+        if ( GetFullChatHeader().Length > 0 )
+        {
+            ImGui.Text( GetFullChatHeader() );
+            width += ImGui.CalcTextSize( GetFullChatHeader() ).X;
+            sameLine = true;
+        }
         for (int i = 0; i < words.Length; ++i)
         {
             string word = words[i];
-#if DEBUG
-            word = $"[{i}]{word}";
-#endif
+
+            if (DebugUI.ShowWordIndex)
+                word = $"[{i}]{word}";
 
             float objWidth = ImGui.CalcTextSize(word).X;
             width += objWidth+(5*ImGuiHelpers.GlobalScale);
-            if ( i > 0 && width < ImGui.GetWindowContentRegionMax().X )
+            if ( (i > 0 || sameLine) && width < ImGui.GetWindowContentRegionMax().X )
                 ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
             else
                 width = objWidth;
