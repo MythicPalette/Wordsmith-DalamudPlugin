@@ -39,35 +39,30 @@ public sealed class SettingsUI : Window
 
     public SettingsUI() : base($"{Wordsmith.AppName} - Settings")
     {
-        IsOpen = true;
-        _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
-        _researchToTopChange = Wordsmith.Configuration.ResearchToTop;
-        WordsmithUI.WindowSystem.AddWindow(this);
+        this._searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
+        this._researchToTopChange = Wordsmith.Configuration.ResearchToTop;
         //Size = new(375, 350);
-        SizeConstraints = new WindowSizeConstraints()
+        this.SizeConstraints = new WindowSizeConstraints()
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(800, 450),
             MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
         };
 
-        Flags |= ImGuiWindowFlags.NoScrollbar;
-        Flags |= ImGuiWindowFlags.NoScrollWithMouse;
+        this.Flags |= ImGuiWindowFlags.NoScrollbar;
+        this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
     }
 
     public override void Update()
     {
         base.Update();
 
-        if (!IsOpen)
+        if (!this.IsOpen)
             WordsmithUI.WindowSystem.RemoveWindow(this);
     }
 
 
     public override void Draw()
     {
-        // If not open, exit.
-        if (!IsOpen) return;
-
         if (ImGui.BeginTabBar("SettingsUITabBar"))
         {
             DrawThesaurusTab();
@@ -89,16 +84,16 @@ public sealed class SettingsUI : Window
             {
                 //Search history count
                 //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
-                ImGui.InputInt("History Size", ref _searchHistoryCountChange, 1, 5);
+                ImGui.InputInt("History Size", ref this._searchHistoryCountChange, 1, 5);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("This is the number of searches to keep in memory at one time.\nNote: The more you keep, them more memory used.");
-                if (_searchHistoryCountChange < 1)
-                    _searchHistoryCountChange = 1;
-                if (_searchHistoryCountChange > 50)
-                    _searchHistoryCountChange = 50;
+                if (this._searchHistoryCountChange < 1)
+                    this._searchHistoryCountChange = 1;
+                if (this._searchHistoryCountChange > 50)
+                    this._searchHistoryCountChange = 50;
 
                 //Re-search to top
-                ImGui.Checkbox("Move repeated search to top of history.", ref _researchToTopChange);
+                ImGui.Checkbox("Move repeated search to top of history.", ref this._researchToTopChange);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("If enabled, when searching for a word you've searched\nalready, it will move it to the top of the list.");
 
@@ -121,44 +116,44 @@ public sealed class SettingsUI : Window
 
                     ImGui.TableNextColumn();
                     // Add to context menu.
-                    ImGui.Checkbox("Add to context menu.", ref _contextMenu);
+                    ImGui.Checkbox("Add to context menu.", ref this._contextMenu);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("If enabled the option \"Tell in Scratch\" will be added to\ncontext menus that have \"Send Tell\".");
 
                     ImGui.TableNextColumn();
                     // Auto-Clear Scratch Pad
-                    ImGui.Checkbox("Auto-clear Scratch Pad", ref _autoClear);
+                    ImGui.Checkbox("Auto-clear Scratch Pad", ref this._autoClear);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Automatically clears text from scratch pad after copying last chunk.");
 
                     ImGui.TableNextColumn();
                     // Auto Delete Scratch Pads
-                    ImGui.Checkbox("Auto-Delete Scratch Pads On Close##SettingsUICheckbox", ref _deleteClosed);
+                    ImGui.Checkbox("Auto-Delete Scratch Pads On Close##SettingsUICheckbox", ref this._deleteClosed);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("When enabled it will delete the scratch pad on close.\nWhen disabled you will have a delete button at the bottom.");
 
                     ImGui.TableNextColumn();
                     // Show text in chunks.
-                    ImGui.Checkbox("Show Text In Chunks##SettingsUICheckbox", ref _showChunks);
+                    ImGui.Checkbox("Show Text In Chunks##SettingsUICheckbox", ref this._showChunks);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("When enabled it will display a large box with text above your entry form.\nThis box will show you how the text will be broken into chunks.\nIn single-line input mode this text will always show but without chunking.");
 
                     ImGui.TableNextColumn();
                     // Split on sentence
-                    ImGui.Checkbox("Split Text On Sentence##SettingsUICheckbox", ref _onSentence);
+                    ImGui.Checkbox("Split Text On Sentence##SettingsUICheckbox", ref this._onSentence);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words.");
 
                     // TODO Add user control to disable automatic header parsing.
                     ImGui.TableNextColumn();
-                    ImGui.Checkbox("Parse Header From Text##SettingsUICheckbox", ref _detectHeader);
+                    ImGui.Checkbox("Parse Header From Text##SettingsUICheckbox", ref this._detectHeader);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("When enabled, typing a header into the input text of a scratch pad will cause\nthe scratchpad to try to parse the desired header automatically.");
 
                     ImGui.TableNextColumn();
                     // OOC Tags.
                     ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-                    ImGui.InputText("##OocOpeningTagInputText", ref _oocOpening, 5);
+                    ImGui.InputText("##OocOpeningTagInputText", ref this._oocOpening, 5);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("The opening tag for your OOC text.");
 
@@ -167,7 +162,7 @@ public sealed class SettingsUI : Window
 
                     ImGui.SameLine(0, 2);
                     ImGui.SetNextItemWidth(50 * ImGuiHelpers.GlobalScale);
-                    ImGui.InputText("##OocClosingTagInputText", ref _oocClosing, 5);
+                    ImGui.InputText("##OocClosingTagInputText", ref this._oocClosing, 5);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("The closing tag for your OOC text.");
 
@@ -182,7 +177,7 @@ public sealed class SettingsUI : Window
                     for (int i = 0; i < enterKeyActions.Length; ++i)
                         enterKeyActions[i] = enterKeyActions[i].SpaceByCaps();
 
-                    ImGui.Combo("Ctrl+Enter Key Behavior##SettingsUI", ref _scratchEnter, enterKeyActions, enterKeyActions.Length);//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
+                    ImGui.Combo("Ctrl+Enter Key Behavior##SettingsUI", ref this._scratchEnter, enterKeyActions, enterKeyActions.Length);//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Defines what action to take when the user hits enter in the text entry.");
 
@@ -191,7 +186,7 @@ public sealed class SettingsUI : Window
                     ImGui.TableNextColumn();
                     // Sentence terminators
                     ImGui.SetNextItemWidth(width);
-                    ImGui.InputText("Sentence Terminators##ScratchPadSplitCharsText", ref _sentenceTerminators, 32);
+                    ImGui.InputText("Sentence Terminators##ScratchPadSplitCharsText", ref this._sentenceTerminators, 32);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip("Each of these characters can mark the end of a sentence when followed by a space of encapsulator.\ni.e. \"A.B\" is not a sentence terminator but \"A. B\" is.");
 
@@ -199,7 +194,7 @@ public sealed class SettingsUI : Window
                     ImGui.TableNextColumn();
                     // Encapsulation terminators
                     ImGui.SetNextItemWidth(width);
-                    ImGui.InputText($"Encpasulation Terminators##ScratchPadEncapCharsText", ref _encapTerminators, 32);
+                    ImGui.InputText($"Encpasulation Terminators##ScratchPadEncapCharsText", ref this._encapTerminators, 32);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip($"Each of these characters ends an encapsulator.\nThis is used with sentence terminators in case of encapsulation for chunk breaks\ni.e. \"A) B\" will not count but \"A.) B\" will.");
 
@@ -207,7 +202,7 @@ public sealed class SettingsUI : Window
                     ImGui.TableNextColumn();
                     // Continuation marker
                     ImGui.SetNextItemWidth(width);
-                    ImGui.InputText($"Continuation Marker##ScratchPadEncapCharsText", ref _continueMarker, 32);
+                    ImGui.InputText($"Continuation Marker##ScratchPadEncapCharsText", ref this._continueMarker, 32);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip($"This is what is appended to the end of your text chunks to notify\nreaders that it isn't finished yet. #c will be replaced with current number and #m will be max number\nSo if you put: (#c/#m) it will say something like.(1/3)");
 
@@ -215,7 +210,7 @@ public sealed class SettingsUI : Window
                     ImGui.TableNextColumn();
                     // Mark last chunk
                     ImGui.SetNextItemWidth(width);
-                    ImGui.Checkbox($"Continuation Mark On Last Chunk##ScratchPadEncapCharsText", ref _markLastChunk);
+                    ImGui.Checkbox($"Continuation Mark On Last Chunk##ScratchPadEncapCharsText", ref this._markLastChunk);
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip($"This is useful if your continuation marker uses the #c and/or #m\ni.e. (#c/#m) will put (3/3) on last chunk.");
 
@@ -225,7 +220,7 @@ public sealed class SettingsUI : Window
                 // Max Text Length
                 float dragWidth = ImGui.GetWindowContentRegionWidth() - (125 * ImGuiHelpers.GlobalScale);
                 ImGui.SetNextItemWidth(dragWidth);
-                ImGui.SliderInt("Max Text Length##CratchPadSettingsSlider", ref _scratchMaxTextLen, 512, 8192);
+                ImGui.SliderInt("Max Text Length##CratchPadSettingsSlider", ref this._scratchMaxTextLen, 512, 8192);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("This is the buffer size for text input. The higher this value is the more\nmemory consumed up to a maximum of 8MB per Scratch Pad.");
 
@@ -275,13 +270,13 @@ public sealed class SettingsUI : Window
             if (ImGui.BeginChild("DictionarySettingsChild", new(-1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale)))
             {
                 // Ignore Hyphen terminated words.
-                ImGui.Checkbox("Ignore Hyphen-Terminated Words##SettingsUICheckbox", ref _ignoreHypen);
+                ImGui.Checkbox("Ignore Hyphen-Terminated Words##SettingsUICheckbox", ref this._ignoreHypen);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("This is useful in roleplay for emulating cut speech.\ni.e. \"How dare yo-,\" she was cut off but the rude man.");
                 ImGui.Separator();
 
                 // Auto-Fix Spaces
-                ImGui.Checkbox("Autmatically Fix Multiple Spaces In Text.", ref _fixDoubleSpace);
+                ImGui.Checkbox("Autmatically Fix Multiple Spaces In Text.", ref this._fixDoubleSpace);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("When enabled, Scratch Pads will programmatically remove extra\nspaces from your text for you.");
                 ImGui.Separator();
@@ -301,7 +296,7 @@ public sealed class SettingsUI : Window
                 else
                 {
                     // Get the index of the current dictionary file if it exists.
-                    int selection = files.IndexOf(_dictionaryFilename);
+                    int selection = files.IndexOf(this._dictionaryFilename);
 
                     // If the file isn't found, default to option 0.
                     if (selection < 0)
@@ -315,8 +310,8 @@ public sealed class SettingsUI : Window
 
                     // If the selection is different from the previous dictionary then
                     // update the filename.
-                    if (selection != files.IndexOf(_dictionaryFilename))
-                        _dictionaryFilename = files[selection];
+                    if (selection != files.IndexOf(this._dictionaryFilename))
+                        this._dictionaryFilename = files[selection];
                 }
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -391,11 +386,11 @@ public sealed class SettingsUI : Window
 
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth(-1);
-                        ImGui.InputText($"##SettingsLinkshellName{i}", ref _linkshells[i], 32);
+                        ImGui.InputText($"##SettingsLinkshellName{i}", ref this._linkshells[i], 32);
 
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth(-1);
-                        ImGui.InputText($"##SettingsCWLinkshellName{i}", ref _cwlinkshells[i], 32);
+                        ImGui.InputText($"##SettingsCWLinkshellName{i}", ref this._cwlinkshells[i], 32);
                     }
 
                     ImGui.EndTable();
@@ -448,13 +443,13 @@ public sealed class SettingsUI : Window
             if (ImGui.Button("Defaults", ImGuiHelpers.ScaledVector2(-1, 25)))
             {
                 WordsmithUI.ShowRestoreSettings();
-                IsOpen = false;
+                this.IsOpen = false;
             }
 
             ImGui.TableNextColumn();
             // Cancel button
             if (ImGui.Button("Close", ImGuiHelpers.ScaledVector2(-1, 25)))
-                IsOpen = false;
+                this.IsOpen = false;
 
             ImGui.EndTable();
         }
@@ -469,105 +464,105 @@ public sealed class SettingsUI : Window
     private void ResetValues()
     {
         // Thesaurus settings.
-        _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
-        _researchToTopChange = Wordsmith.Configuration.ResearchToTop;
+        this._searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
+        this._researchToTopChange = Wordsmith.Configuration.ResearchToTop;
 
         // Scratch Pad settings.
-        _contextMenu = Wordsmith.Configuration.AddContextMenuOption;
-        _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
-        _deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
-        _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
-        _showChunks = Wordsmith.Configuration.ShowTextInChunks;
-        _onSentence = Wordsmith.Configuration.BreakOnSentence;
-        _detectHeader = Wordsmith.Configuration.DetectHeaderInput;
-        _oocOpening = Wordsmith.Configuration.OocOpeningTag;
-        _oocClosing = Wordsmith.Configuration.OocClosingTag;
-        _sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
-        _encapTerminators = Wordsmith.Configuration.EncapsulationCharacters;
-        _markLastChunk = Wordsmith.Configuration.MarkLastChunk;
-        _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
-        _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
+        this._contextMenu = Wordsmith.Configuration.AddContextMenuOption;
+        this._autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
+        this._deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
+        this._ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
+        this._showChunks = Wordsmith.Configuration.ShowTextInChunks;
+        this._onSentence = Wordsmith.Configuration.BreakOnSentence;
+        this._detectHeader = Wordsmith.Configuration.DetectHeaderInput;
+        this._oocOpening = Wordsmith.Configuration.OocOpeningTag;
+        this._oocClosing = Wordsmith.Configuration.OocClosingTag;
+        this._sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
+        this._encapTerminators = Wordsmith.Configuration.EncapsulationCharacters;
+        this._markLastChunk = Wordsmith.Configuration.MarkLastChunk;
+        this._scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
+        this._scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
         // Spell Check Settings
-        _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
-        _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
+        this._fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
+        this._dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
 
         // Linkshell Settings
-        _linkshells = Wordsmith.Configuration.LinkshellNames;
-        _cwlinkshells = Wordsmith.Configuration.CrossWorldLinkshellNames;
+        this._linkshells = Wordsmith.Configuration.LinkshellNames;
+        this._cwlinkshells = Wordsmith.Configuration.CrossWorldLinkshellNames;
     }
 
     private void Save()
     {
         // Thesaurus Settings.
-        if (_searchHistoryCountChange != Wordsmith.Configuration.SearchHistoryCount)
-            Wordsmith.Configuration.SearchHistoryCount = _searchHistoryCountChange;
+        if (this._searchHistoryCountChange != Wordsmith.Configuration.SearchHistoryCount)
+            Wordsmith.Configuration.SearchHistoryCount = this._searchHistoryCountChange;
 
-        if (_researchToTopChange != Wordsmith.Configuration.ResearchToTop)
-            Wordsmith.Configuration.ResearchToTop = _researchToTopChange;
+        if (this._researchToTopChange != Wordsmith.Configuration.ResearchToTop)
+            Wordsmith.Configuration.ResearchToTop = this._researchToTopChange;
 
         // Scratch Pad settings.
-        if (_contextMenu != Wordsmith.Configuration.AddContextMenuOption)
-            Wordsmith.Configuration.AddContextMenuOption = _contextMenu;
+        if (this._contextMenu != Wordsmith.Configuration.AddContextMenuOption)
+            Wordsmith.Configuration.AddContextMenuOption = this._contextMenu;
 
-        if (_autoClear != Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
+        if (this._autoClear != Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
             Wordsmith.Configuration.AutomaticallyClearAfterLastCopy = _autoClear;
 
-        if (_deleteClosed != Wordsmith.Configuration.DeleteClosedScratchPads)
-            Wordsmith.Configuration.DeleteClosedScratchPads = _deleteClosed;
+        if (this._deleteClosed != Wordsmith.Configuration.DeleteClosedScratchPads)
+            Wordsmith.Configuration.DeleteClosedScratchPads = this._deleteClosed;
 
-        if (_ignoreHypen != Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
-            Wordsmith.Configuration.IgnoreWordsEndingInHyphen = _ignoreHypen;
+        if (this._ignoreHypen != Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
+            Wordsmith.Configuration.IgnoreWordsEndingInHyphen = this._ignoreHypen;
 
-        if (_showChunks != Wordsmith.Configuration.ShowTextInChunks)
-            Wordsmith.Configuration.ShowTextInChunks = _showChunks;
+        if (this._showChunks != Wordsmith.Configuration.ShowTextInChunks)
+            Wordsmith.Configuration.ShowTextInChunks = this._showChunks;
 
-        if (_onSentence != Wordsmith.Configuration.BreakOnSentence)
-            Wordsmith.Configuration.BreakOnSentence = _onSentence;
+        if (this._onSentence != Wordsmith.Configuration.BreakOnSentence)
+            Wordsmith.Configuration.BreakOnSentence = this._onSentence;
 
-        if (_detectHeader != Wordsmith.Configuration.DetectHeaderInput)
-            Wordsmith.Configuration.DetectHeaderInput = _detectHeader;
+        if (this._detectHeader != Wordsmith.Configuration.DetectHeaderInput)
+            Wordsmith.Configuration.DetectHeaderInput = this._detectHeader;
 
-        if (_oocOpening != Wordsmith.Configuration.OocOpeningTag)
-            Wordsmith.Configuration.OocOpeningTag = _oocOpening;
+        if (this._oocOpening != Wordsmith.Configuration.OocOpeningTag)
+            Wordsmith.Configuration.OocOpeningTag = this._oocOpening;
 
-        if (_oocClosing != Wordsmith.Configuration.OocClosingTag)
-            Wordsmith.Configuration.OocClosingTag = _oocClosing;
+        if (this._oocClosing != Wordsmith.Configuration.OocClosingTag)
+            Wordsmith.Configuration.OocClosingTag = this._oocClosing;
 
-        if (_sentenceTerminators != Wordsmith.Configuration.SplitPointDefinitions)
-            Wordsmith.Configuration.SplitPointDefinitions = _sentenceTerminators;
+        if (this._sentenceTerminators != Wordsmith.Configuration.SplitPointDefinitions)
+            Wordsmith.Configuration.SplitPointDefinitions = this._sentenceTerminators;
 
-        if (_encapTerminators != Wordsmith.Configuration.EncapsulationCharacters)
-            Wordsmith.Configuration.EncapsulationCharacters = _encapTerminators;
+        if (this._encapTerminators != Wordsmith.Configuration.EncapsulationCharacters)
+            Wordsmith.Configuration.EncapsulationCharacters = this._encapTerminators;
 
-        if (_continueMarker != Wordsmith.Configuration.ContinuationMarker)
-            Wordsmith.Configuration.ContinuationMarker = _continueMarker;
+        if (this._continueMarker != Wordsmith.Configuration.ContinuationMarker)
+            Wordsmith.Configuration.ContinuationMarker = this._continueMarker;
 
-        if (_markLastChunk != Wordsmith.Configuration.MarkLastChunk)
-            Wordsmith.Configuration.MarkLastChunk = _markLastChunk;
+        if (this._markLastChunk != Wordsmith.Configuration.MarkLastChunk)
+            Wordsmith.Configuration.MarkLastChunk = this._markLastChunk;
 
-        if (_scratchMaxTextLen != Wordsmith.Configuration.ScratchPadMaximumTextLength)
-            Wordsmith.Configuration.ScratchPadMaximumTextLength = _scratchMaxTextLen;
+        if (this._scratchMaxTextLen != Wordsmith.Configuration.ScratchPadMaximumTextLength)
+            Wordsmith.Configuration.ScratchPadMaximumTextLength = this._scratchMaxTextLen;
 
-        if ((Enums.EnterKeyAction)_scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
-            Wordsmith.Configuration.ScratchPadTextEnterBehavior = (Enums.EnterKeyAction)_scratchEnter;
+        if ((Enums.EnterKeyAction)this._scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
+            Wordsmith.Configuration.ScratchPadTextEnterBehavior = (Enums.EnterKeyAction)this._scratchEnter;
 
         // Spell Check settings.
-        if (_fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)
-            Wordsmith.Configuration.ReplaceDoubleSpaces = _fixDoubleSpace;
+        if (this._fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)
+            Wordsmith.Configuration.ReplaceDoubleSpaces = this._fixDoubleSpace;
 
-        if (_dictionaryFilename != Wordsmith.Configuration.DictionaryFile)
+        if (this._dictionaryFilename != Wordsmith.Configuration.DictionaryFile)
         {
-            Wordsmith.Configuration.DictionaryFile = _dictionaryFilename;
+            Wordsmith.Configuration.DictionaryFile = this._dictionaryFilename;
             Data.Lang.Reinit();
         }
 
         // Linkshell settings
-        if (_linkshells != Wordsmith.Configuration.LinkshellNames)
-            Wordsmith.Configuration.LinkshellNames = _linkshells;
+        if (this._linkshells != Wordsmith.Configuration.LinkshellNames)
+            Wordsmith.Configuration.LinkshellNames = this._linkshells;
 
-        if (_cwlinkshells != Wordsmith.Configuration.CrossWorldLinkshellNames)
-            Wordsmith.Configuration.CrossWorldLinkshellNames = _cwlinkshells;
+        if (this._cwlinkshells != Wordsmith.Configuration.CrossWorldLinkshellNames)
+            Wordsmith.Configuration.CrossWorldLinkshellNames = this._cwlinkshells;
 
         // Save the configuration
         Wordsmith.Configuration.Save();

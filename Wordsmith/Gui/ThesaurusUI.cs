@@ -19,11 +19,9 @@ public class ThesaurusUI : Window
     /// </summary>
     public ThesaurusUI() : base($"{Wordsmith.AppName} - Thesaurus")
     {
-        IsOpen = true;
         SearchHelper = new SearchHelper();
         _search = "";
 
-        WordsmithUI.WindowSystem.AddWindow(this);
         SizeConstraints = new WindowSizeConstraints()
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(375, 330),

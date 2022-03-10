@@ -20,6 +20,7 @@ internal static class WordsmithUI
     internal static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
     internal static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
     internal static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
+    internal static void ShowDebugUI() => Show<DebugUI>( $"{Wordsmith.AppName} - Debug" );
 
     private static void Show<T>(string name)
     {
@@ -31,10 +32,18 @@ internal static class WordsmithUI
         Window? w = WindowSystem.GetWindow(name);
 
         // If the result is null, create a new window
-        if (w == null)
-            _windows.Add((Activator.CreateInstance(typeof(T)) as Window)!);
+        if ( w == null )
+        {
+            w = (Activator.CreateInstance( typeof( T ) ) as Window)!;
+            if (w != null)
+            {
+                w.IsOpen = true;
+                WindowSystem.AddWindow(w);
+                _windows.Add(w);
+            }
+        }
 
-            // If the result wasn't null, open the window
+        // If the result wasn't null, open the window
         else
             w.IsOpen = true;
         

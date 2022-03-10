@@ -112,7 +112,6 @@ public class ScratchPadUI : Window
     protected bool _useOOC = false;
     protected string[]? _chunks;
     protected int _nextChunk = 0;
-    protected int _lastCursorPos = -1;
     #endregion
 
     protected bool _scrollToBottom = false;
@@ -129,6 +128,14 @@ public class ScratchPadUI : Window
     /// Cancellation token source for spellchecking.
     /// </summary>
     protected CancellationTokenSource? _cancellationTokenSource;
+
+    internal string GetDebugString()
+    {
+        string result = $"Pad ID: {this.ID}\nScratchString: {this.ScratchString}\nOOC {_useOOC}\nChunks[{_chunks?.Length ?? 0}]:";
+        foreach ( string s in _chunks ?? Array.Empty<string>() )
+            result += $"\n\t - {s.Replace( "\r", "\\r" ).Replace( "\n", "\\n" )}";
+        return result;
+    }
 
     /// <summary>
     /// Gets the slash command (if one exists) and the tell target if one is needed.
@@ -158,8 +165,6 @@ public class ScratchPadUI : Window
     public ScratchPadUI() : base($"{Wordsmith.AppName} - Scratch Pad #{_nextID}")
     {
         ID = NextID;
-        IsOpen = true;
-        WordsmithUI.WindowSystem.AddWindow(this);
         SizeConstraints = new()
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(400, 300),
@@ -331,6 +336,11 @@ public class ScratchPadUI : Window
             // Help menu item
             if (ImGui.MenuItem($"Help##ScratchPad{ID}HelpMenu"))
                 WordsmithUI.ShowScratchPadHelp();
+
+#if DEBUG
+            if ( ImGui.MenuItem( $"Debug UI##ScratchPad{ID}DebugMenu" ) )
+                WordsmithUI.ShowDebugUI();
+#endif
 
             //end Menu Bar
             ImGui.EndMenuBar();
@@ -1066,17 +1076,17 @@ public class ScratchPadUI : Window
                 text[i + SPACED_WRAP_MARKER.Length] != '\n' &&
                 text[i + SPACED_WRAP_MARKER.Length + 1] == '\n')
             {
-                // if the fourth character IS new line
-                if (text[i + 3] == '\n')
+                // if the character before the cursor position is a new line
+                if (text[i+ SPACED_WRAP_MARKER.Length + 1] == '\n')
                 {
                     // A character has been wedged between the return
                     // carriage characters and the new line character.
 
                     // First, remove the new line characters.
-                    text = text[0..i] + text[(i + 2)..^0];
+                    text = text[0..i] + text[(i + SPACED_WRAP_MARKER.Length)..^0];
 
                     // Now replace the new line with a space.
-                    text = text[0..(i + 1)] + " " + text[(i + 2)..^0];
+                    text = text[0..(i+1)] + " " + text[(i+SPACED_WRAP_MARKER.Length)..^0];
 
                     // Subtract the length of the spaced marker from the cursor position
                     if (cursorPos > i)
