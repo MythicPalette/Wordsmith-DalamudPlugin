@@ -48,7 +48,7 @@ public static class Extensions
     /// Capitalizes the first letter in a string.
     /// </summary>
     /// <param name="s">The string to capitalize the first letter of.</param>
-    /// <returns></returns>
+    /// <returns>A <see cref="string"/> with the first letter capitalized.</returns>
     public static string CaplitalizeFirst(this string s)
     {
         // If the length is one, just change the char and send it back.
@@ -64,6 +64,11 @@ public static class Extensions
         return s;
     }
 
+    /// <summary>
+    /// Spaces a string by capital letters. Useful for adding spaces to PascalCasing
+    /// </summary>
+    /// <param name="s">String to space.</param>
+    /// <returns>A properly spaced <see cref="string"/></returns>
     public static string SpaceByCaps(this string s)
     {
         // If there aren't at least two characters then return.
@@ -92,7 +97,7 @@ public static class Extensions
     /// Removes all double spaces from a string.
     /// </summary>
     /// <param name="s">The string to remove double spaces from.</param>
-    /// <returns></returns>
+    /// <returns><see cref="string"/> with double-spacing fixed.</returns>
     public static string FixSpacing(this string s)
     {
         // Start by initially running the replace command.
@@ -111,12 +116,25 @@ public static class Extensions
         return s;
     }
 
+    /// <summary>
+    /// Removes all double spaces from a string.
+    /// </summary>
+    /// <param name="s">The string to remove double spaces from.</param>
+    /// <param name="cursorPos">A reference to a text cursor to be manipulated.</param>
+    /// <returns><see cref="string"/> with double-spacing fixed.</returns>
     public static string FixSpacing(this string s, ref int cursorPos)
     {
+        int idx;
         do
         {
             // Get the position of the first double space.
-            int idx = s.IndexOf("  ");
+            idx = s.IndexOf("  ");
+            if ( idx == cursorPos - 1 )
+            {
+                idx = s[cursorPos..^0].IndexOf( "  " );
+                if ( idx > -1 )
+                    idx += cursorPos;
+            }
 
             // If the index is greater than -1;
             if (idx > -1)
@@ -134,7 +152,7 @@ public static class Extensions
                 if (idx <= cursorPos)
                     cursorPos -= 1;
             }
-        } while (s.Contains("  "));
+        } while (idx > -1);
 
         return s;
     }
@@ -145,7 +163,7 @@ public static class Extensions
     /// <typeparam name="T">Generic Type</typeparam>
     /// <param name="array">The array to find the object in.</param>
     /// <param name="obj">The object to locate within the array.</param>
-    /// <returns></returns>
+    /// <returns><see cref="int"/> index of <typeparamref name="T"/> in array or -1 if not found.</returns>
     public static int IndexOf<T>(this T[] array, T obj)
     {
         // Iterate and compare each item and return the index if

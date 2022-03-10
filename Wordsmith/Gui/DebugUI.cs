@@ -14,6 +14,8 @@ internal sealed class DebugUI : Window
             MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
         };
 
+        this.Flags |= ImGuiWindowFlags.HorizontalScrollbar;
+
 #if DEBUG
         PluginLog.LogDebug( $"DebugUI created." );
 #endif
@@ -25,7 +27,7 @@ internal sealed class DebugUI : Window
             if (w != null && w is ScratchPadUI pad)
             {
                 // Draw the pad info
-                ImGui.TextWrapped( $"{pad.GetDebugString()}" );
+                ImGui.Text( $"{pad.GetDebugString()}" );
                 ImGui.Separator();
                 ImGui.Spacing();
             }
