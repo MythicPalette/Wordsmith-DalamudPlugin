@@ -22,6 +22,11 @@ internal static class WordsmithUI
     internal static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
     internal static void ShowDebugUI() => Show<DebugUI>( $"{Wordsmith.AppName} - Debug" );
 
+    /// <summary>
+    /// Shows the window with the specified name or creates a new one.
+    /// </summary>
+    /// <typeparam name="T"><see cref="Window"/> child class to show.</typeparam>
+    /// <param name="name"><see cref="string"/> name of the <see cref="Window"/></param>
     private static void Show<T>(string name)
     {
         // If the given type is not a subclass of Window leave the method
@@ -34,13 +39,23 @@ internal static class WordsmithUI
         // If the result is null, create a new window
         if ( w == null )
         {
+            // Create the Window object
             w = (Activator.CreateInstance( typeof( T ) ) as Window)!;
-            if (w != null)
+
+            // If the object was successfully created
+            if ( w != null )
             {
+                // Open it
                 w.IsOpen = true;
-                WindowSystem.AddWindow(w);
-                _windows.Add(w);
+
+                // Add it to the WindowSystem.
+                WindowSystem.AddWindow( w );
+
+                // Add it to the list.
+                _windows.Add( w );
             }
+            else
+                PluginLog.LogError( $"Failed to create window {{{name}}}" );
         }
 
         // If the result wasn't null, open the window
@@ -48,12 +63,27 @@ internal static class WordsmithUI
             w.IsOpen = true;
         
     }
+
+    /// <summary>
+    /// Removes the window from the <see cref="WindowSystem"/> and <see cref="List{T}"/>.
+    /// </summary>
+    /// <param name="w"><see cref="Window"/> to be removed</param>
     internal static void RemoveWindow(Window w)
     {
+        // If the Window can be disposed do it.
+        if (w is IDisposable disposable)
+            disposable.Dispose();
+
+        // Remove from the list
         _windows.Remove(w);
+
+        // Remove from the WindowSystem
         WindowSystem.RemoveWindow(w);
     }
 
+    /// <summary>
+    /// Draw handler for interface call.
+    /// </summary>
     internal static void Draw()
     {
         try
@@ -64,7 +94,7 @@ internal static class WordsmithUI
             bool resetConfigSaved = Wordsmith.Configuration.RecentlySaved;
 
             // Draw all windows.
-            WordsmithUI.WindowSystem.Draw();
+            WindowSystem.Draw();
 
             // Set RecentlySaved to false if it has already had a full cycle.
             if (resetConfigSaved)
@@ -80,10 +110,22 @@ internal static class WordsmithUI
         catch (Exception e) { PluginLog.LogError($"{e} :: {e.Message}"); }
     }
 
+    /// <summary>
+    /// Update handler for framework call
+    /// </summary>
+    internal static void Update()
+    {
+        foreach ( Window w in _windows )
+            w.Update();
+    }
+
+    /// <summary>
+    /// Disposes all child objects.
+    /// </summary>
     internal static void Dispose()
     {
         Window[] windows = _windows.ToArray();
-        foreach (Window w in windows)
-            RemoveWindow(w);
+        foreach ( Window w in windows )
+            RemoveWindow( w );
     }
 }
