@@ -31,6 +31,9 @@ public sealed class SettingsUI : Window
 
     // Dictionary Settings
     private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
+    private bool _spellingErrorHighlight = Wordsmith.Configuration.EnableSpellingErrorHighlighting;
+    private Vector4 _backupColor = new();
+    private Vector4 _spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
     private string _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
 
     // Linkshell Settings
@@ -314,7 +317,28 @@ public sealed class SettingsUI : Window
                         this._dictionaryFilename = files[selection];
                 }
                 ImGui.Separator();
+                bool highlightColorPopup = false;
+                if ( this._spellingErrorHighlight )
+                    highlightColorPopup = ImGui.ColorButton( "##ColorPreviewButton", this._spellingErrorColor );
+                else
+                    ImGui.ColorButton( "##ColorPreviewButtonDisabled", new( 0.2f, 0.2f, 0.2f, 0.5f ), ImGuiColorEditFlags.NoTooltip);
+                if ( highlightColorPopup )
+                {
+                    ImGui.OpenPopup( "SettingsUIErrorHighlightingColorPickerPopup" );
+                    this._backupColor = this._spellingErrorColor;
+                }
+                if ( ImGui.BeginPopup( "SettingsUIErrorHighlightingColorPickerPopup" ) )
+                {
+
+                    if ( ImGui.ColorPicker4( "##SettingsUIErrorHighlightingPicker", ref this._backupColor ) )
+                        this._spellingErrorColor = this._backupColor;
+
+                    ImGui.EndPopup();
+                }
+                ImGui.SameLine();
+                ImGui.Checkbox( "Enable spelling error highlighting.##SettingsUICheckbox", ref this._spellingErrorHighlight );
                 ImGui.Spacing();
+                ImGui.Separator();
 
                 // Custom Dictionary Table
                 if (ImGui.BeginTable($"CustomDictionaryEntriesTable", 2, ImGuiTableFlags.BordersH))
@@ -485,6 +509,8 @@ public sealed class SettingsUI : Window
 
         // Spell Check Settings
         this._fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
+        this._spellingErrorHighlight = Wordsmith.Configuration.EnableSpellingErrorHighlighting;
+        this._spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
         this._dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
 
         // Linkshell Settings
@@ -550,6 +576,12 @@ public sealed class SettingsUI : Window
         // Spell Check settings.
         if (this._fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)
             Wordsmith.Configuration.ReplaceDoubleSpaces = this._fixDoubleSpace;
+
+        if ( this._spellingErrorHighlight != Wordsmith.Configuration.EnableSpellingErrorHighlighting )
+            Wordsmith.Configuration.EnableSpellingErrorHighlighting = this._spellingErrorHighlight;
+
+        if ( this._spellingErrorColor != Wordsmith.Configuration.SpellingErrorHighlightColor )
+            Wordsmith.Configuration.SpellingErrorHighlightColor = this._spellingErrorColor;
 
         if (this._dictionaryFilename != Wordsmith.Configuration.DictionaryFile)
         {

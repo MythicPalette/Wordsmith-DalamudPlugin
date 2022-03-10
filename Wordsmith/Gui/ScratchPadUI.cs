@@ -129,11 +129,19 @@ public class ScratchPadUI : Window
     /// </summary>
     protected CancellationTokenSource? _cancellationTokenSource;
 
+    private Dictionary<string, (string Title, string Message)> _debugLines = new();
     internal string GetDebugString()
     {
         string result = $"Pad ID: {this.ID}\nScratchString: {this.ScratchString}\nOOC {_useOOC}\nChunks[{_chunks?.Length ?? 0}]:";
         foreach ( string s in _chunks ?? Array.Empty<string>() )
             result += $"\n\t - {s.Replace( "\r", "\\r" ).Replace( "\n", "\\n" )}";
+        result += $"\n\nCorrections:";
+        foreach ( Data.WordCorrection wc in _corrections )
+            result += $"\n\t [{wc.Index}]\t{wc.Original}";
+
+        foreach(KeyValuePair<string, (string Title, string Message)> kvp in _debugLines )
+            result += $"\n{kvp.Value.Title}\n\t- {kvp.Value.Message}";
+
         return result;
     }
 
@@ -479,16 +487,21 @@ public class ScratchPadUI : Window
             {
                 for (int i = 0; i < (_chunks?.Length ?? 0); ++i)
                 {
-                    // If not the first chunk, add a spacing.
-                    if (i > 0)
+                    //// If not the first chunk, add a spacing.
+                    if ( i > 0 )
                         ImGui.Spacing();
 
                     // Put a separator at the top of the chunk.
                     ImGui.Separator();
 
-                    // Set width and display the chunk.
-                    ImGui.SetNextItemWidth(-1);
-                    ImGui.TextWrapped(_chunks![i]);
+                    if (Wordsmith.Configuration.EnableSpellingErrorHighlighting && _corrections.Count > 0)
+                        DrawChunkItem( _chunks![i] );
+                    else
+                    {
+                        // Set width and display the chunk.
+                        ImGui.SetNextItemWidth( -1 );
+                        ImGui.TextWrapped( _chunks![i] );
+                    }
                 }
             }
             // If it's disabled and the user has enabled UseOldSingleLineInput then we still need to draw a display for them.
@@ -502,6 +515,39 @@ public class ScratchPadUI : Window
         }
         ImGui.Separator();
         ImGui.Spacing();
+    }
+
+    protected void DrawChunkItem(string text)
+    {
+        // Split it into words.
+        string[] words = text.Replace(GetFullChatHeader(), "").Split(" ", StringSplitOptions.RemoveEmptyEntries);
+        float width = 0f;
+
+        bool sameLine = false;
+        if ( GetFullChatHeader().Length > 0 )
+        {
+            ImGui.Text( GetFullChatHeader() );
+            width += ImGui.CalcTextSize( GetFullChatHeader() ).X;
+            sameLine = true;
+        }
+        for (int i = 0; i < words.Length; ++i)
+        {
+            string word = words[i];
+
+            if (DebugUI.ShowWordIndex)
+                word = $"[{i}]{word}";
+
+            float objWidth = ImGui.CalcTextSize(word).X;
+            width += objWidth+(5*ImGuiHelpers.GlobalScale);
+            if ( (i > 0 || sameLine) && width < ImGui.GetWindowContentRegionMax().X )
+                ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
+            else
+                width = objWidth;
+            if ( _corrections?.Count > 0 && _corrections[0].Index == i)
+                ImGui.TextColored( Wordsmith.Configuration.SpellingErrorHighlightColor, word );
+            else
+                ImGui.Text(word);
+        }
     }
 
     /// <summary>
@@ -525,8 +571,9 @@ public class ScratchPadUI : Window
             ref _scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength,
             v,
             ImGuiInputTextFlags.CallbackEdit |
+            ImGuiInputTextFlags.CallbackAlways |
             ImGuiInputTextFlags.EnterReturnsTrue,
-            OnTextEdit))
+            OnTextCallback))
         {
             // If the user hits enter, run the user-defined action.
             if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.SpellCheck)
@@ -734,6 +781,8 @@ public class ScratchPadUI : Window
         // Copy the string to the history variable.
         _clearedScratch = _scratch;
 
+        _corrections = new();
+
         // Clear scratch.
         _scratch = "";
     }
@@ -797,7 +846,8 @@ public class ScratchPadUI : Window
 
             // Break apart the words in the sentence.
             string[] words = _scratch
-                .Replace('\n', ' ')
+                .Replace(SPACED_WRAP_MARKER+'\n', " ")
+                .Replace(NOSPACE_WRAP_MARKER+'\n', "")
                 .Split(' ');
 
             // Replace the content of the word in question.
@@ -811,8 +861,21 @@ public class ScratchPadUI : Window
             // Replace the user's original text with the new words.
             _scratch = string.Join(' ', words);
 
+            // If the user replaces a single word with multiple words, we need to increment the remaining index.
+            if ( _replaceText.Split( " " ).Length > 1 )
+            {
+                foreach (Data.WordCorrection wc in _corrections)
+                    wc.Index += _replaceText.Split( " " ).Length - 1;
+            }
+            else if (_replaceText == "")
+            {
+                foreach ( Data.WordCorrection wc in _corrections )
+                    --wc.Index;
+            }
+
             // Clear out replacement text.
             _replaceText = "";
+
 
             int ignore = 0;
             // Rewrap the text string.
@@ -838,6 +901,40 @@ public class ScratchPadUI : Window
             _cancellationTokenSource?.Cancel();
             WordsmithUI.RemoveWindow(this);
         }
+    }
+
+    public unsafe int OnTextCallback( ImGuiInputTextCallbackData* data )
+    {
+        if ( data->EventFlag == ImGuiInputTextFlags.CallbackAlways )
+        {
+            // If the user hits the right key and this makes it so that a \r character is to the left of the cursor
+            // move the cursor again until passed all \r keys. This will make the cursor go from \r|\r\n to \r\r|\n
+            // then to \r\r\n|
+            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow)))
+            {
+                while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
+                {
+                    data->CursorPos++;
+#if DEBUG
+                    PluginLog.LogDebug( $"Moved cursor to the right." );
+#endif
+                }
+            }
+            if (data->CursorPos > 0)
+            {
+                while ( data->CursorPos > 0 && data->Buf[data->CursorPos - 1] == '\r' )
+                {
+                    data->CursorPos--;
+#if DEBUG
+                    PluginLog.LogDebug( "Moved cursor to the left." );
+#endif
+                }
+            }
+        }
+        else
+            return OnTextEdit( data );
+
+        return 0;
     }
 
     /// <summary>
@@ -1064,61 +1161,6 @@ public class ScratchPadUI : Window
         // Trim any return carriages off the end. This can happen if the user
         // backspaces a new line character off of the end.
         text = text.TrimEnd('\r');
-
-        // If the user enters any character at the end of a line it will
-        // break the wrap marker so scan for any broken wrap makers.
-        for (int i = 0; i < text.Length; ++i)
-        {
-            // Check for a broken wrap marker \r\r#\n where # is any char besides \n.
-            if (
-                i < text.Length - SPACED_WRAP_MARKER.Length + 1 &&
-                text[i..(i + SPACED_WRAP_MARKER.Length)] == SPACED_WRAP_MARKER &&
-                text[i + SPACED_WRAP_MARKER.Length] != '\n' &&
-                text[i + SPACED_WRAP_MARKER.Length + 1] == '\n')
-            {
-                // if the character before the cursor position is a new line
-                if (text[i+ SPACED_WRAP_MARKER.Length + 1] == '\n')
-                {
-                    // A character has been wedged between the return
-                    // carriage characters and the new line character.
-
-                    // First, remove the new line characters.
-                    text = text[0..i] + text[(i + SPACED_WRAP_MARKER.Length)..^0];
-
-                    // Now replace the new line with a space.
-                    text = text[0..(i+1)] + " " + text[(i+SPACED_WRAP_MARKER.Length)..^0];
-
-                    // Subtract the length of the spaced marker from the cursor position
-                    if (cursorPos > i)
-                        cursorPos -= 2;
-                }
-            }
-
-            // Check for a broken no-space wrap maker \r#\n where # is any char besides \n.
-            // It's important to also check that
-            else if (
-                i < text.Length - NOSPACE_WRAP_MARKER.Length + 1 &&      // Ensure that there are enough indices remaining.
-                text[i..(i + NOSPACE_WRAP_MARKER.Length)] == NOSPACE_WRAP_MARKER &&     // If text starts with the no space marker and
-                text[i + NOSPACE_WRAP_MARKER.Length] != '\n' &&                         // If the next character is not a new line
-                text[i + NOSPACE_WRAP_MARKER.Length + 1] == '\n' &&                     // If the character after that is a new line
-                text[i..(i + SPACED_WRAP_MARKER.Length)] != SPACED_WRAP_MARKER)         // If the characters are not the SPACED marker.
-            {
-
-                // Remove the \r from the text
-                text = text[0..i] + text[(i + 1)..^0];
-
-                // Remove the \n from the text.
-                text = text[0..(i + 1)] + text[(i + 2)..^0];
-
-                // Subtract the length of the spaced marker from the cursor position
-                if (cursorPos > i)
-                    cursorPos -= 2;
-
-                // Need to iterate that the same index because we have already removed the
-                // current char at i.
-                i -= 1;
-            }
-        }
 
         // Replace all wrap markers with spaces and adjust cursor offset. Do this before
         // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
