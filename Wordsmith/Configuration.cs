@@ -112,6 +112,13 @@ public class Configuration : IPluginConfiguration
     /// The file to be loaded into Lang dictionary.
     /// </summary>
     public string DictionaryFile { get; set; } = "lang_en";
+
+    /// <summary>
+    /// If enabled, uses a custom label layout to display highlighted text.
+    /// </summary>
+    public bool EnableSpellingErrorHighlighting { get; set; } = true;
+
+    public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
     #endregion
 
     #region Linkshell Settings
@@ -146,6 +153,8 @@ public class Configuration : IPluginConfiguration
         ScratchPadTextEnterBehavior = 0;
         ScratchPadMaximumTextLength = 4096;
         ReplaceDoubleSpaces = true;
+        EnableSpellingErrorHighlighting = true;
+        SpellingErrorHighlightColor = new( 0.9f, 0.2f, 0.2f, 1f );
         DetectHeaderInput = true;
 
         // Spell Check settings

@@ -37,7 +37,7 @@ public class ChatHelper
             // Add the string to the list with the header and, if offset is not at
             // the end of the string yet, add the continuation marker for the player.
             if (str.Trim().Length > 0)
-                results.Add($"{header} {(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str.Trim()}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
+                results.Add($"{(header.Length > 0 ? $"{header} " : "")}{(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str.Trim()}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
         }
 
         // If there is more than one result we want to do continuation markers
