@@ -499,7 +499,7 @@ internal class ScratchPadUI : Window
                     // Put a separator at the top of the chunk.
                     ImGui.Separator();
 
-                    if (Wordsmith.Configuration.EnableSpellingErrorHighlighting && _corrections.Count > 0)
+                    if (Wordsmith.Configuration.EnableTextHighlighting)
                         DrawChunkItem( _chunks[i], ref offset );
                     else
                     {
@@ -529,12 +529,25 @@ internal class ScratchPadUI : Window
         float width = 0f;
 
         bool sameLine = false;
-        if ( GetFullChatHeader().Length > 0 )
+
+        // Draw header
+        if ( chunk.Header.Length > 0 )
         {
-            ImGui.Text( GetFullChatHeader() );
-            width += ImGui.CalcTextSize( GetFullChatHeader() ).X;
+            ImGui.TextColored( Wordsmith.Configuration.HeaderColors[(int)_chatType], chunk.Header );
+            width += ImGui.CalcTextSize( chunk.Header ).X;
             sameLine = true;
         }
+
+        // Draw OOC
+        if (_useOOC)
+        {
+            ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
+            ImGui.Text( Wordsmith.Configuration.OocOpeningTag );
+            width += ImGui.CalcTextSize( Wordsmith.Configuration.OocOpeningTag ).X;
+            sameLine = true;
+        }
+
+        // Draw body
         for (int i = 0; i < chunk.Words.Length; ++i)
         {
             string word = chunk.Words[i];
@@ -555,6 +568,44 @@ internal class ScratchPadUI : Window
             else
                 ImGui.Text(word);
         }
+
+        // Draw OOC
+        if ( _useOOC )
+        {
+            // Calculate new width.
+            width += ImGui.CalcTextSize( Wordsmith.Configuration.OocClosingTag ).X;
+
+            // If width is within bounds then draw same line.
+            if ( width < ImGui.GetWindowContentRegionMax().X )
+                ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
+
+            // If out of bounds reset width to new width.
+            else
+                width = ImGui.CalcTextSize( Wordsmith.Configuration.OocClosingTag ).X;
+
+            // Draw text.
+            ImGui.Text( Wordsmith.Configuration.OocClosingTag );
+        }
+
+        if (_chunks.Count > 1)
+        {
+            if ( chunk.ContinuationMarker.Length > 0)
+            {
+                // Calculate new width.
+                width += ImGui.CalcTextSize( chunk.ContinuationMarker ).X;
+
+                // If width is within bounds then draw same line.
+                if ( width < ImGui.GetWindowContentRegionMax().X )
+                    ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
+
+                // If out of bounds reset width to new width.
+                else
+                    width = ImGui.CalcTextSize( chunk.ContinuationMarker ).X;
+
+                ImGui.Text( chunk.ContinuationMarker );
+            }
+        }
+        // Draw Continuation marker
         offset += chunk.WordCount;
     }
 

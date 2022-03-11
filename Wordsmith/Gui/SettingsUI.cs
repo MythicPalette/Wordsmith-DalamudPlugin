@@ -31,14 +31,17 @@ public sealed class SettingsUI : Window
 
     // Dictionary Settings
     private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
-    private bool _spellingErrorHighlight = Wordsmith.Configuration.EnableSpellingErrorHighlighting;
-    private Vector4 _backupColor = new();
-    private Vector4 _spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
+    private bool _enableTextColor = Wordsmith.Configuration.EnableTextHighlighting;
     private string _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
 
     // Linkshell Settings
     private string[] _cwlinkshells = Wordsmith.Configuration.CrossWorldLinkshellNames;
     private string[] _linkshells = Wordsmith.Configuration.LinkshellNames;
+
+    // Colors Settings
+    private Vector4 _backupColor = new();
+    private Vector4 _spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
+    private Dictionary<int, Vector4> _headerColors = Wordsmith.Configuration.HeaderColors;
 
     public SettingsUI() : base($"{Wordsmith.AppName} - Settings")
     {
@@ -72,6 +75,7 @@ public sealed class SettingsUI : Window
             DrawScratchPadTab();
             DrawSpellCheckTab();
             DrawLinkshellTab();
+            DrawColorsTab();
             ImGui.EndTabBar();
         }
 
@@ -317,28 +321,6 @@ public sealed class SettingsUI : Window
                         this._dictionaryFilename = files[selection];
                 }
                 ImGui.Separator();
-                bool highlightColorPopup = false;
-                if ( this._spellingErrorHighlight )
-                    highlightColorPopup = ImGui.ColorButton( "##ColorPreviewButton", this._spellingErrorColor );
-                else
-                    ImGui.ColorButton( "##ColorPreviewButtonDisabled", new( 0.2f, 0.2f, 0.2f, 0.5f ), ImGuiColorEditFlags.NoTooltip);
-                if ( highlightColorPopup )
-                {
-                    ImGui.OpenPopup( "SettingsUIErrorHighlightingColorPickerPopup" );
-                    this._backupColor = this._spellingErrorColor;
-                }
-                if ( ImGui.BeginPopup( "SettingsUIErrorHighlightingColorPickerPopup" ) )
-                {
-
-                    if ( ImGui.ColorPicker4( "##SettingsUIErrorHighlightingPicker", ref this._backupColor ) )
-                        this._spellingErrorColor = this._backupColor;
-
-                    ImGui.EndPopup();
-                }
-                ImGui.SameLine();
-                ImGui.Checkbox( "Enable spelling error highlighting.##SettingsUICheckbox", ref this._spellingErrorHighlight );
-                ImGui.Spacing();
-                ImGui.Separator();
 
                 // Custom Dictionary Table
                 if (ImGui.BeginTable($"CustomDictionaryEntriesTable", 2, ImGuiTableFlags.BordersH))
@@ -427,6 +409,93 @@ public sealed class SettingsUI : Window
         }
     }
 
+    private void DrawColorsTab()
+    {
+        if ( ImGui.BeginTabItem( "Colors##SettingsUITabItem" ) )
+        {
+            if ( ImGui.BeginChild( "ColorsSettingsChildFrame", new( -1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale ) ) )
+            {
+                ImGui.Checkbox( "Enable Text Colorization##SettingsUICheckbox", ref this._enableTextColor );
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+                bool spellingErrorColorPopup = false;
+                if ( this._enableTextColor )
+                    spellingErrorColorPopup = ImGui.ColorButton( "##ColorPreviewButton", this._spellingErrorColor );
+                else
+                    ImGui.ColorButton( "##ColorPreviewButtonDisabled", new( 0.2f, 0.2f, 0.2f, 0.5f ), ImGuiColorEditFlags.NoTooltip );
+                if ( spellingErrorColorPopup )
+                {
+                    ImGui.OpenPopup( "SettingsUIErrorHighlightingColorPickerPopup" );
+                    this._backupColor = this._spellingErrorColor;
+                }
+                if ( ImGui.BeginPopup( "SettingsUIErrorHighlightingColorPickerPopup" ) )
+                {
+
+                    if ( ImGui.ColorPicker4( "##SettingsUIErrorHighlightingPicker", ref this._backupColor ) )
+                        this._spellingErrorColor = this._backupColor;
+
+                    ImGui.EndPopup();
+                }
+                ImGui.SameLine( 0, 5 * ImGuiHelpers.GlobalScale );
+                ImGui.Text( $"Spelling Error Color" );
+                ImGui.Spacing();
+                ImGui.Separator();
+                ImGui.Spacing();
+                ImGui.Text( "Chat Header Colors" );
+
+                if (ImGui.BeginTable("ColorSettingsTable", 10))
+                {
+                    ImGui.TableSetupColumn( "LeftColorOuterColorColumn", ImGuiTableColumnFlags.WidthFixed, 30 * ImGuiHelpers.GlobalScale );
+                    ImGui.TableSetupColumn( "LeftColorOuterChatColumn" );
+                    ImGui.TableSetupColumn( "LeftColorInnerColorColumn", ImGuiTableColumnFlags.WidthFixed, 30 * ImGuiHelpers.GlobalScale );
+                    ImGui.TableSetupColumn( "LeftColorInnerChatColumn" );
+                    ImGui.TableSetupColumn( "CenterColorColorColumn", ImGuiTableColumnFlags.WidthFixed, 30 * ImGuiHelpers.GlobalScale );
+                    ImGui.TableSetupColumn( "CenterColorChatColumn" );
+                    ImGui.TableSetupColumn( "RightColorInnerColorColumn", ImGuiTableColumnFlags.WidthFixed, 30 * ImGuiHelpers.GlobalScale );
+                    ImGui.TableSetupColumn( "RightColorInnerChatColumn" );
+                    ImGui.TableSetupColumn( "RightColorOuterColorColumn", ImGuiTableColumnFlags.WidthFixed, 30 * ImGuiHelpers.GlobalScale );
+                    ImGui.TableSetupColumn( "RightColorOuterChatColumn" );
+
+                    string[] options = Enum.GetNames(typeof(Enums.ChatType));
+                    for ( int i = 0; i < options.Length-1; ++i )
+                    {
+                        if ( !this._headerColors.ContainsKey( i ) )
+                            continue;
+
+                        ImGui.TableNextColumn();
+
+                        bool highlightColorPopup = false;
+                        if ( this._enableTextColor )
+                            highlightColorPopup = ImGui.ColorButton( $"##ColorPreviewButton{options[i]}", this._headerColors[i] );
+                        else
+                            ImGui.ColorButton( $"##ColorPreviewButtonDisabled{options[i]}", new( 0.2f, 0.2f, 0.2f, 0.5f ), ImGuiColorEditFlags.NoTooltip );
+
+                        if ( highlightColorPopup )
+                        {
+                            ImGui.OpenPopup( $"SettingsUIHighlightingColorPickerPopup{options[i]}" );
+                            this._backupColor = this._headerColors[i];
+                        }
+                        if ( ImGui.BeginPopup( $"SettingsUIHighlightingColorPickerPopup{options[i]}" ) )
+                        {
+
+                            if ( ImGui.ColorPicker4( "##SettingsUIErrorHighlightingPicker", ref this._backupColor ) )
+                                this._headerColors[i] = this._backupColor;
+
+                            ImGui.EndPopup();
+                        }
+
+                        ImGui.TableNextColumn();
+                        ImGui.Text( $"{options[i]}" );
+                    }
+                    ImGui.EndTable();
+                }
+                ImGui.EndChild();
+            }
+            ImGui.EndTabItem();
+        }
+    }
+
     private void DrawFooter()
     {
         if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 5))
@@ -509,14 +578,17 @@ public sealed class SettingsUI : Window
 
         // Spell Check Settings
         this._fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
-        this._spellingErrorHighlight = Wordsmith.Configuration.EnableSpellingErrorHighlighting;
-        this._spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
         this._dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
 
         // Linkshell Settings
         this._linkshells = Wordsmith.Configuration.LinkshellNames;
         this._cwlinkshells = Wordsmith.Configuration.CrossWorldLinkshellNames;
-    }
+
+        // Color Settings
+        this._enableTextColor = Wordsmith.Configuration.EnableTextHighlighting;
+        this._spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
+        _headerColors = Wordsmith.Configuration.HeaderColors;
+}
 
     private void Save()
     {
@@ -577,12 +649,6 @@ public sealed class SettingsUI : Window
         if (this._fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)
             Wordsmith.Configuration.ReplaceDoubleSpaces = this._fixDoubleSpace;
 
-        if ( this._spellingErrorHighlight != Wordsmith.Configuration.EnableSpellingErrorHighlighting )
-            Wordsmith.Configuration.EnableSpellingErrorHighlighting = this._spellingErrorHighlight;
-
-        if ( this._spellingErrorColor != Wordsmith.Configuration.SpellingErrorHighlightColor )
-            Wordsmith.Configuration.SpellingErrorHighlightColor = this._spellingErrorColor;
-
         if (this._dictionaryFilename != Wordsmith.Configuration.DictionaryFile)
         {
             Wordsmith.Configuration.DictionaryFile = this._dictionaryFilename;
@@ -595,6 +661,16 @@ public sealed class SettingsUI : Window
 
         if (this._cwlinkshells != Wordsmith.Configuration.CrossWorldLinkshellNames)
             Wordsmith.Configuration.CrossWorldLinkshellNames = this._cwlinkshells;
+
+        // Color settings
+        if ( this._enableTextColor != Wordsmith.Configuration.EnableTextHighlighting )
+            Wordsmith.Configuration.EnableTextHighlighting = this._enableTextColor;
+
+        if ( this._spellingErrorColor != Wordsmith.Configuration.SpellingErrorHighlightColor )
+            Wordsmith.Configuration.SpellingErrorHighlightColor = this._spellingErrorColor;
+
+        if (this._headerColors != Wordsmith.Configuration.HeaderColors)
+            Wordsmith.Configuration.HeaderColors = this._headerColors;
 
         // Save the configuration
         Wordsmith.Configuration.Save();
