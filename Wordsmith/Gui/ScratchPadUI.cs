@@ -3,11 +3,13 @@ using System.Threading.Tasks;
 using ImGuiNET;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Wordsmith.Data;
 using Wordsmith.Enums;
+using Wordsmith.Extensions;
 
 namespace Wordsmith.Gui;
 
-public class ScratchPadUI : Window
+internal class ScratchPadUI : Window
 {
     /// <summary>
     /// A protected class used only for comparing multiple pad state elements at once.
@@ -110,7 +112,7 @@ public class ScratchPadUI : Window
     protected string _clearedScratch = "";
     protected int _scratchBufferSize = 4096;
     protected bool _useOOC = false;
-    protected string[]? _chunks;
+    private List<TextChunk> _chunks = new();
     protected int _nextChunk = 0;
     #endregion
 
@@ -132,11 +134,13 @@ public class ScratchPadUI : Window
     private Dictionary<string, (string Title, string Message)> _debugLines = new();
     internal string GetDebugString()
     {
-        string result = $"Pad ID: {this.ID}\nScratchString: {this.ScratchString}\nOOC {_useOOC}\nChunks[{_chunks?.Length ?? 0}]:";
-        foreach ( string s in _chunks ?? Array.Empty<string>() )
-            result += $"\n\t - {s.Replace( "\r", "\\r" ).Replace( "\n", "\\n" )}";
+        string result = $"Pad ID: {this.ID}\nScratchString: {this._scratch.Replace(SPACED_WRAP_MARKER + "\n", "\\n ").Replace(NOSPACE_WRAP_MARKER+"\n", "\\n")}\nOOC {_useOOC}\nChunks[{_chunks.Count}]:";
+
+        foreach ( TextChunk chunk in _chunks!)
+            result += $"\n\t - {chunk.CompleteText.Replace( SPACED_WRAP_MARKER + "\n", "\\n " ).Replace( NOSPACE_WRAP_MARKER + "\n", "\\n" )}";
+
         result += $"\n\nCorrections:";
-        foreach ( Data.WordCorrection wc in _corrections )
+        foreach ( WordCorrection wc in _corrections )
             result += $"\n\t [{wc.Index}]\t{wc.Original}";
 
         foreach(KeyValuePair<string, (string Title, string Message)> kvp in _debugLines )
@@ -315,15 +319,15 @@ public class ScratchPadUI : Window
                     DoSpellCheck();
 
                 // If there are chunks
-                if ((_chunks?.Length ?? 0) > 0)
+                if (_chunks.Count > 0)
                 {
                     // Create a chunk menu.
                     if (ImGui.BeginMenu($"Chunks##ScratchPad{ID}ChunksMenu"))
                     {
                         // Create a copy menu item for each individual chunk.
-                        for (int i=0; i<_chunks!.Length; ++i)
+                        for (int i=0; i<_chunks.Count; ++i)
                             if (ImGui.MenuItem($"Copy Chunk {i+1}##ScratchPad{ID}ChunkMenuItem{i}"))
-                                ImGui.SetClipboardText(_chunks[i]);
+                                ImGui.SetClipboardText(_chunks[i].CompleteText);
 
                         // End chunk menu
                         ImGui.EndMenu();
@@ -485,7 +489,8 @@ public class ScratchPadUI : Window
             // If ShowTextInChunks is enabled, we show the text in its chunked state.
             if (Wordsmith.Configuration.ShowTextInChunks)
             {
-                for (int i = 0; i < (_chunks?.Length ?? 0); ++i)
+                int offset = 0;
+                for (int i = 0; i < _chunks.Count; ++i)
                 {
                     //// If not the first chunk, add a spacing.
                     if ( i > 0 )
@@ -495,12 +500,12 @@ public class ScratchPadUI : Window
                     ImGui.Separator();
 
                     if (Wordsmith.Configuration.EnableSpellingErrorHighlighting && _corrections.Count > 0)
-                        DrawChunkItem( _chunks![i] );
+                        DrawChunkItem( _chunks[i], ref offset );
                     else
                     {
                         // Set width and display the chunk.
                         ImGui.SetNextItemWidth( -1 );
-                        ImGui.TextWrapped( _chunks![i] );
+                        ImGui.TextWrapped( _chunks[i].CompleteText );
                     }
                 }
             }
@@ -517,10 +522,10 @@ public class ScratchPadUI : Window
         ImGui.Spacing();
     }
 
-    protected void DrawChunkItem(string text)
+    protected void DrawChunkItem(TextChunk chunk, ref int offset)
     {
         // Split it into words.
-        string[] words = text.Replace(GetFullChatHeader(), "").Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
         float width = 0f;
 
         bool sameLine = false;
@@ -530,12 +535,14 @@ public class ScratchPadUI : Window
             width += ImGui.CalcTextSize( GetFullChatHeader() ).X;
             sameLine = true;
         }
-        for (int i = 0; i < words.Length; ++i)
+        for (int i = 0; i < chunk.Words.Length; ++i)
         {
-            string word = words[i];
+            string word = chunk.Words[i];
+
+            int idx = i+offset;
 
             if (DebugUI.ShowWordIndex)
-                word = $"[{i}]{word}";
+                word = $"[{idx}]{word}";
 
             float objWidth = ImGui.CalcTextSize(word).X;
             width += objWidth+(5*ImGuiHelpers.GlobalScale);
@@ -543,11 +550,12 @@ public class ScratchPadUI : Window
                 ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
             else
                 width = objWidth;
-            if ( _corrections?.Count > 0 && _corrections[0].Index == i)
+            if ( _corrections?.Count > 0 && _corrections[0].Index == idx)
                 ImGui.TextColored( Wordsmith.Configuration.SpellingErrorHighlightColor, word );
             else
                 ImGui.Text(word);
         }
+        offset += chunk.WordCount;
     }
 
     /// <summary>
@@ -680,7 +688,7 @@ public class ScratchPadUI : Window
     protected void DrawCopyButton()
     {
         // If there is more than 1 chunk.
-        if ((_chunks?.Length ?? 0) > 1)
+        if (_chunks.Count > 1)
         {
             // Push the icon font for the character we need then draw the previous chunk button.
             ImGui.PushFont(UiBuilder.IconFont);
@@ -688,14 +696,14 @@ public class ScratchPadUI : Window
             {
                 --_nextChunk;
                 if (_nextChunk < 0)
-                    _nextChunk = _chunks?.Length - 1 ?? 0;
+                    _nextChunk = _chunks.Count - 1;
             }
             // Reset the font.
             ImGui.PushFont(UiBuilder.DefaultFont);
 
             // Draw the copy button with no spacing.
             ImGui.SameLine(0, 0);
-            if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}##ScratchPad{ID}", new(ImGui.GetColumnWidth() - (23 * ImGuiHelpers.GlobalScale), 25 * ImGuiHelpers.GlobalScale)))
+            if (ImGui.Button($"Copy{(_chunks.Count > 1 ? $" ({_nextChunk + 1}/{_chunks.Count})" : "")}##ScratchPad{ID}", new(ImGui.GetColumnWidth() - (23 * ImGuiHelpers.GlobalScale), 25 * ImGuiHelpers.GlobalScale)))
                 DoCopyToClipboard();
 
             // Push the font and draw the next chunk button with no spacing.
@@ -704,7 +712,7 @@ public class ScratchPadUI : Window
             if (ImGui.Button($"{(char)0xF101}##{ID}ChunkBackButton", ImGuiHelpers.ScaledVector2(25, 25)))
             {
                 ++_nextChunk;
-                if (_nextChunk >= (_chunks?.Length ?? 0))
+                if (_nextChunk >= _chunks.Count)
                     _nextChunk = 0;
             }
             // Reset the font.
@@ -712,7 +720,7 @@ public class ScratchPadUI : Window
         }
         else // If there is only one chunk simply draw a normal button.
         {
-            if (ImGui.Button($"Copy{((_chunks?.Length ?? 0) > 1 ? $" ({_nextChunk + 1}/{_chunks?.Length})" : "")}##ScratchPad{ID}", new(-1, 25 * ImGuiHelpers.GlobalScale)))
+            if (ImGui.Button($"Copy{(_chunks.Count > 1 ? $" ({_nextChunk + 1}/{_chunks.Count})" : "")}##ScratchPad{ID}", new(-1, 25 * ImGuiHelpers.GlobalScale)))
                 DoCopyToClipboard();
         }
     }
@@ -750,14 +758,14 @@ public class ScratchPadUI : Window
     protected void DoCopyToClipboard()
     {
         // If there are no chunks to copy exit the function.
-        if ((_chunks?.Length ?? 0) == 0)
+        if (_chunks.Count == 0)
             return;
 
         // Copy the next chunk over.
-        ImGui.SetClipboardText(_chunks?[_nextChunk++].Trim());
+        ImGui.SetClipboardText(_chunks[_nextChunk++].CompleteText.Trim());
 
         // If we're not at the last chunk, return.
-        if (_nextChunk < _chunks?.Length)
+        if (_nextChunk < _chunks.Count)
             return;
 
         // After this point, we assume we've copied the last chunk.
@@ -827,7 +835,12 @@ public class ScratchPadUI : Window
     {
         // Clear any old corrections to prevent them from stacking.
         _corrections = new();
-        _corrections.AddRange(Helpers.SpellChecker.CheckString(_scratch.Replace('\n', ' ').Trim()));
+        _corrections.AddRange(Helpers.SpellChecker.CheckString(
+            _scratch
+                .Replace( SPACED_WRAP_MARKER + '\n', " " )
+                .Replace( NOSPACE_WRAP_MARKER + '\n', "" )
+                .Trim()
+                ));
         _spellChecked = true;
         _notices.Remove("Checking your spelling...");
     }
@@ -842,44 +855,64 @@ public class ScratchPadUI : Window
         if (_replaceText.Length > 0)
         {
             // Get the first object
-            Data.WordCorrection correct = _corrections[0];
+            WordCorrection correct = _corrections[0];
 
-            // Break apart the words in the sentence.
-            string[] words = _scratch
+            // Remove wrapping.
+            string text = _scratch
                 .Replace(SPACED_WRAP_MARKER+'\n', " ")
-                .Replace(NOSPACE_WRAP_MARKER+'\n', "")
-                .Split(' ');
+                .Replace(NOSPACE_WRAP_MARKER+'\n', "");
 
-            // Replace the content of the word in question.
-            words[correct.Index] = words[correct.Index].Replace(correct.Original, _replaceText);
+            // Break into individual ines where the user put a new line.
+            string[] lines = text.Split('\n');
 
-            // Preserving corrections prevents the Update method from
-            // clearing the list of corrections even though the text
-            // in the box has changed.
-            _preserveCorrections = true;
-
-            // Replace the user's original text with the new words.
-            _scratch = string.Join(' ', words);
-
-            // If the user replaces a single word with multiple words, we need to increment the remaining index.
-            if ( _replaceText.Split( " " ).Length > 1 )
+            int offset = 0;
+            for ( int i = 0; i < lines.Length; ++i )
             {
-                foreach (Data.WordCorrection wc in _corrections)
-                    wc.Index += _replaceText.Split( " " ).Length - 1;
+                // Split the line into words.
+                string[] words = lines[i].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                int idx = correct.Index + offset;
+
+                // Offset is used to adjust the correct.Index for lines.
+                // If the adjusted value is still to high then adjust the
+                // offset and continue to the next line.
+                if ( idx >= words.Length )
+                {
+                    offset -= words.Length;
+                    continue;
+                }
+
+                // Replace the content of the word in question.
+                words[idx] = words[idx].Replace( correct.Original.Clean(), _replaceText );
+
+                // Preserving corrections prevents the Update method from
+                // clearing the list of corrections even though the text
+                // in the box has changed.
+                _preserveCorrections = true;
+
+                // Replace the user's original text with the new words.
+                lines[i] = string.Join( ' ', words );
+
+                // If the user replaces a single word with multiple words, we need to increment the remaining index.
+                if ( _replaceText.Split( " ", StringSplitOptions.RemoveEmptyEntries ).Length > 1 )
+                {
+                    foreach ( WordCorrection wc in _corrections )
+                        wc.Index += _replaceText.Split( " " ).Length - 1;
+                }
+                else if ( _replaceText == "" )
+                {
+                    foreach ( WordCorrection wc in _corrections )
+                        --wc.Index;
+                }
+
+                // Clear out replacement text.
+                _replaceText = "";
+
             }
-            else if (_replaceText == "")
-            {
-                foreach ( Data.WordCorrection wc in _corrections )
-                    --wc.Index;
-            }
-
-            // Clear out replacement text.
-            _replaceText = "";
-
-
             int ignore = 0;
             // Rewrap the text string.
-            _scratch = WrapString(_scratch, ref ignore);
+            _scratch = string.Join( '\n', lines );
+            _scratch = WrapString( _scratch, ref ignore );
         }
 
         // Remove the spelling error.

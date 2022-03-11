@@ -1,7 +1,7 @@
 ﻿
 namespace Wordsmith.Extensions;
 
-public static class Extensions
+internal static class Extensions
 {
     /// <summary>
     /// Move an item inside of a List of T.
@@ -10,7 +10,7 @@ public static class Extensions
     /// <param name="list">The extended list</param>
     /// <param name="obj">The object to move</param>
     /// <param name="index">The index to move to. Offset will be calculated already. If out of range, obj will be moved to first or last slot.</param>
-    public static void Move<T>(this List<T> list, T obj, int index)
+    internal static void Move<T>(this List<T> list, T obj, int index)
     {
         // Get the current index of the object.
         int idx = list.IndexOf(obj);
@@ -49,7 +49,7 @@ public static class Extensions
     /// </summary>
     /// <param name="s">The string to capitalize the first letter of.</param>
     /// <returns>A <see cref="string"/> with the first letter capitalized.</returns>
-    public static string CaplitalizeFirst(this string s)
+    internal static string CaplitalizeFirst(this string s)
     {
         // If the length is one, just change the char and send it back.
         if (s.Length == 1)
@@ -69,7 +69,7 @@ public static class Extensions
     /// </summary>
     /// <param name="s">String to space.</param>
     /// <returns>A properly spaced <see cref="string"/></returns>
-    public static string SpaceByCaps(this string s)
+    internal static string SpaceByCaps(this string s)
     {
         // If there aren't at least two characters then return.
         if (s.Length < 2)
@@ -98,7 +98,7 @@ public static class Extensions
     /// </summary>
     /// <param name="s">The string to remove double spaces from.</param>
     /// <returns><see cref="string"/> with double-spacing fixed.</returns>
-    public static string FixSpacing(this string s)
+    internal static string FixSpacing(this string s)
     {
         // Start by initially running the replace command.
         do
@@ -122,7 +122,7 @@ public static class Extensions
     /// <param name="s">The string to remove double spaces from.</param>
     /// <param name="cursorPos">A reference to a text cursor to be manipulated.</param>
     /// <returns><see cref="string"/> with double-spacing fixed.</returns>
-    public static string FixSpacing(this string s, ref int cursorPos)
+    internal static string FixSpacing(this string s, ref int cursorPos)
     {
         int idx;
         do
@@ -157,6 +157,64 @@ public static class Extensions
         return s;
     }
 
+
+
+    /// <summary>
+    /// Cleans the word of any punctuation marks that should not be at the beginning or end.
+    /// i.e. "Hello." becomes Hello
+    /// </summary>
+    /// <param name="str"></param>
+    /// <returns>Returns the word from of starting and ending punctuation and spaces.</returns>
+    internal static string Clean( this string str )
+    {
+        // Remove white space at the beginning and end. There shouldn't be any but just in case.
+        str = str.Trim();
+
+        if ( str.EndsWith( "'s" ) )
+            str = str[0..^2];
+
+        // Loop
+        do
+        {
+            // If the string is now empty, return an empty string.
+            if ( str.Length < 1 )
+                break;
+
+            // Check the start and end of the word against every character.
+            bool doBreak = true;
+            foreach ( char c in Wordsmith.Configuration.PunctuationCleaningList )
+            {
+                // Check the start of the string for the character
+                if ( str.StartsWith( c ) )
+                {
+                    // If the string starts with the symbol, remove the symbol and
+                    // prevent exiting the loop.
+                    str = str.Substring( 1 );
+                    doBreak = false;
+                }
+
+                // If ignoring hyphen-ended words and the character is a hyphen, skip the 
+                // EndsWith check.
+                if ( Wordsmith.Configuration.IgnoreWordsEndingInHyphen && c == '-' )
+                    continue;
+
+                // Check the ending of the string
+                if ( str.EndsWith( c ) )
+                {
+                    // Remove the last character and prevent loop breaking
+                    str = str.Substring( 0, str.Length - 1 );
+                    doBreak = false;
+                }
+            }
+
+            // If the break hasn't been prevented, break.
+            if ( doBreak )
+                break;
+        } while ( true );
+
+        return str;
+    }
+
     /// <summary>
     /// Returns the index of an item in an array.
     /// </summary>
@@ -164,7 +222,7 @@ public static class Extensions
     /// <param name="array">The array to find the object in.</param>
     /// <param name="obj">The object to locate within the array.</param>
     /// <returns><see cref="int"/> index of <typeparamref name="T"/> in array or -1 if not found.</returns>
-    public static int IndexOf<T>(this T[] array, T obj)
+    internal static int IndexOf<T>(this T[] array, T obj)
     {
         // Iterate and compare each item and return the index if
         // a match is found.
