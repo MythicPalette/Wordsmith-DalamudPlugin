@@ -34,6 +34,11 @@ public class Configuration : IPluginConfiguration
     public bool IgnoreWordsEndingInHyphen { get; set; } = true;
 
     /// <summary>
+    /// If enabled, uses a custom label layout to display highlighted text.
+    /// </summary>
+    public bool EnableTextHighlighting { get; set; } = true;
+
+    /// <summary>
     /// The spell checker will attempt to delete these punctuation marks from the beginning and end of every word
     /// </summary>
     public string PunctuationCleaningList { get; set; } = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
@@ -102,6 +107,20 @@ public class Configuration : IPluginConfiguration
 
     public bool DetectHeaderInput { get; set; } = true;
 
+    public Dictionary<int, Vector4> HeaderColors = new()
+    {
+        {(int)Enums.ChatType.Emote, new(0.9f, 0.9f, 0.9f, 1f) },
+        {(int)Enums.ChatType.Reply, new(1f, 0.35f, 0.6f, 1f) },
+        {(int)Enums.ChatType.Say, new(1f, 1f, 1f, 1f) },
+        {(int)Enums.ChatType.Party, new(0f, 0.5f, 0.6f, 1f) },
+        {(int)Enums.ChatType.FC, new(0.6f, 0.75f, 1f, 1f) },
+        {(int)Enums.ChatType.Shout, new(1f, 0.5f, 0.2f, 1f) },
+        {(int)Enums.ChatType.Yell, new(0.9f, 1f, 0.2f, 1f) },
+        {(int)Enums.ChatType.Tell, new(1f, 0.35f, 0.6f, 1f) },
+        {(int)Enums.ChatType.Echo, new(0.75f, 0.75f, 0.75f, 1f) },
+        {(int)Enums.ChatType.Linkshell, new(0.8f, 1f, 0.6f, 1f) }
+    };
+
     #region Spell Checker Settings
     /// <summary>
     /// Holds the dictionary of words added by the user.
@@ -112,11 +131,6 @@ public class Configuration : IPluginConfiguration
     /// The file to be loaded into Lang dictionary.
     /// </summary>
     public string DictionaryFile { get; set; } = "lang_en";
-
-    /// <summary>
-    /// If enabled, uses a custom label layout to display highlighted text.
-    /// </summary>
-    public bool EnableSpellingErrorHighlighting { get; set; } = true;
 
     public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
     #endregion
@@ -140,7 +154,7 @@ public class Configuration : IPluginConfiguration
         ResearchToTop = true;
 
         // Scratch Pad settings
-        DeleteClosedScratchPads = false;
+        DeleteClosedScratchPads = true;
         IgnoreWordsEndingInHyphen = true;
         PunctuationCleaningList = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/";
         ShowTextInChunks = true;
@@ -152,10 +166,23 @@ public class Configuration : IPluginConfiguration
         AutomaticallyClearAfterLastCopy = false;
         ScratchPadTextEnterBehavior = 0;
         ScratchPadMaximumTextLength = 4096;
-        ReplaceDoubleSpaces = true;
-        EnableSpellingErrorHighlighting = true;
-        SpellingErrorHighlightColor = new( 0.9f, 0.2f, 0.2f, 1f );
         DetectHeaderInput = true;
+        ReplaceDoubleSpaces = true;
+        EnableTextHighlighting = true;
+        SpellingErrorHighlightColor = new( 0.9f, 0.2f, 0.2f, 1f );
+        HeaderColors = new()
+        {
+            { (int)Enums.ChatType.Emote, new( 0.9f, 0.9f, 0.9f, 1f ) },
+            { (int)Enums.ChatType.Reply, new( 1f, 0.35f, 0.6f, 1f ) },
+            { (int)Enums.ChatType.Say, new( 1f, 1f, 1f, 1f ) },
+            { (int)Enums.ChatType.Party, new( 0f, 0.5f, 0.6f, 1f ) },
+            { (int)Enums.ChatType.FC, new( 0.6f, 0.75f, 1f, 1f ) },
+            { (int)Enums.ChatType.Shout, new( 1f, 0.5f, 0.2f, 1f ) },
+            { (int)Enums.ChatType.Yell, new( 0.9f, 1f, 0.2f, 1f ) },
+            { (int)Enums.ChatType.Tell, new( 1f, 0.35f, 0.6f, 1f ) },
+            { (int)Enums.ChatType.Echo, new( 0.75f, 0.75f, 0.75f, 1f ) },
+            { (int)Enums.ChatType.Linkshell, new( 0.8f, 1f, 0.6f, 1f ) }
+        };
 
         // Spell Check settings
         DictionaryFile = "lang_en";
