@@ -1,6 +1,5 @@
 ﻿using Dalamud.Interface.Windowing;
 using Wordsmith.Gui;
-using Wordsmith.Helpers;
 
 namespace Wordsmith;
 
