@@ -14,7 +14,7 @@ public class SpellChecker
         List<WordCorrection> results = new();
 
         // Get the user-defined lines.
-        string[] lines = str.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = str.Lines(StringSplitOptions.RemoveEmptyEntries);//str.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         int offset = 0;
         for ( int lineIndex = 0; lineIndex < lines.Length; ++lineIndex )
         {
@@ -27,7 +27,7 @@ public class SpellChecker
                 int idx = i+offset;
 
                 // If it's a number, just skip it
-                if ( float.TryParse( words[i].Replace( ",", "" ), out float discard ) )
+                if ( float.TryParse( words[i].Replace( ",", "" ), out _ ) )
                     continue;
 
                 string word = words[i].Clean();
@@ -44,7 +44,7 @@ public class SpellChecker
                 if ( !Lang.isWord( lowercased ) )
                 {
                     // Check it as a possible number by trying to parse a number after remove "st", "nd", "rd", and "th" from it.
-                    if ( float.TryParse( word.Replace( ",", "" ).Replace( "st", "" ).Replace( "nd", "" ).Replace( "rd", "" ).Replace( "th", "" ), out float val ) )
+                    if ( float.TryParse( word.Replace( ",", "" ).Replace( "st", "" ).Replace( "nd", "" ).Replace( "rd", "" ).Replace( "th", "" ), out _ ) )
                         continue; // It was a number, so continue the loop.
 
                     // Check if the word is a hyphenation such as "crazy-like".
