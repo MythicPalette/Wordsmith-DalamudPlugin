@@ -659,7 +659,7 @@ internal class ScratchPadUI : Window
             _replaceText = correct.Original;
 
             if (ImGui.InputText($"##ScratchPad{ID}ReplaceTextTextbox", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
-                OnReplace();
+                OnReplace(0);
 
             // If they mouse over the input, tell them to use the enter key to replace.
             if (ImGui.IsItemHovered())
@@ -668,18 +668,8 @@ internal class ScratchPadUI : Window
             // Add to dictionary button
             ImGui.SameLine();
             ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
-            if (ImGui.Button($"Add To Dictionary##ScratchPad{ID}"))
-            {
-                Lang.AddDictionaryEntry(correct.Original.Clean());
-
-                _corrections.RemoveAt(0);
-
-                // Get rid of any spelling corrections with the same text.
-
-
-                if (_corrections.Count == 0)
-                    Refresh();
-            }
+            if ( ImGui.Button( $"Add To Dictionary##ScratchPad{ID}" ) )
+                OnAddToDictionary(0);
         }
     }
 
@@ -894,17 +884,18 @@ internal class ScratchPadUI : Window
     /// <summary>
     /// Replaces spelling errors with the given text or ignores an error if _replaceText is blank
     /// </summary>
-    protected void OnReplace()
+    /// <param name="index"><see cref="int"/> index of the correction in correction list.</param>
+    protected void OnReplace(int index)
     {
         // If the text box is not empty when the user hits enter then
         // update the text.
-        if (_replaceText.Length > 0)
+        if (_replaceText.Length > 0 && index < _corrections.Count)
         {
             // Get the first object
-            WordCorrection correct = _corrections[0];
+            WordCorrection correct = _corrections[index];
 
             // Break into individual lines where the user put a new line.
-            string[] lines = _scratch.Lines();
+            string[] lines = _scratch.Lines(StringSplitOptions.RemoveEmptyEntries);
 
             int offset = 0;
             for ( int i = 0; i < lines.Length; ++i )
@@ -957,11 +948,36 @@ internal class ScratchPadUI : Window
         }
 
         // Remove the spelling error.
-        _corrections.RemoveAt(0);
+        _corrections.RemoveAt( index );
 
         // If corrections are not emptied then disable preserve.
         if (_corrections.Count == 0)
             _preserveCorrections = false;
+    }
+
+    /// <summary>
+    /// Adds the word to the dictionary and removes any subsequent correction requestions with
+    /// the same word in it.
+    /// </summary>
+    /// <param name="index"><see cref="int"/> index of the correction in correction list.</param>
+    protected void OnAddToDictionary(int index)
+    {
+        // Get the word
+        string newWord = _corrections[index].Original.Clean().ToLower();
+
+        // Add the cleaned word to the dictionary.
+        Lang.AddDictionaryEntry( newWord );
+
+        // Remove the cleaned word from the dictionary
+        _corrections.RemoveAt( index );
+
+        // Get rid of any spelling corrections with the same word
+        foreach ( WordCorrection wc in _corrections )
+            if ( wc.Original.Clean().ToLower() == newWord )
+                _corrections.Remove( wc );
+
+        if ( _corrections.Count == 0 )
+            Refresh();
     }
 
     /// <summary>
@@ -977,6 +993,11 @@ internal class ScratchPadUI : Window
         }
     }
 
+    /// <summary>
+    /// Identifies the callback type and routes it accordingly
+    /// </summary>
+    /// <param name="data">Pointer to <see cref="ImGuiInputTextCallbackData"/></param>
+    /// <returns>Always returns 0</returns>
     public unsafe int OnTextCallback( ImGuiInputTextCallbackData* data )
     {
         if ( data->EventFlag == ImGuiInputTextFlags.CallbackAlways )
