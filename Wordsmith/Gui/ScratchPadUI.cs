@@ -5,7 +5,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Data;
 using Wordsmith.Enums;
-using Wordsmith.Extensions;
 
 namespace Wordsmith.Gui;
 
@@ -58,9 +57,6 @@ internal class ScratchPadUI : Window
     /// Contains all of the constants used in this file.
     /// </summary>
     #region Constants
-    protected const string SPACED_WRAP_MARKER = "\r\r";
-    protected const string NOSPACE_WRAP_MARKER = "\r";
-
     protected const int ENTER_KEY = 0xD;
     #endregion
 
@@ -82,7 +78,7 @@ internal class ScratchPadUI : Window
     protected bool _preserveCorrections = false;
     #endregion
 
-    protected List<Data.WordCorrection> _corrections = new();
+    protected List<WordCorrection> _corrections = new();
 
     #region Alerts
     protected List<string> _errors = new();
@@ -107,7 +103,7 @@ internal class ScratchPadUI : Window
     /// <summary>
     /// Returns a trimmed, single-line version of scratch.
     /// </summary>
-    protected string ScratchString => _scratch.Trim().Replace(SPACED_WRAP_MARKER + "\n", " ").Replace(NOSPACE_WRAP_MARKER+"\n", "");
+    protected string ScratchString => _scratch.Unwrap();
     protected string _scratch = "";
     protected string _clearedScratch = "";
     protected int _scratchBufferSize = 4096;
@@ -134,10 +130,10 @@ internal class ScratchPadUI : Window
     private Dictionary<string, (string Title, string Message)> _debugLines = new();
     internal string GetDebugString()
     {
-        string result = $"Pad ID: {this.ID}\nScratchString: {this._scratch.Replace(SPACED_WRAP_MARKER + "\n", "\\n ").Replace(NOSPACE_WRAP_MARKER+"\n", "\\n")}\nOOC {_useOOC}\nChunks[{_chunks.Count}]:";
+        string result = $"Pad ID: {this.ID}\nScratchString: {this._scratch.Unwrap()}\nOOC {_useOOC}\nChunks[{_chunks.Count}]:";
 
         foreach ( TextChunk chunk in _chunks!)
-            result += $"\n\t - {chunk.CompleteText.Replace( SPACED_WRAP_MARKER + "\n", "\\n " ).Replace( NOSPACE_WRAP_MARKER + "\n", "\\n" )}";
+            result += $"\n\t - {chunk.CompleteText.Replace( Constants.SPACED_WRAP_MARKER + "\n", "\\r\\r\\n " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "\\r\\n" )}";
 
         result += $"\n\nCorrections:";
         foreach ( WordCorrection wc in _corrections )
@@ -651,7 +647,7 @@ internal class ScratchPadUI : Window
         if (_corrections.Count > 0)
         {
             // Get the fist incorrect word.
-            Data.WordCorrection correct = _corrections[0];
+            WordCorrection correct = _corrections[0];
 
 
             // Notify of the spelling error.
@@ -674,9 +670,13 @@ internal class ScratchPadUI : Window
             ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
             if (ImGui.Button($"Add To Dictionary##ScratchPad{ID}"))
             {
-                Data.Lang.AddDictionaryEntry(correct.Original);
+                Lang.AddDictionaryEntry(correct.Original.Clean());
 
                 _corrections.RemoveAt(0);
+
+                // Get rid of any spelling corrections with the same text.
+
+
                 if (_corrections.Count == 0)
                     Refresh();
             }
@@ -886,12 +886,7 @@ internal class ScratchPadUI : Window
     {
         // Clear any old corrections to prevent them from stacking.
         _corrections = new();
-        _corrections.AddRange(Helpers.SpellChecker.CheckString(
-            _scratch
-                .Replace( SPACED_WRAP_MARKER + '\n', " " )
-                .Replace( NOSPACE_WRAP_MARKER + '\n', "" )
-                .Trim()
-                ));
+        _corrections.AddRange(Helpers.SpellChecker.CheckString( _scratch ));
         _spellChecked = true;
         _notices.Remove("Checking your spelling...");
     }
@@ -908,13 +903,8 @@ internal class ScratchPadUI : Window
             // Get the first object
             WordCorrection correct = _corrections[0];
 
-            // Remove wrapping.
-            string text = _scratch
-                .Replace(SPACED_WRAP_MARKER+'\n', " ")
-                .Replace(NOSPACE_WRAP_MARKER+'\n', "");
-
-            // Break into individual ines where the user put a new line.
-            string[] lines = text.Split('\n');
+            // Break into individual lines where the user put a new line.
+            string[] lines = _scratch.Lines();
 
             int offset = 0;
             for ( int i = 0; i < lines.Length; ++i )
@@ -1248,25 +1238,25 @@ internal class ScratchPadUI : Window
 
         // Replace all wrap markers with spaces and adjust cursor offset. Do this before
         // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
-        while (text.Contains(SPACED_WRAP_MARKER+'\n'))
+        while (text.Contains(Constants.SPACED_WRAP_MARKER+'\n'))
         {
-            int idx = text.IndexOf(SPACED_WRAP_MARKER + '\n');
-            text = text[0..idx] + " " + text[(idx + (SPACED_WRAP_MARKER + '\n').Length)..^0];
+            int idx = text.IndexOf(Constants.SPACED_WRAP_MARKER + '\n');
+            text = text[0..idx] + " " + text[(idx + (Constants.SPACED_WRAP_MARKER + '\n').Length)..^0];
 
             // We adjust the cursor position by one less than the wrap marker
             // length to account for the space that replaces it.
             if (cursorPos > idx)
-                cursorPos -= SPACED_WRAP_MARKER.Length;
+                cursorPos -= Constants.SPACED_WRAP_MARKER.Length;
             
         }
 
-        while (text.Contains(NOSPACE_WRAP_MARKER+'\n'))
+        while (text.Contains(Constants.NOSPACE_WRAP_MARKER+'\n'))
         {
-            int idx = text.IndexOf(NOSPACE_WRAP_MARKER + '\n');
-            text = text[0..idx] + text[(idx + (NOSPACE_WRAP_MARKER + '\n').Length)..^0];
+            int idx = text.IndexOf(Constants.NOSPACE_WRAP_MARKER + '\n');
+            text = text[0..idx] + text[(idx + (Constants.NOSPACE_WRAP_MARKER + '\n').Length)..^0];
 
             if (cursorPos > idx)
-                cursorPos -= (NOSPACE_WRAP_MARKER + '\n').Length;
+                cursorPos -= (Constants.NOSPACE_WRAP_MARKER + '\n').Length;
         }
         
         // Replace double spaces if configured to do so.
@@ -1295,25 +1285,25 @@ internal class ScratchPadUI : Window
                 if (lastSpace > offset)
                 {
                     sb.Remove(lastSpace, 1);
-                    sb.Insert(lastSpace, SPACED_WRAP_MARKER+'\n');
-                    offset = lastSpace + SPACED_WRAP_MARKER.Length;
-                    i += SPACED_WRAP_MARKER.Length;
+                    sb.Insert(lastSpace, Constants.SPACED_WRAP_MARKER+'\n');
+                    offset = lastSpace + Constants.SPACED_WRAP_MARKER.Length;
+                    i += Constants.SPACED_WRAP_MARKER.Length;
 
                     // Adjust cursor position for the marker but not
                     // the new line as the new line is replacing the space.
                     if (lastSpace < cursorPos)
-                        cursorPos += SPACED_WRAP_MARKER.Length;
+                        cursorPos += Constants.SPACED_WRAP_MARKER.Length;
                 }
                 else
                 {
-                    sb.Insert(i, NOSPACE_WRAP_MARKER + '\n');
-                    offset = i + NOSPACE_WRAP_MARKER.Length;
-                    i += NOSPACE_WRAP_MARKER.Length;
+                    sb.Insert(i, Constants.NOSPACE_WRAP_MARKER + '\n');
+                    offset = i + Constants.NOSPACE_WRAP_MARKER.Length;
+                    i += Constants.NOSPACE_WRAP_MARKER.Length;
 
                     // Adjust cursor position for the marker and the
                     // new line since both are inserted.
-                    if (cursorPos > i - NOSPACE_WRAP_MARKER.Length)
-                        cursorPos += NOSPACE_WRAP_MARKER.Length + 1;
+                    if (cursorPos > i - Constants.NOSPACE_WRAP_MARKER.Length)
+                        cursorPos += Constants.NOSPACE_WRAP_MARKER.Length + 1;
                 }
                 text = sb.ToString();
             }

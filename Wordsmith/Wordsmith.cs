@@ -5,7 +5,6 @@ global using System.Text;
 global using System.Numerics;
 global using System.Collections.Generic;
 global using Dalamud.Logging;
-global using Wordsmith.Extensions;
 
 using Dalamud.Game.Command;
 using Dalamud.Data;

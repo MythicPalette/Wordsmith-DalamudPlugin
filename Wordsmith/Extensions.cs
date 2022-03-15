@@ -1,5 +1,5 @@
 ﻿
-namespace Wordsmith.Extensions;
+namespace Wordsmith;
 
 internal static class Extensions
 {
@@ -215,6 +215,9 @@ internal static class Extensions
         return str;
     }
 
+    internal static string Unwrap( this string s ) => s.Trim().Replace( Constants.SPACED_WRAP_MARKER + "\n", " " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "" );
+    internal static string[] Lines( this string s ) => s.Unwrap().Split( '\n' );
+    internal static string[] Lines( this string s, StringSplitOptions options ) => s.Unwrap().Split( '\n', options);
     /// <summary>
     /// Returns the index of an item in an array.
     /// </summary>
