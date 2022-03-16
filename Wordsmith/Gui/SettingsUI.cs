@@ -1,6 +1,7 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
+using Wordsmith.Data;
 
 namespace Wordsmith.Gui;
 
@@ -345,11 +346,9 @@ public sealed class SettingsUI : Window
                         ImGui.Text(Wordsmith.Configuration.CustomDictionaryEntries[i]);
 
                         ImGui.TableNextColumn();
-                        if (ImGui.Button($"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2(-1, 25)))
-                        {
-                            Wordsmith.Configuration.CustomDictionaryEntries.RemoveAt(i);
-                            Wordsmith.Configuration.Save();
-                        }
+                        if ( ImGui.Button( $"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2( -1, 25 ) ) )
+                            Lang.RemoveDictionaryEntry( Wordsmith.Configuration.CustomDictionaryEntries[i] );
+
                         if (ImGui.IsItemHovered())
                             ImGui.SetTooltip($"Permanently deletes {Wordsmith.Configuration.CustomDictionaryEntries[i]} from your custom dictionary.");
                     }

@@ -559,6 +559,7 @@ internal class ScratchPadUI : Window
                 ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
             else
                 width = objWidth;
+
             if ( _corrections?.Count > 0 && _corrections[0].Index == idx)
                 ImGui.TextColored( Wordsmith.Configuration.SpellingErrorHighlightColor, word );
             else
@@ -646,20 +647,34 @@ internal class ScratchPadUI : Window
     {
         if (_corrections.Count > 0)
         {
+            int index = 0;
             // Get the fist incorrect word.
-            WordCorrection correct = _corrections[0];
+            WordCorrection correct = _corrections[index];
 
 
             // Notify of the spelling error.
             ImGui.TextColored(new(255, 0, 0, 255), "Spelling Error:");
 
             // Draw the text input.
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 230 * ImGuiHelpers.GlobalScale);
+            ImGui.SameLine(0,0);
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionMax().X - ImGui.CalcTextSize("Spelling Error: ").X - (120*ImGuiHelpers.GlobalScale));
             _replaceText = correct.Original;
 
             if (ImGui.InputText($"##ScratchPad{ID}ReplaceTextTextbox", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
-                OnReplace(0);
+                OnReplace( index );
+
+
+            //bool showPop = ImGui.IsItemClicked(ImGuiMouseButton.Right);
+            //if (showPop)
+            //    ImGui.OpenPopup( $"ScratchPad{ID}ReplaceContextMenu" );
+
+            //if (ImGui.BeginPopup( $"ScratchPad{ID}ReplaceContextMenu" ))
+            //{
+            //    if ( ImGui.Selectable( $"Add To Dictionary##ScratchPad{ID}ReplaceContextMenu" ) )
+            //        OnAddToDictionary( index );
+
+            //    ImGui.EndPopup();
+            //}
 
             // If they mouse over the input, tell them to use the enter key to replace.
             if (ImGui.IsItemHovered())
@@ -667,9 +682,9 @@ internal class ScratchPadUI : Window
 
             // Add to dictionary button
             ImGui.SameLine();
-            ImGui.SetNextItemWidth(120 * ImGuiHelpers.GlobalScale);
+            ImGui.SetNextItemWidth( 120 * ImGuiHelpers.GlobalScale );
             if ( ImGui.Button( $"Add To Dictionary##ScratchPad{ID}" ) )
-                OnAddToDictionary(0);
+                OnAddToDictionary( 0 );
         }
     }
 
@@ -895,11 +910,13 @@ internal class ScratchPadUI : Window
             WordCorrection correct = _corrections[index];
 
             // Break into individual lines where the user put a new line.
-            string[] lines = _scratch.Lines(StringSplitOptions.RemoveEmptyEntries);
+            string[] lines = _scratch.Lines();
 
             int offset = 0;
             for ( int i = 0; i < lines.Length; ++i )
             {
+                if (lines[i].Trim('\r', '\n', ' ').Length == 0)
+                    continue;
                 // Split the line into words.
                 string[] words = lines[i].Split(' ', StringSplitOptions.RemoveEmptyEntries);
 

@@ -157,8 +157,6 @@ internal static class Extensions
         return s;
     }
 
-
-
     /// <summary>
     /// Cleans the word of any punctuation marks that should not be at the beginning or end.
     /// i.e. "Hello." becomes Hello

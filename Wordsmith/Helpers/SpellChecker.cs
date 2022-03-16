@@ -14,10 +14,14 @@ public class SpellChecker
         List<WordCorrection> results = new();
 
         // Get the user-defined lines.
-        string[] lines = str.Lines(StringSplitOptions.RemoveEmptyEntries);//str.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = str.Lines();//str.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         int offset = 0;
         for ( int lineIndex = 0; lineIndex < lines.Length; ++lineIndex )
         {
+            // If the line is just whitespace then increment the emptyLine count
+            if ( lines[lineIndex].Trim('\r', '\n', ' ').Length == 0 )
+                continue;
+
             // Take the line and split it into words.
             string[] words = lines[lineIndex].Split(' ');
 

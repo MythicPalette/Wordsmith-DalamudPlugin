@@ -91,10 +91,6 @@ public static class Lang
     /// <returns><see langword="true"/> if the word was not in the dictionary already.</returns>
     public static bool AddDictionaryEntry(string word)
     {
-        // If the word is already in the dictionary, disregard.
-        //if (_wordlist.FirstOrDefault(w => w.ToLower() == text.ToLower().Trim()) != null)
-        //    return false;
-
         // Add the word to the currently loaded dictionary.
         if (_dictionary.Add(word.Trim().ToLower()))
         {
@@ -108,5 +104,12 @@ public static class Lang
         }
 
         return false;
+    }
+
+    public static void RemoveDictionaryEntry(string word)
+    {
+        _dictionary.Remove( word );
+        Wordsmith.Configuration.CustomDictionaryEntries.Remove( word );
+        Wordsmith.Configuration.Save();
     }
 }
