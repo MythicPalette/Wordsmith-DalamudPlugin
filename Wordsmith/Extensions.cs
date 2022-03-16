@@ -213,9 +213,28 @@ internal static class Extensions
         return str;
     }
 
+    /// <summary>
+    /// Unwraps the text string using the spaced and no space markers.
+    /// </summary>
+    /// <param name="s">The <see cref="string"/> to be unwrapped.</param>
+    /// <returns><see cref="string"/> with all wrap markers replaced.</returns>
     internal static string Unwrap( this string s ) => s.Trim().Replace( Constants.SPACED_WRAP_MARKER + "\n", " " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "" );
+
+    /// <summary>
+    /// Unwraps a string then breaks it into lines based on user-entered newlines
+    /// </summary>
+    /// <param name="s">The string to break into lines.</param>
+    /// <returns><see cref="string"/> array with all wrap markers replaced and split into lines at new line characters.</returns>
     internal static string[] Lines( this string s ) => s.Unwrap().Split( '\n' );
+
+    /// <summary>
+    /// Unwraps a string then breaks it into lines based on user-entered newlines
+    /// </summary>
+    /// <param name="s">The string to break into lines.</param>
+    /// <param name="options"><see cref="StringSplitOptions"/> to use in the splitting.</param>
+    /// <returns><see cref="string"/> array with all wrap markers replaced and split into lines at new line characters.</returns>
     internal static string[] Lines( this string s, StringSplitOptions options ) => s.Unwrap().Split( '\n', options);
+
     /// <summary>
     /// Returns the index of an item in an array.
     /// </summary>
