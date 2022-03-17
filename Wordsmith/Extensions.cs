@@ -1,4 +1,5 @@
-﻿
+﻿using Wordsmith.Data;
+
 namespace Wordsmith;
 
 internal static class Extensions
@@ -221,19 +222,67 @@ internal static class Extensions
     internal static string Unwrap( this string s ) => s.Trim().Replace( Constants.SPACED_WRAP_MARKER + "\n", " " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "" );
 
     /// <summary>
-    /// Unwraps a string then breaks it into lines based on user-entered newlines
+    /// Takes a string and attempts to collect all of the words inside of it.
     /// </summary>
-    /// <param name="s">The string to break into lines.</param>
-    /// <returns><see cref="string"/> array with all wrap markers replaced and split into lines at new line characters.</returns>
-    internal static string[] Lines( this string s ) => s.Unwrap().Split( '\n' );
+    /// <param name="s">The string to parse.</param>
+    /// <returns><see cref="Word"/> array containing all words in the string.</returns>
+    internal static Word[] Words( this string s )
+    {
+        s = s.Unwrap();
+        if ( s.Length == 0 )
+            return Array.Empty<Word>();
 
-    /// <summary>
-    /// Unwraps a string then breaks it into lines based on user-entered newlines
-    /// </summary>
-    /// <param name="s">The string to break into lines.</param>
-    /// <param name="options"><see cref="StringSplitOptions"/> to use in the splitting.</param>
-    /// <returns><see cref="string"/> array with all wrap markers replaced and split into lines at new line characters.</returns>
-    internal static string[] Lines( this string s, StringSplitOptions options ) => s.Unwrap().Split( '\n', options);
+        List<Word> words = new();
+
+        int start = 0;
+        int len = 1;
+        while ( start + len <= s.Length )
+        {
+            // Scoot the starting point until we've skipped all spaces, return carriage, and newline characters.
+            while ( start < s.Length && " \r\n".Contains( s[start] ) )
+                ++start;
+
+            // If the start has gone all the way to tend, leave the loop.
+            if ( start == s.Length )
+                break;
+
+            if ( start + len == s.Length || " \r\n".Contains( s[start + len] ) )
+            {
+                int wordoffset = 0;
+                int wordlenoffset = 0;
+                // If the word starting index is a punctuation character then we scoot the word offset forward up to the entire
+                // length of the current string.
+                while ( start + wordoffset < s.Length && Wordsmith.Configuration.PunctuationCleaningList.Contains( s[start + wordoffset] ) && wordoffset <= len )
+                    ++wordoffset;
+
+
+                // If the word ends with a punctuation character then we scoot the word offset left up to the point that
+                // the offset puts us at -1 word length. This will happen when the word has no letters.
+                while (start + len - wordlenoffset -1 > -1  && Wordsmith.Configuration.PunctuationCleaningList.Contains( s[start + len - wordlenoffset -1] ) && wordoffset <= len )
+                    ++wordlenoffset;
+
+                // Add the start offset to the len offset to account for the lost length at the start.
+                wordlenoffset += wordoffset;
+
+                // When we create the word we add the offset to ensure that we
+                // adjust the position as needed.
+                Word w = new()
+                {
+                    StartIndex = start,
+                    EndIndex = start + len,
+                    WordIndex = start+wordoffset,
+                    WordLength = len-wordlenoffset,
+                };
+                words.Add( w );
+                start += len;
+                len = 1;
+
+                continue;
+            }
+            ++len;
+        }
+        return words.ToArray();
+    }
 
     /// <summary>
     /// Returns the index of an item in an array.

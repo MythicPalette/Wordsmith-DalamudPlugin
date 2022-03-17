@@ -78,7 +78,7 @@ internal class ScratchPadUI : Window
     protected bool _preserveCorrections = false;
     #endregion
 
-    protected List<WordCorrection> _corrections = new();
+    protected List<Word> _corrections = new();
 
     #region Alerts
     protected List<string> _errors = new();
@@ -133,11 +133,11 @@ internal class ScratchPadUI : Window
         string result = $"Pad ID: {this.ID}\nScratchString: {this._scratch.Unwrap()}\nOOC {_useOOC}\nChunks[{_chunks.Count}]:";
 
         foreach ( TextChunk chunk in _chunks!)
-            result += $"\n\t - {chunk.CompleteText.Replace( Constants.SPACED_WRAP_MARKER + "\n", "\\r\\r\\n " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "\\r\\n" )}";
+            result += $"\n\t[{chunk.StartIndex}]\t{chunk.CompleteText.Replace( Constants.SPACED_WRAP_MARKER + "\n", "\\r\\r\\n " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "\\r\\n" )}";
 
         result += $"\n\nCorrections:";
-        foreach ( WordCorrection wc in _corrections )
-            result += $"\n\t [{wc.Index}]\t{wc.Original}";
+        foreach ( Word w in _corrections )
+            result += $"\n\t [{w.StartIndex}|{w.WordIndex}..{w.EndIndex}|{w.WordEndIndex}]\t{w.GetString(_scratch)} | {w.GetWordString(_scratch)}";
 
         foreach(KeyValuePair<string, (string Title, string Message)> kvp in _debugLines )
             result += $"\n{kvp.Value.Title}\n\t- {kvp.Value.Message}";
@@ -485,7 +485,6 @@ internal class ScratchPadUI : Window
             // If ShowTextInChunks is enabled, we show the text in its chunked state.
             if (Wordsmith.Configuration.ShowTextInChunks)
             {
-                int offset = 0;
                 for (int i = 0; i < _chunks.Count; ++i)
                 {
                     //// If not the first chunk, add a spacing.
@@ -496,7 +495,7 @@ internal class ScratchPadUI : Window
                     ImGui.Separator();
 
                     if (Wordsmith.Configuration.EnableTextHighlighting)
-                        DrawChunkItem( _chunks[i], ref offset );
+                        DrawChunkItem( _chunks[i] );
                     else
                     {
                         // Set width and display the chunk.
@@ -518,7 +517,7 @@ internal class ScratchPadUI : Window
         ImGui.Spacing();
     }
 
-    protected void DrawChunkItem(TextChunk chunk, ref int offset)
+    protected void DrawChunkItem(TextChunk chunk)
     {
         // Split it into words.
 
@@ -546,24 +545,31 @@ internal class ScratchPadUI : Window
         // Draw body
         for (int i = 0; i < chunk.Words.Length; ++i)
         {
-            string word = chunk.Words[i];
+            // Get the first word
+            Word word = chunk.Words[i];
 
-            int idx = i+offset;
+            // Get the word string
+            string text = word.GetString(chunk.Text);
 
             if (DebugUI.ShowWordIndex)
-                word = $"[{idx}]{word}";
+                text = $"[{word.StartIndex}]{text}";
 
-            float objWidth = ImGui.CalcTextSize(word).X;
+            float objWidth = ImGui.CalcTextSize(text).X;
             width += objWidth+(5*ImGuiHelpers.GlobalScale);
             if ( (i > 0 || sameLine) && width < ImGui.GetWindowContentRegionMax().X )
                 ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
             else
                 width = objWidth;
 
-            if ( _corrections?.Count > 0 && _corrections[0].Index == idx)
-                ImGui.TextColored( Wordsmith.Configuration.SpellingErrorHighlightColor, word );
+            if ( _corrections?.Count > 0 && _corrections[0].StartIndex == word.StartIndex+chunk.StartIndex)
+                ImGui.TextColored( Wordsmith.Configuration.SpellingErrorHighlightColor, text );
             else
-                ImGui.Text(word);
+                ImGui.Text(text);
+
+#if DEBUG
+            if ( ImGui.IsItemHovered() )
+                ImGui.SetTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}" );
+#endif
         }
 
         // Draw OOC
@@ -602,8 +608,6 @@ internal class ScratchPadUI : Window
                 ImGui.Text( chunk.ContinuationMarker );
             }
         }
-        // Draw Continuation marker
-        offset += chunk.WordCount;
     }
 
     /// <summary>
@@ -649,7 +653,7 @@ internal class ScratchPadUI : Window
         {
             int index = 0;
             // Get the fist incorrect word.
-            WordCorrection correct = _corrections[index];
+            Word word = _corrections[index];
 
 
             // Notify of the spelling error.
@@ -658,7 +662,7 @@ internal class ScratchPadUI : Window
             // Draw the text input.
             ImGui.SameLine(0,0);
             ImGui.SetNextItemWidth(ImGui.GetContentRegionMax().X - ImGui.CalcTextSize("Spelling Error: ").X - (120*ImGuiHelpers.GlobalScale));
-            _replaceText = correct.Original;
+            _replaceText = word.GetWordString( _scratch );//_scratch[word.StartIndex..(word.StartIndex + word.WordLength)];//word.Original;
 
             if (ImGui.InputText($"##ScratchPad{ID}ReplaceTextTextbox", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
                 OnReplace( index );
@@ -907,65 +911,42 @@ internal class ScratchPadUI : Window
         if (_replaceText.Length > 0 && index < _corrections.Count)
         {
             // Get the first object
-            WordCorrection correct = _corrections[index];
+            Word word = _corrections[index];
 
-            // Break into individual lines where the user put a new line.
-            string[] lines = _scratch.Lines();
+            // Get the string builder on the unwrapped scratch string.
+            StringBuilder sb = new(_scratch.Unwrap());
 
-            int offset = 0;
-            for ( int i = 0; i < lines.Length; ++i )
+            // Remove the original word.
+            sb.Remove( word.WordIndex, word.WordLength );
+
+            // Insert the new text.
+            sb.Insert( word.WordIndex, _replaceText.Trim() );
+
+            _scratch = sb.ToString();
+
+            // Preserving corrections prevents the Update method from
+            // clearing the list of corrections even though the text
+            // in the box has changed.
+            _preserveCorrections = true;
+
+            // Remove the word from the list.
+            _corrections.Remove( word );
+
+            // Adjust the index of all following words.
+            if ( _replaceText.Length != word.WordLength )
             {
-                if (lines[i].Trim('\r', '\n', ' ').Length == 0)
-                    continue;
-                // Split the line into words.
-                string[] words = lines[i].Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                int idx = correct.Index + offset;
-
-                // Offset is used to adjust the correct.Index for lines.
-                // If the adjusted value is still to high then adjust the
-                // offset and continue to the next line.
-                if ( idx >= words.Length )
-                {
-                    offset -= words.Length;
-                    continue;
-                }
-
-                // Replace the content of the word in question.
-                words[idx] = words[idx].Replace( correct.Original.Clean(), _replaceText );
-
-                // Preserving corrections prevents the Update method from
-                // clearing the list of corrections even though the text
-                // in the box has changed.
-                _preserveCorrections = true;
-
-                // Replace the user's original text with the new words.
-                lines[i] = string.Join( ' ', words );
-
-                // If the user replaces a single word with multiple words, we need to increment the remaining index.
-                if ( _replaceText.Split( " ", StringSplitOptions.RemoveEmptyEntries ).Length > 1 )
-                {
-                    foreach ( WordCorrection wc in _corrections )
-                        wc.Index += _replaceText.Split( " " ).Length - 1;
-                }
-                else if ( _replaceText == "" )
-                {
-                    foreach ( WordCorrection wc in _corrections )
-                        --wc.Index;
-                }
-
-                // Clear out replacement text.
-                _replaceText = "";
-
+                foreach ( Word w in _corrections )
+                    w.Offset( _replaceText.Length - word.WordLength );
             }
+
+            // Clear out replacement text.
+            _replaceText = "";
+
             int ignore = 0;
+
             // Rewrap the text string.
-            _scratch = string.Join( '\n', lines );
             _scratch = WrapString( _scratch, ref ignore );
         }
-
-        // Remove the spelling error.
-        _corrections.RemoveAt( index );
 
         // If corrections are not emptied then disable preserve.
         if (_corrections.Count == 0)
@@ -979,8 +960,9 @@ internal class ScratchPadUI : Window
     /// <param name="index"><see cref="int"/> index of the correction in correction list.</param>
     protected void OnAddToDictionary(int index)
     {
+        Word word = _corrections[index];
         // Get the word
-        string newWord = _corrections[index].Original.Clean().ToLower();
+        string newWord = word.GetWordString(_scratch);
 
         // Add the cleaned word to the dictionary.
         Lang.AddDictionaryEntry( newWord );
@@ -989,9 +971,9 @@ internal class ScratchPadUI : Window
         _corrections.RemoveAt( index );
 
         // Get rid of any spelling corrections with the same word
-        foreach ( WordCorrection wc in _corrections )
-            if ( wc.Original.Clean().ToLower() == newWord )
-                _corrections.Remove( wc );
+        foreach ( Word w in _corrections )
+            if ( _scratch.Substring(w.WordIndex, w.WordLength) == newWord )
+                _corrections.Remove( w );
 
         if ( _corrections.Count == 0 )
             Refresh();
