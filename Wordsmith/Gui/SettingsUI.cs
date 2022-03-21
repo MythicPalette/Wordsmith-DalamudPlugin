@@ -30,9 +30,10 @@ public sealed class SettingsUI : Window
     private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
     private int _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
-    // Dictionary Settings
+    // Spellcheck Settings
     private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
     private bool _enableTextColor = Wordsmith.Configuration.EnableTextHighlighting;
+    private int _maxSuggestions = Wordsmith.Configuration.MaximumSuggestions;
     private string _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
 
     // Linkshell Settings
@@ -64,9 +65,8 @@ public sealed class SettingsUI : Window
         base.Update();
 
         if (!this.IsOpen)
-            WordsmithUI.WindowSystem.RemoveWindow(this);
+            WordsmithUI.RemoveWindow(this);
     }
-
 
     public override void Draw()
     {
@@ -281,12 +281,17 @@ public sealed class SettingsUI : Window
                 ImGui.Checkbox("Ignore Hyphen-Terminated Words##SettingsUICheckbox", ref this._ignoreHypen);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("This is useful in roleplay for emulating cut speech.\ni.e. \"How dare yo-,\" she was cut off but the rude man.");
-                ImGui.Separator();
+                ImGui.SameLine();
 
                 // Auto-Fix Spaces
                 ImGui.Checkbox("Autmatically Fix Multiple Spaces In Text.", ref this._fixDoubleSpace);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("When enabled, Scratch Pads will programmatically remove extra\nspaces from your text for you.");
+                ImGui.Separator();
+
+                ImGui.DragInt( "Maximum Suggestions", ref this._maxSuggestions, 1f, 0, 100 );
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( "The number of spelling suggestions to return with spell checking. 0 is unlimited results." );
                 ImGui.Separator();
 
                 // Dictionary File
@@ -578,6 +583,7 @@ public sealed class SettingsUI : Window
         // Spell Check Settings
         this._fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
         this._dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
+        this._maxSuggestions = Wordsmith.Configuration.MaximumSuggestions;
 
         // Linkshell Settings
         this._linkshells = Wordsmith.Configuration.LinkshellNames;
@@ -586,7 +592,7 @@ public sealed class SettingsUI : Window
         // Color Settings
         this._enableTextColor = Wordsmith.Configuration.EnableTextHighlighting;
         this._spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
-        _headerColors = Wordsmith.Configuration.HeaderColors;
+        this._headerColors = Wordsmith.Configuration.HeaderColors;
 }
 
     private void Save()
@@ -651,8 +657,11 @@ public sealed class SettingsUI : Window
         if (this._dictionaryFilename != Wordsmith.Configuration.DictionaryFile)
         {
             Wordsmith.Configuration.DictionaryFile = this._dictionaryFilename;
-            Data.Lang.Reinit();
+            Lang.Reinit();
         }
+
+        if (this._maxSuggestions != Wordsmith.Configuration.MaximumSuggestions)
+            Wordsmith.Configuration.MaximumSuggestions = this._maxSuggestions;
 
         // Linkshell settings
         if (this._linkshells != Wordsmith.Configuration.LinkshellNames)

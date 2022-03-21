@@ -32,6 +32,8 @@ internal sealed class Word
     /// </summary>
     internal bool InDictionary = true;
 
+    internal IReadOnlyList<string>? Suggestions;
+
     public string GetString( string s ) => this.GetString( s, 0 );
     public string GetString( string s, int offset ) => this.StartIndex + offset >= 0 && this.StartIndex < this.EndIndex && this.EndIndex + offset <= s.Unwrap().Length ? s.Unwrap()[(this.StartIndex + offset)..(this.EndIndex + offset)] : "";
     public string GetWordString( string s ) => this.GetWordString( s, 0 );

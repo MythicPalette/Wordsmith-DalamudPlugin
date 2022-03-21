@@ -133,6 +133,8 @@ public class Configuration : IPluginConfiguration
     public string DictionaryFile { get; set; } = "lang_en";
 
     public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
+
+    public int MaximumSuggestions { get; set; } = 5;
     #endregion
 
     #region Linkshell Settings

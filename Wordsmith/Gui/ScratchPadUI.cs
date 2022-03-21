@@ -655,31 +655,58 @@ internal class ScratchPadUI : Window
             // Get the fist incorrect word.
             Word word = _corrections[index];
 
-
             // Notify of the spelling error.
             ImGui.TextColored(new(255, 0, 0, 255), "Spelling Error:");
 
             // Draw the text input.
             ImGui.SameLine(0,0);
             ImGui.SetNextItemWidth(ImGui.GetContentRegionMax().X - ImGui.CalcTextSize("Spelling Error: ").X - (120*ImGuiHelpers.GlobalScale));
-            _replaceText = word.GetWordString( _scratch );//_scratch[word.StartIndex..(word.StartIndex + word.WordLength)];//word.Original;
+            _replaceText = word.GetWordString( _scratch );
 
             if (ImGui.InputText($"##ScratchPad{ID}ReplaceTextTextbox", ref _replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
                 OnReplace( index );
 
+            // If the user right clicks the text show the popup.
+            bool showPop = ImGui.IsItemClicked(ImGuiMouseButton.Right);
+            if ( showPop )
+                ImGui.OpenPopup( $"ScratchPad{ID}ReplaceContextMenu" );
 
-            //bool showPop = ImGui.IsItemClicked(ImGuiMouseButton.Right);
-            //if (showPop)
-            //    ImGui.OpenPopup( $"ScratchPad{ID}ReplaceContextMenu" );
+            // Build the popup.
+            if ( ImGui.BeginPopup( $"ScratchPad{ID}ReplaceContextMenu" ) )
+            {
+                // Create a selectable to add the word to dictionary.
+                if ( ImGui.Selectable( $"Add To Dictionary##ScratchPad{ID}ReplaceContextMenu" ) )
+                    OnAddToDictionary( index );
 
-            //if (ImGui.BeginPopup( $"ScratchPad{ID}ReplaceContextMenu" ))
-            //{
-            //    if ( ImGui.Selectable( $"Add To Dictionary##ScratchPad{ID}ReplaceContextMenu" ) )
-            //        OnAddToDictionary( index );
+                // If the suggestions haven't been generated then try to.
+                if (word.Suggestions is null)
+                    word.Suggestions = Lang.GetSuggestions(word.GetWordString( _scratch ));
 
-            //    ImGui.EndPopup();
-            //}
+                // If there is more than zero suggestions put a separator.
+                if (word.Suggestions.Count > 0)
+                    ImGui.Separator();
 
+                float childwidth = ImGui.CalcTextSize(_replaceText).X + (20*ImGuiHelpers.GlobalScale) > ImGui.CalcTextSize(" Add To Dictionary ").X ? ImGui.CalcTextSize(_replaceText).X + (20*ImGuiHelpers.GlobalScale) : ImGui.CalcTextSize(" Add To Dictionary ").X;
+                if ( ImGui.BeginChild( $"ScratchPad{ID}ReplaceContextChild",
+                    new(
+                        childwidth,
+                        (word.Suggestions.Count > 5 ? 105 : word.Suggestions.Count * 21)*ImGuiHelpers.GlobalScale
+                        )))
+                {
+                    // List the suggestions.
+                    foreach ( string suggestion in word.Suggestions )
+                    {
+                        if ( ImGui.Selectable( $"{suggestion}##ScratchPad{ID}Replacement" ) )
+                        {
+                            _replaceText = $"{suggestion}";
+                            OnReplace( 0 );
+                        }
+                    }
+                    ImGui.EndChild();
+                }
+
+                ImGui.EndPopup();
+            }
             // If they mouse over the input, tell them to use the enter key to replace.
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip("Fix the spelling of the word and hit enter or\nclick the \"Add to Dictionary\" button.");
