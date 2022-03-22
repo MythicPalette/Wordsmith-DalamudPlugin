@@ -1,0 +1,76 @@
+[ ] Scratch Pad Behavior
+
+    [ ] Properly wraps
+        [ ] Prefers to wrap at spaces
+        [ ] Retains spaces on unwrap
+        [ ] rewraps after paste
+        [ ] unwraps
+        [ ] Cursor prevented from being between \r and \n
+
+    [ ] chunks
+        [ ] Stay under expected size
+        [ ] Properly track words
+        [ ] Create new chunk at \n
+        [ ] Ignores empty lines
+
+    [ ] Detects header
+        [ ] Detects header followed by ' '
+        [ ] Detects header followed by '\n'
+
+    [ ] Spellcheck
+        [ ] Properly handles contractions
+        [ ] Properly handles hyphen-termination
+        [ ] Properly handles hyphnation.
+
+    [ ] Spelling suggestions
+        [ ] Checks transpose
+        [ ] Checks splits
+        [ ] Checks deletes
+        [ ] Checks 1 and 2 away;
+
+    [ ] Copy.
+        [ ] Copies correct chunk
+        [ ] Moves to next chunk
+        [ ] Clears at end only if setting enabled.
+
+    [ ] Previous/Next chunk buttons.
+        [ ] Appear with multiple chunks only
+        [ ] Disappear with single or no chunks.
+        [ ] Move current chunk selection
+
+    [ ] Highlighting
+        [ ] Highlights the current error with proper color
+        [ ] Highlights the header with proper color
+
+    [ ] Clear
+        [ ] Clears.
+        [ ] Saves cleared text.
+        [ ] Undo Clear.
+
+[ ] Settings Behavior
+
+    [ ] Thesaurs Tab
+        [ ] History size
+        [ ] Move to top
+
+    [ ] Scratch Pad Tab
+        [ ] Add to context menu
+        [ ] Auto-clear
+        [ ] Auto-delete
+        [ ] Show Text In chunks
+        [ ] Split on sentence
+        [ ] parse header
+        [ ] OOC tags
+        [ ] Ctrl+Enter Behavior
+        [ ] Sentence Terminators
+        [ ] Encapsulation Terminators
+        [ ] Continuation marker
+        [ ] Mark Last
+        [ ] Max text length
+        [ ] Open pads
+            [ ] Shows ID
+            [ ] Shows header
+
+    [ ] Spell Check Tab
+        [ ] Ignore hyphen
+        [ ] Auto

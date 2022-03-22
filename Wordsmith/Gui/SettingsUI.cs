@@ -284,7 +284,7 @@ public sealed class SettingsUI : Window
                 ImGui.SameLine();
 
                 // Auto-Fix Spaces
-                ImGui.Checkbox("Autmatically Fix Multiple Spaces In Text.", ref this._fixDoubleSpace);
+                ImGui.Checkbox("Automatically Fix Multiple Spaces In Text.", ref this._fixDoubleSpace);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("When enabled, Scratch Pads will programmatically remove extra\nspaces from your text for you.");
                 ImGui.Separator();
