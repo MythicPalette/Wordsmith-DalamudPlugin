@@ -18,6 +18,14 @@ public static class Lang
     public static bool isWord(string key) => _dictionary.Contains(key);
 
     /// <summary>
+    /// Verifies that the string exists in the hash table
+    /// </summary>
+    /// <param name="key">String to search for.</param>
+    /// <param name="lowercase">If <see langword="true"/> then the string is made lowercase.</param>
+    /// <returns><see langword="true""/> if the word is in the dictionary</returns>
+    public static bool isWord(string key, bool lowercase) => _dictionary.Contains( lowercase ? key.ToLower() : key );
+
+    /// <summary>
     /// Load the language file and enable spell checks.
     /// </summary>
     public static bool Init()
@@ -113,10 +121,10 @@ public static class Lang
         Wordsmith.Configuration.Save();
     }
 
-    internal static IReadOnlyList<string> GetSuggestions(string word)
+    internal static void GetSuggestions(ref List<string> list, string word)
     {
         if ( word.Length == 0)
-            return new List<string>();
+            return;
 
         // Check if the first character is capitalized.
         bool isCapped = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".Contains(word[0]);
@@ -124,32 +132,54 @@ public static class Lang
         // Get the lowercase version of the word for the remaining tests.
         word = word.ToLower();
         
-        // Letter swaps
-        List<string> results = GenerateSwaps(word, isCapped, true);
+        List<string> results = GenerateTranspose(word, isCapped, true);
 
-        List<string> oneaway = GenerateAway(word, isCapped, false);
-        List<string> twoaway = new();
+        // Splits
+        if ( results.Count < Wordsmith.Configuration.MaximumSuggestions )
+        {
+            List<string> splits = GenerateSplits(word);
+            foreach ( string s in splits )
+            {
+                if ( results.Count == Wordsmith.Configuration.MaximumSuggestions )
+                    break;
 
-        if ( results.Count < Wordsmith.Configuration.MaximumSuggestions  || Wordsmith.Configuration.MaximumSuggestions == 0)
-            for ( int i = 0; i < oneaway.Count && oneaway.Count < Wordsmith.Configuration.MaximumSuggestions; ++i)// string away in oneaway )
-                twoaway.AddRange( GenerateAway( oneaway[i], isCapped, true ) );
+                if ( !results.Contains( s ) )
+                    results.Add( s );
+            }
+        }
 
-        results.AddRange( oneaway.Where(one => 
-            _dictionary.Contains( one.ToLower() ) &&    // The word exists in the dictionary
-            !results.Contains(one) &&                   // The word is not already in the results.
-            (results.Count < Wordsmith.Configuration.MaximumSuggestions || Wordsmith.Configuration.MaximumSuggestions == 0) // There is still room in the results.
-            ));
+        // Letter deletes
+        if ( results.Count < Wordsmith.Configuration.MaximumSuggestions )
+        {
+            List<string> deletes = GenerateDeletes(word, isCapped, true);
+            foreach ( string s in deletes )
+            {
+                if ( results.Count >= Wordsmith.Configuration.MaximumSuggestions )
+                    break;
 
-        results.AddRange( twoaway.Where(two =>
-            _dictionary.Contains( two.ToLower() ) &&    // The word exists in the dictionary.
-            !results.Contains( two ) &&                 // The word is not already in the results.
-            (results.Count < Wordsmith.Configuration.MaximumSuggestions || Wordsmith.Configuration.MaximumSuggestions == 0) // There is still room in the results.
-            ));
+                if ( isWord( s.ToLower() ) )
+                    results.Add( s );
+            }
+        }
 
-        return results.OrderBy(x => x).ThenBy( x => x.Length).ToList();
+        // One away and two away.
+        if ( results.Count < Wordsmith.Configuration.MaximumSuggestions )
+        {
+            List<string> aways = GenerateAway(word, 2, isCapped, false);
+
+            foreach ( string s in aways )
+            {
+                if ( results.Count >= Wordsmith.Configuration.MaximumSuggestions )
+                    break;
+
+                if ( isWord( s, true ) && !results.Contains(s) )
+                    results.Add( s );
+            }
+        }
+        list = new( results );
     }
 
-    private static List<string> GenerateSwaps(string word, bool isCapped, bool filter)
+    private static List<string> GenerateTranspose(string word, bool isCapped, bool filter)
     {
         List<string> results = new();
 
@@ -168,81 +198,115 @@ public static class Lang
             // Overwite char at x+1 with x.
             chars[x + 1] = y;
 
-            if ( !filter || isWord( new string( chars ) ) )
+            if ( !filter || isWord( new string( chars ), true ) )
                 results.Add( isCapped ? new string( chars ).CaplitalizeFirst() : new string( chars ) );
         }
         return results;
     }
 
-    private static List<string> GenerateAway(string word, bool isCapped, bool filter)
+    private static List<string> GenerateDeletes(string word, bool isCapped, bool filter)
+    {
+        if ( word.Length == 0 )
+            return new();
+
+        List<string> results = new();
+        for (int i = 0; i < word.Length; ++i )
+        {
+            if ( !filter || isWord( word.Remove( i, 1 ), true ) )
+                    results.Add( isCapped ? word.Remove( i, 1 ).CaplitalizeFirst() : word.Remove( i, 1 ) );
+        }
+
+        return results;
+    }
+
+    private static List<string> GenerateSplits(string word)
+    {
+        // for index
+        // split into two words
+        // if both splits are words
+        // if check word one
+        // then if check word two
+        // add word one + word two
+        // return results
+        List<string> results = new();
+        for (int i = 1; i < word.Length -1; ++i)
+        {
+            string[] splits = new string[] { word[0..i], word[i..^0] };
+            if ( isWord( splits[0], true ) && isWord( splits[1], true ) )
+                results.Add( $"{splits[0]} {splits[1]}" );
+        }
+        return results;
+    }
+
+    private static List<string> GenerateAway(string word, int depth, bool isCapped, bool filter)
     {
         string letters = "abcdefghijklmnopqrstuvwxyz";
         List<string> results = new();
-        try
+
+        for ( int z = 0; z < 2; ++z )
         {
-            for ( int z = 0; z < 2; ++z )
+            for ( int x = -1; x <= word.Length; ++x )
             {
-                for ( int x = -1; x <= word.Length; ++x )
+                // Insert letter at the start of the word
+                if ( x == -1 )
                 {
-                    // Insert letter at the start of the word
-                    if ( x == -1 )
+                    // If z == 0 we skip this iteration.
+                    if ( z == 0 )
+                        continue;
+
+                    for ( int y = 0; y < letters.Length; ++y )
                     {
-                        // If z == 0 we skip this iteration.
-                        if ( z == 0 )
-                            continue;
-
-                        for ( int y = 0; y < letters.Length; ++y )
-                        {
-                            string test = $"{letters[y]}{word}";
-                            if ( !filter || isWord( test ) && !results.Contains( test ) )
-                                results.Add( test );
-                        }
+                        string test = $"{letters[y]}{word}";
+                        if ( !filter || isWord( test, true ) && !results.Contains( test ) )
+                            results.Add( test );
                     }
-                    // Append letter to the end.
-                    else if ( x == word.Length )
+                }
+                // Append letter to the end.
+                else if ( x == word.Length )
+                {
+                    // If z == 0 we skip this iteration.
+                    if ( z == 0 )
+                        continue;
+                    for ( int y = 0; y < letters.Length; ++y )
                     {
-                        // If z == 0 we skip this iteration.
-                        if ( z == 0 )
-                            continue;
-                        for ( int y = 0; y < letters.Length; ++y )
-                        {
-                            string test = $"{word}{letters[y]}";
-                            if ( !filter || isWord( test ) && !results.Contains( test ) )
-                                results.Add( test );
-                        }
+                        string test = $"{word}{letters[y]}";
+                        if ( !filter || isWord( test, true ) && !results.Contains( test ) )
+                            results.Add( test );
                     }
-                    // x will make the code switch between overwritting vowels and consenants.
-                    else
+                }
+                // x will make the code switch between overwritting vowels and consenants.
+                else
+                {
+                    for ( int y = 0; y < letters.Length; ++y )
                     {
-                        for ( int y = 0; y < letters.Length; ++y )
+                        char[] chars = word.ToCharArray();
+
+                        // Start with vowel replacements, these are more common than
+                        // consonant mistakes.
+                        if ( "aAeEiIoOuUyY".Contains( chars[x] ) == (z == 0) )
                         {
-                            char[] chars = word.ToCharArray();
+                            chars[x] = letters[y];
+                            string test = new string( chars );
 
-                            // Start with vowel replacements, these are more common than
-                            // consonant mistakes.
-                            if ( "aAeEiIoOuUyY".Contains( chars[x] ) == (z == 0) )
-                            {
-                                chars[x] = letters[y];
-                                string test = new string( chars );
-
-                                if ( (!filter || isWord( test )) && !results.Contains( test ) )
-                                    results.Add( isCapped ? test.CaplitalizeFirst() : test );
-                            }
-
-                            // For optimization break out of the y loop to avoid checking this
-                            // 26 different times each time the chars[x] is the wrong character type.
-                            // i.e. consant when z==0 or vowel when z==1.
-                            else
-                                break;
+                            if ( (!filter || isWord( test, true )) && !results.Contains( test ) )
+                                results.Add( isCapped ? test.CaplitalizeFirst() : test );
                         }
-                    }
 
+                        // For optimization break out of the y loop to avoid checking this
+                        // 26 different times each time the chars[x] is the wrong character type.
+                        // i.e. consant when z==0 or vowel when z==1.
+                        else
+                            break;
+                    }
                 }
             }
         }
-        catch (Exception ex)
+
+        if (depth > 1)
         {
-            PluginLog.LogError( ex.ToString() );
+            List<string> parents = new List<string>(results);
+            foreach (string s in parents)
+                results.AddRange(GenerateAway(s, depth-1, isCapped, depth>2));
         }
         return results;
     }

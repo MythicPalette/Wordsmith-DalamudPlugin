@@ -32,7 +32,12 @@ internal sealed class Word
     /// </summary>
     internal bool InDictionary = true;
 
-    internal IReadOnlyList<string>? Suggestions;
+    /// <summary>
+    /// A value indicating whether or not the word is hyphen-terminated.
+    /// </summary>
+    internal bool HyphenTerminated = false;
+
+    internal List<string>? Suggestions;
 
     public string GetString( string s ) => this.GetString( s, 0 );
     public string GetString( string s, int offset ) => this.StartIndex + offset >= 0 && this.StartIndex < this.EndIndex && this.EndIndex + offset <= s.Unwrap().Length ? s.Unwrap()[(this.StartIndex + offset)..(this.EndIndex + offset)] : "";

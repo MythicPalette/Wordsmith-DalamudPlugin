@@ -19,10 +19,12 @@ public class SpellChecker
         for ( int i = 0; i < words.Length; ++i )
         {
             Word word = words[i];
-            string text = word.GetString(str);
 
-            text = text.Clean();
-            string lowercased = text.ToLower();
+            // If the word is hyphen terminated, then ignore it.
+            if ( word.HyphenTerminated && Wordsmith.Configuration.IgnoreWordsEndingInHyphen )
+                continue;
+
+            string text = word.GetWordString(str);
 
             // If it's a number, just skip it
             if ( float.TryParse( text.Replace( ",", "" ), out _ ) )
@@ -31,14 +33,25 @@ public class SpellChecker
             if ( text.Length < 1 )
                 continue;
 
-            if ( text.EndsWith( '-' ) && Wordsmith.Configuration.IgnoreWordsEndingInHyphen )
-                continue;
-
-            //string? result = Lang.WordList.FirstOrDefault(w => w.ToLower() == lowercased);
-
             // if result is null then the word is not in the dictionary.
-            if ( !Lang.isWord( lowercased ) )
+            if ( !Lang.isWord( text, true ) )
             {
+                // For each possible contraction
+                foreach ( string s in new string[] { "s", "d", "ll", "t", "ve", "n", "em", "re" } )
+                {
+                    // If the text ends with the contraction
+                    if ( text.EndsWith( $"'{s}" ) )
+                    {
+                        // If the word is correct without the contraction then continue through words.
+                        if ( Lang.isWord( text.Substring( 0, text.Length - 1 - s.Length ), true ) )
+                            goto nextword;
+
+                        // Found a matching contraction but it didn't work. Break from the loop.
+                        // If there is more than one contraction it's going to be an error anyway.
+                        break;
+                    }
+                }
+
                 // Check it as a possible number by trying to parse a number after remove "st", "nd", "rd", and "th" from it.
                 if ( float.TryParse( text.Replace( ",", "" ).Replace( "st", "" ).Replace( "nd", "" ).Replace( "rd", "" ).Replace( "th", "" ), out _ ) )
                     continue; // It was a number, so continue the loop.
@@ -52,7 +65,7 @@ public class SpellChecker
                         // If the word is a blank or it isn't in the dictionary then jump to adding it to the list
                         // of misspelled words.
                         if ( text.Length == 0 || !Lang.isWord( subword ) )//Lang.WordList.FirstOrDefault(w => w.ToLower() == subword) == null)
-                            goto jumppoint;
+                            goto invalidword;
                     }
 
                     // If we reach this point, all of the subwords checked out as properly spelt words.
@@ -60,15 +73,18 @@ public class SpellChecker
                     continue;
                 }
 
-            jumppoint:
+            invalidword:
                 // If we reached this code, we were not able to locate a proper match for the word.
                 // Add the index to the list.
                 word.InDictionary = false;
                 results.Add( word );
             }
+
+            // Gives a jump point to go to the next word.
+        nextword:
+            continue;
         }
-        //offset += words.Length;
-        //}
+
         // Done checking all of the words, return the results.
         return results.ToArray();
     }

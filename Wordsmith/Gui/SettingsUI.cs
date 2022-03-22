@@ -289,7 +289,7 @@ public sealed class SettingsUI : Window
                     ImGui.SetTooltip("When enabled, Scratch Pads will programmatically remove extra\nspaces from your text for you.");
                 ImGui.Separator();
 
-                ImGui.DragInt( "Maximum Suggestions", ref this._maxSuggestions, 1f, 0, 100 );
+                ImGui.DragInt( "Maximum Suggestions", ref this._maxSuggestions, 0.1f, 0, 100 );
                 if ( ImGui.IsItemHovered() )
                     ImGui.SetTooltip( "The number of spelling suggestions to return with spell checking. 0 is unlimited results." );
                 ImGui.Separator();

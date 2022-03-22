@@ -98,8 +98,19 @@ public class SearchHelper : IDisposable
             {
                 // If the user doesn't want to move results to the top return
                 if (Wordsmith.Configuration.ResearchToTop)
-                    _history.Move(result, 0); // Move the result object to the top of the list.
+                {
+                    // Get the current index of the object.
+                    int idx = _history.IndexOf(result);
 
+                    // If the object is already at index 0 we can skip
+                    // this step.
+                    if ( idx > 0 )
+                    {
+                        // Remove the object
+                        _history.Remove( result );
+                        _history.Insert( 0, result );
+                    }
+                }
                 return true;
             }
         }

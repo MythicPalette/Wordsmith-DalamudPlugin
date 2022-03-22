@@ -551,13 +551,12 @@ internal class ScratchPadUI : Window
             // Get the word string
             string text = word.GetString(chunk.Text);
 
-            if (DebugUI.ShowWordIndex)
-                text = $"[{word.StartIndex}]{text}";
-
             float objWidth = ImGui.CalcTextSize(text).X;
-            width += objWidth+(5*ImGuiHelpers.GlobalScale);
+            float spacing = 3*ImGuiHelpers.GlobalScale;
+
+            width += objWidth+spacing;
             if ( (i > 0 || sameLine) && width < ImGui.GetWindowContentRegionMax().X )
-                ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
+                ImGui.SameLine( 0, spacing );
             else
                 width = objWidth;
 
@@ -679,8 +678,14 @@ internal class ScratchPadUI : Window
                     OnAddToDictionary( index );
 
                 // If the suggestions haven't been generated then try to.
-                if (word.Suggestions is null)
-                    word.Suggestions = Lang.GetSuggestions(word.GetWordString( _scratch ));
+                if ( word.Suggestions is null )
+                {
+                    word.Suggestions = new List<string>();
+                    new Thread( () => {
+                        Lang.GetSuggestions( ref word.Suggestions, word.GetWordString( _scratch ));
+                    })
+                        .Start();
+                }
 
                 // If there is more than zero suggestions put a separator.
                 if (word.Suggestions.Count > 0)
@@ -969,8 +974,10 @@ internal class ScratchPadUI : Window
             // Clear out replacement text.
             _replaceText = "";
 
-            int ignore = 0;
+            int ignore = -1;
+            _scratch = CheckForHeader( _scratch, ref ignore );
 
+            ignore = 0;
             // Rewrap the text string.
             _scratch = WrapString( _scratch, ref ignore );
         }
@@ -1140,10 +1147,16 @@ internal class ScratchPadUI : Window
             {
                 // If the string starts with the header for the chat type then mark it
                 if (
-                    (text.StartsWith($"{((ChatType)i).GetShortHeader()} ") || text.StartsWith($"{((ChatType)i).GetLongHeader()} ")) &&
+                    (
+                        text.StartsWith( $"{((ChatType)i).GetShortHeader()} ") ||
+                        text.StartsWith( $"{((ChatType)i).GetShortHeader()}\n" ) ||
+                        text.StartsWith( $"{((ChatType)i).GetLongHeader()} ") ||
+                        text.StartsWith( $"{((ChatType)i).GetLongHeader()}\n" )
+                    ) &&
                     ((ChatType)i).GetShortHeader().Length > 0)
                 {
                     head = (ChatType)i;
+                    break;
                 }
 
                 // Check if the header type is linkshell or CrossWorldLinkshell
@@ -1162,7 +1175,9 @@ internal class ScratchPadUI : Window
                 }
             }
 
+#if DEBUG
             PluginLog.LogDebug($"txt :: {text} | head :: {head}");
+#endif
 
             //If a chat header was found
             if (head != ChatType.None)
@@ -1222,10 +1237,12 @@ internal class ScratchPadUI : Window
                     // If the text only contains the header then mark the as the headstring
                     if (
                         // If the text starts with short header and the cursor is passed the space
-                        (text == $"{head.GetShortHeader()} " && cursorPos >= $"{head.GetShortHeader()} ".Length) ||
+                        ( text == $"{head.GetShortHeader()} " && (cursorPos >= $"{head.GetShortHeader()} ".Length  || cursorPos == -1))||
+                        ( text == $"{head.GetShortHeader()}\n" && (cursorPos >= $"{head.GetShortHeader()}\n".Length || cursorPos == -1 )) ||
 
                         // If the text starts with the long header and the cursor is passed the space
-                        (text == $"{head.GetLongHeader()} " && cursorPos >= $"{head.GetLongHeader()} ".Length)
+                        ( text == $"{head.GetLongHeader()} " && (cursorPos >= $"{head.GetLongHeader()} ".Length || cursorPos == -1)) ||
+                        ( text == $"{head.GetLongHeader()}\n" && (cursorPos >= $"{head.GetLongHeader()}\n".Length || cursorPos == -1))
                         )
                     {
                         headstring = text;
@@ -1235,11 +1252,17 @@ internal class ScratchPadUI : Window
                     else
                     {
                         // If the text starts with the short header
-                        if (text.StartsWith($"{head.GetShortHeader()} ") && cursorPos >= $"{head.GetShortHeader()} ".Length)
+                        if ( text.StartsWith( $"{head.GetShortHeader()} " ) && ( cursorPos >= $"{head.GetShortHeader()} ".Length || cursorPos == -1 ))
+                            headstring = $"{head.GetShortHeader()} ";
+
+                        if ( text.StartsWith( $"{head.GetShortHeader()}\n" ) && ( cursorPos >= $"{head.GetShortHeader()}\n".Length || cursorPos == -1) )
                             headstring = $"{head.GetShortHeader()} ";
 
                         // If the text starts with the long header
-                        else if (text.StartsWith($"{head.GetLongHeader()} ") && cursorPos >= $"{head.GetLongHeader()} ".Length)
+                        else if ( text.StartsWith( $"{head.GetLongHeader()} " ) && ( cursorPos >= $"{head.GetLongHeader()} ".Length || cursorPos == -1) )
+                            headstring = $"{head.GetLongHeader()} ";
+
+                        else if ( text.StartsWith( $"{head.GetLongHeader()}\n" ) && ( cursorPos >= $"{head.GetLongHeader()}\n".Length || cursorPos == -1) )
                             headstring = $"{head.GetLongHeader()} ";
                     }
                 }
