@@ -118,62 +118,6 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Cleans the word of any punctuation marks that should not be at the beginning or end.
-    /// i.e. "Hello." becomes Hello
-    /// </summary>
-    /// <param name="str"></param>
-    /// <returns>Returns the word from of starting and ending punctuation and spaces.</returns>
-    //internal static string Clean( this string str )
-    //{
-    //    // Remove white space at the beginning and end. There shouldn't be any but just in case.
-    //    str = str.Trim();
-
-    //    if ( str.EndsWith( "'s" ) )
-    //        str = str[0..^2];
-
-    //    // Loop
-    //    do
-    //    {
-    //        // If the string is now empty, return an empty string.
-    //        if ( str.Length < 1 )
-    //            break;
-
-    //        // Check the start and end of the word against every character.
-    //        bool doBreak = true;
-    //        foreach ( char c in Wordsmith.Configuration.PunctuationCleaningList )
-    //        {
-    //            // Check the start of the string for the character
-    //            if ( str.StartsWith( c ) )
-    //            {
-    //                // If the string starts with the symbol, remove the symbol and
-    //                // prevent exiting the loop.
-    //                str = str.Substring( 1 );
-    //                doBreak = false;
-    //            }
-
-    //            // If ignoring hyphen-ended words and the character is a hyphen, skip the 
-    //            // EndsWith check.
-    //            if ( Wordsmith.Configuration.IgnoreWordsEndingInHyphen && c == '-' )
-    //                continue;
-
-    //            // Check the ending of the string
-    //            if ( str.EndsWith( c ) )
-    //            {
-    //                // Remove the last character and prevent loop breaking
-    //                str = str.Substring( 0, str.Length - 1 );
-    //                doBreak = false;
-    //            }
-    //        }
-
-    //        // If the break hasn't been prevented, break.
-    //        if ( doBreak )
-    //            break;
-    //    } while ( true );
-
-    //    return str;
-    //}
-
-    /// <summary>
     /// Unwraps the text string using the spaced and no space markers.
     /// </summary>
     /// <param name="s">The <see cref="string"/> to be unwrapped.</param>
