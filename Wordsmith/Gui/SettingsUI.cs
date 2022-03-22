@@ -18,14 +18,14 @@ public sealed class SettingsUI : Window
     private bool _deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
     private bool _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
     private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
-    private bool _onSentence = Wordsmith.Configuration.BreakOnSentence;
-    private bool _detectHeader = Wordsmith.Configuration.DetectHeaderInput;
+    private bool _onSentence = Wordsmith.Configuration.SplitTextOnSentence;
+    private bool _detectHeader = Wordsmith.Configuration.ParseHeaderInput;
     private string _oocOpening = Wordsmith.Configuration.OocOpeningTag;
     private string _oocClosing = Wordsmith.Configuration.OocClosingTag;
-    private string _sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
-    private string _encapTerminators = Wordsmith.Configuration.EncapsulationCharacters;
+    private string _sentenceTerminators = Wordsmith.Configuration.SentenceTerminators;
+    private string _encapTerminators = Wordsmith.Configuration.EncapsulationTerminators;
     private string _continueMarker = Wordsmith.Configuration.ContinuationMarker;
-    private bool _markLastChunk = Wordsmith.Configuration.MarkLastChunk;
+    private bool _markLastChunk = Wordsmith.Configuration.ContinuationMarkerOnLast;
     private bool _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
     private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
     private int _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
@@ -570,13 +570,13 @@ public sealed class SettingsUI : Window
         this._deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
         this._ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
         this._showChunks = Wordsmith.Configuration.ShowTextInChunks;
-        this._onSentence = Wordsmith.Configuration.BreakOnSentence;
-        this._detectHeader = Wordsmith.Configuration.DetectHeaderInput;
+        this._onSentence = Wordsmith.Configuration.SplitTextOnSentence;
+        this._detectHeader = Wordsmith.Configuration.ParseHeaderInput;
         this._oocOpening = Wordsmith.Configuration.OocOpeningTag;
         this._oocClosing = Wordsmith.Configuration.OocClosingTag;
-        this._sentenceTerminators = Wordsmith.Configuration.SplitPointDefinitions;
-        this._encapTerminators = Wordsmith.Configuration.EncapsulationCharacters;
-        this._markLastChunk = Wordsmith.Configuration.MarkLastChunk;
+        this._sentenceTerminators = Wordsmith.Configuration.SentenceTerminators;
+        this._encapTerminators = Wordsmith.Configuration.EncapsulationTerminators;
+        this._markLastChunk = Wordsmith.Configuration.ContinuationMarkerOnLast;
         this._scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
         this._scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
@@ -620,11 +620,11 @@ public sealed class SettingsUI : Window
         if (this._showChunks != Wordsmith.Configuration.ShowTextInChunks)
             Wordsmith.Configuration.ShowTextInChunks = this._showChunks;
 
-        if (this._onSentence != Wordsmith.Configuration.BreakOnSentence)
-            Wordsmith.Configuration.BreakOnSentence = this._onSentence;
+        if (this._onSentence != Wordsmith.Configuration.SplitTextOnSentence)
+            Wordsmith.Configuration.SplitTextOnSentence = this._onSentence;
 
-        if (this._detectHeader != Wordsmith.Configuration.DetectHeaderInput)
-            Wordsmith.Configuration.DetectHeaderInput = this._detectHeader;
+        if (this._detectHeader != Wordsmith.Configuration.ParseHeaderInput)
+            Wordsmith.Configuration.ParseHeaderInput = this._detectHeader;
 
         if (this._oocOpening != Wordsmith.Configuration.OocOpeningTag)
             Wordsmith.Configuration.OocOpeningTag = this._oocOpening;
@@ -632,17 +632,17 @@ public sealed class SettingsUI : Window
         if (this._oocClosing != Wordsmith.Configuration.OocClosingTag)
             Wordsmith.Configuration.OocClosingTag = this._oocClosing;
 
-        if (this._sentenceTerminators != Wordsmith.Configuration.SplitPointDefinitions)
-            Wordsmith.Configuration.SplitPointDefinitions = this._sentenceTerminators;
+        if (this._sentenceTerminators != Wordsmith.Configuration.SentenceTerminators)
+            Wordsmith.Configuration.SentenceTerminators = this._sentenceTerminators;
 
-        if (this._encapTerminators != Wordsmith.Configuration.EncapsulationCharacters)
-            Wordsmith.Configuration.EncapsulationCharacters = this._encapTerminators;
+        if (this._encapTerminators != Wordsmith.Configuration.EncapsulationTerminators)
+            Wordsmith.Configuration.EncapsulationTerminators = this._encapTerminators;
 
         if (this._continueMarker != Wordsmith.Configuration.ContinuationMarker)
             Wordsmith.Configuration.ContinuationMarker = this._continueMarker;
 
-        if (this._markLastChunk != Wordsmith.Configuration.MarkLastChunk)
-            Wordsmith.Configuration.MarkLastChunk = this._markLastChunk;
+        if (this._markLastChunk != Wordsmith.Configuration.ContinuationMarkerOnLast)
+            Wordsmith.Configuration.ContinuationMarkerOnLast = this._markLastChunk;
 
         if (this._scratchMaxTextLen != Wordsmith.Configuration.ScratchPadMaximumTextLength)
             Wordsmith.Configuration.ScratchPadMaximumTextLength = this._scratchMaxTextLen;

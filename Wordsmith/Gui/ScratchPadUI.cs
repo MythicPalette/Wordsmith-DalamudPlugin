@@ -1094,7 +1094,7 @@ internal class ScratchPadUI : Window
         int pos = data->CursorPos;
 
         // Check for header input.
-        if (Wordsmith.Configuration.DetectHeaderInput)
+        if (Wordsmith.Configuration.ParseHeaderInput)
             txt = CheckForHeader(txt, ref pos);
 
         // Wrap the string if there is enough there.

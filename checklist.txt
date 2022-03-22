@@ -1,3 +1,11 @@
+[ ] Commands
+
+    [ ] /wordsmith
+    [ ] /scratchpad
+    [ ] /scratchpad #
+    [ ] Context Menu: Send Tell in Scratch Pad
+-----------------------------------------------------------------------------
+
 [ ] Scratch Pad Behavior
 
     [ ] Properly wraps
@@ -46,6 +54,7 @@
         [ ] Clears.
         [ ] Saves cleared text.
         [ ] Undo Clear.
+-----------------------------------------------------------------------------
 
 [ ] Settings Behavior
 
@@ -73,4 +82,33 @@
 
     [ ] Spell Check Tab
         [ ] Ignore hyphen
-        [ ] Auto
+        [ ] Auto-fix spaces
+        [ ] Dictionary selection
+        [ ] Custom Dictionary Entries
+            [ ] Shows words without punctuation or capitalization
+
+    [ ] Linkshells Tab
+        [ ] Nicknames work for correct linkshell
+
+    [ ] Colors Tab
+        [ ] Enable Text Colorization
+        [ ] Spelling error color
+        [ ] Emote color
+        [ ] Reply color
+        [ ] Say color
+        [ ] Party color
+        [ ] FC color
+        [ ] Shout color
+        [ ] Yell color
+        [ ] Tell color
+        [ ] Echo color
+        [ ] Linkshell color
+
+    [ ] Apply
+        [ ] Saves
+        [ ] Notifies of save
+
+    [ ] Defaults
+        [ ] Shows defaults window
+        [ ] Closes defaults window on cancel
+        [ ] resets settings and closes on confirm
