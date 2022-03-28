@@ -20,12 +20,23 @@ internal class ScratchPadUI : Window
         internal bool UseOOC;
         internal string TellTarget;
         internal bool CrossWorld;
+        internal int Linkshell;
         public PadState()
         {
             ChatType = 0;
             ScratchText = "";
             UseOOC = false;
             TellTarget = "";
+        }
+
+        public PadState(ScratchPadUI ui)
+        {
+            ChatType = ui._chatType;
+            ScratchText = ui._scratch;
+            TellTarget = ui._telltarget;
+            Linkshell = ui._linkshell;
+            UseOOC = ui._useOOC;
+            CrossWorld = ui._crossWorld;
         }
 
         public static bool operator ==(PadState state, object other) => state.Equals(other);
@@ -47,6 +58,7 @@ internal class ScratchPadUI : Window
             if (o.UseOOC != this.UseOOC) return false;
             if (o.TellTarget != this.TellTarget) return false;
             if (o.CrossWorld != this.CrossWorld) return false;
+            if (o.Linkshell != this.Linkshell) return false;
             return true;
         }
 
@@ -635,10 +647,10 @@ internal class ScratchPadUI : Window
             OnTextCallback))
         {
             // If the user hits enter, run the user-defined action.
-            if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.SpellCheck)
+            if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == EnterKeyAction.SpellCheck)
                 DoSpellCheck();
 
-            else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == Enums.EnterKeyAction.CopyNextChunk)
+            else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == EnterKeyAction.CopyNextChunk)
                 DoCopyToClipboard();
         }
     }
@@ -1135,158 +1147,35 @@ internal class ScratchPadUI : Window
     /// <returns></returns>
     protected string CheckForHeader(string text, ref int cursorPos)
     {
-        // The text must have a length.
+        // The text must have a length and must start with a slash. If
+        // there is no slash, it is impossible to contain a header.
         if (text.Length > 1)
         {
             // Default to ChatType None
-            ChatType head = ChatType.None;
-            int shellNumber = 0;
+            HeaderData headerData = new(text);
 
-            // Find a matching header.
-            for (int i = 0; i < Enum.GetValues(typeof(ChatType)).Length; ++i)
-            {
-                // If the string starts with the header for the chat type then mark it
-                if (
-                    (
-                        text.StartsWith( $"{((ChatType)i).GetShortHeader()} ") ||
-                        text.StartsWith( $"{((ChatType)i).GetShortHeader()}\n" ) ||
-                        text.StartsWith( $"{((ChatType)i).GetLongHeader()} ") ||
-                        text.StartsWith( $"{((ChatType)i).GetLongHeader()}\n" )
-                    ) &&
-                    ((ChatType)i).GetShortHeader().Length > 0)
-                {
-                    head = (ChatType)i;
-                    break;
-                }
-
-                // Check if the header type is linkshell or CrossWorldLinkshell
-                else if ((ChatType)i == ChatType.Linkshell || (ChatType)i == ChatType.CrossWorldLinkshell)
-                {
-                    // Linkshells must be checked with numbers appended to them.
-                    for (int x = 1; x <= 8; ++x)
-                    {
-                        // If the number was found, mark the header type and the number.
-                        if (text.StartsWith($"{((ChatType)i).GetShortHeader()}{x} "))
-                        {
-                            head = (ChatType)i;
-                            shellNumber = x;
-                        }
-                    }
-                }
-            }
+            // If the header data was not validated return to avoid
+            // the rest of the checks.
+            if ( !headerData.Valid )
+                return text;
 
 #if DEBUG
-            PluginLog.LogDebug($"txt :: {text} | head :: {head}");
+            PluginLog.LogDebug($"txt :: {text} | head :: {headerData.ChatType}");
 #endif
 
             //If a chat header was found
-            if (head != ChatType.None)
+            if (headerData.ChatType != ChatType.None && cursorPos >= headerData.Length)
             {
-                string headstring = "";
-                // Handle tell
-                if (head == ChatType.Tell)
-                {
-                    // Split the string up.
-                    string[] splits = text.Split(" ", StringSplitOptions.RemoveEmptyEntries);
-                    string target = "";
+                this._chatType = headerData.ChatType;
+                this._linkshell = headerData.Linkshell;
+                this._crossWorld = headerData.CrossWorld;
+                this._telltarget = headerData.TellTarget;
 
-                    if (splits.Length >= 2)
-                    {
-                        // Check for a placeholder
-                        if (splits[1].StartsWith("<") && splits[1].EndsWith(">") && cursorPos >= $"{splits[0]} {splits[1]} ".Length)
-                            target = splits[1];
-
-                        // Check for user name@world
-                        else if (splits.Length >= 3)
-                        {
-
-                            // If the third element contains a @ and it has a space after the world name
-                            if (splits[2].Contains("@") && text.StartsWith($"{splits[0]} {splits[1]} {splits[2]} ") && cursorPos >= $"{splits[0]} {splits[1]} {splits[2]} ".Length)
-                                target = $"{splits[1]} {splits[2]}";
-                        }
-                    }
-
-                    // If a target was found
-                    if (target != "")
-                    {
-                        headstring = $"{splits[0]} {target} ";
-                        _chatType = ChatType.Tell;
-                        _telltarget = target;
-                    }
-                }
-
-                // Handle linkshells
-                else if ((head == ChatType.Linkshell || head == ChatType.CrossWorldLinkshell) && shellNumber > 0)
-                {
-                    // Mark the header string
-                    headstring = $"{head.GetShortHeader()}{shellNumber} ";
-                    
-                    // Mark the shell number and subtract 1 to conver to 0-based index.
-                    _linkshell = shellNumber-1;
-
-                    // Mark crossworld
-                    _crossWorld = head == ChatType.CrossWorldLinkshell;
-
-                    // Currently only using the ChatType.Linkshell
-                    head = ChatType.Linkshell;
-                }
-
-                // If the text starts with a header.
-                else
-                {
-                    // If the text only contains the header then mark the as the headstring
-                    if (
-                        // If the text starts with short header and the cursor is passed the space
-                        ( text == $"{head.GetShortHeader()} " && (cursorPos >= $"{head.GetShortHeader()} ".Length  || cursorPos == -1))||
-                        ( text == $"{head.GetShortHeader()}\n" && (cursorPos >= $"{head.GetShortHeader()}\n".Length || cursorPos == -1 )) ||
-
-                        // If the text starts with the long header and the cursor is passed the space
-                        ( text == $"{head.GetLongHeader()} " && (cursorPos >= $"{head.GetLongHeader()} ".Length || cursorPos == -1)) ||
-                        ( text == $"{head.GetLongHeader()}\n" && (cursorPos >= $"{head.GetLongHeader()}\n".Length || cursorPos == -1))
-                        )
-                    {
-                        headstring = text;
-                    }
-
-                    // If the text contains more than the header then just remove the header.
-                    else
-                    {
-                        // If the text starts with the short header
-                        if ( text.StartsWith( $"{head.GetShortHeader()} " ) && ( cursorPos >= $"{head.GetShortHeader()} ".Length || cursorPos == -1 ))
-                            headstring = $"{head.GetShortHeader()} ";
-
-                        if ( text.StartsWith( $"{head.GetShortHeader()}\n" ) && ( cursorPos >= $"{head.GetShortHeader()}\n".Length || cursorPos == -1) )
-                            headstring = $"{head.GetShortHeader()} ";
-
-                        // If the text starts with the long header
-                        else if ( text.StartsWith( $"{head.GetLongHeader()} " ) && ( cursorPos >= $"{head.GetLongHeader()} ".Length || cursorPos == -1) )
-                            headstring = $"{head.GetLongHeader()} ";
-
-                        else if ( text.StartsWith( $"{head.GetLongHeader()}\n" ) && ( cursorPos >= $"{head.GetLongHeader()}\n".Length || cursorPos == -1) )
-                            headstring = $"{head.GetLongHeader()} ";
-                    }
-                }
-
-                // If a header has been fully identified
-                if (headstring.Length > 0)
-                {
-                    _chatType = head;
-
-                    if (text == headstring)
-                        text = "";
-
-                    // Remove the header from the text.
-                    else
-                        text = text.Substring(headstring.Length);
-
-                    // Reposition the cursor.
-                    cursorPos -= headstring.Length;
-
-                    // Ensure the cursor never has a negative position.
-                    if (cursorPos < 0)
-                        cursorPos = 0;
-                }
+                text = text.Remove( 0, headerData.Length );
+                cursorPos -= headerData.Length;                
             }
+
+            // If the header hasn't been detected, check for a corresponding alias
         }
         return text;
     }
@@ -1380,22 +1269,6 @@ internal class ScratchPadUI : Window
         }
         return text;
     }
-
-    /// <summary>
-    /// Gets a state object that reflects the current state of the pad
-    /// </summary>
-    /// <returns>Returns a PadState object with the current values of the pad</returns>
-    protected PadState GetState()
-    {
-        return new()
-        {
-            ChatType = _chatType,
-            ScratchText = _scratch,
-            TellTarget = _telltarget,
-            UseOOC = _useOOC,
-            CrossWorld = _crossWorld
-        };
-    }
     
     /// <summary>
     /// Runs at each framework update.
@@ -1409,8 +1282,7 @@ internal class ScratchPadUI : Window
 
         _scrollToBottom = _lastState.ScratchText != _scratch;
 
-        if (_lastState != GetState())
-            Refresh();
+        Refresh();
     }
 
     /// <summary>
@@ -1418,6 +1290,10 @@ internal class ScratchPadUI : Window
     /// </summary>
     internal void Refresh()
     {
+        PadState newState = new(this);
+        if ( this._lastState == newState )
+            return;
+
         // If the user has entered text then clear the _clearedScratch variable.
         if (_scratch != "")
             _clearedScratch = "";
@@ -1434,7 +1310,7 @@ internal class ScratchPadUI : Window
         _preserveCorrections = false;
 
         // Update the last state.
-        _lastState = GetState();
+        _lastState = newState;
 
         // Rebuild chunks and reset chunk position counter.
         _chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), ScratchString, _useOOC);

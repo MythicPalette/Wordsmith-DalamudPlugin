@@ -31,7 +31,7 @@
     [ ] Spellcheck
         [ ] Properly handles contractions
         [ ] Properly handles hyphen-termination
-        [ ] Properly handles hyphnation.
+        [ ] Properly handles hyphenation.
 
     [ ] Spelling suggestions
         [ ] Checks transpose
@@ -89,6 +89,8 @@
         [ ] Dictionary selection
         [ ] Custom Dictionary Entries
             [ ] Shows words without punctuation or capitalization
+            [ ] Can be deleted one at a time
+            [ ] Can delete all
 
     [ ] Linkshells Tab
         [ ] Nicknames work for correct linkshell

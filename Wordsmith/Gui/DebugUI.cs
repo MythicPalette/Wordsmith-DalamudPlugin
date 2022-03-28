@@ -24,16 +24,36 @@ internal sealed class DebugUI : Window
     }
     public override void Draw()
     {
-        ImGui.Checkbox( "Show Word Index", ref ShowWordIndex );
-        foreach (Window w in WordsmithUI.Windows)
+        if ( ImGui.CollapsingHeader( "Scratch Pad Data##DebugUIHeader" ) )
         {
-            if (w != null && w is ScratchPadUI pad)
+            ImGui.Indent();
+            foreach ( Window w in WordsmithUI.Windows )
             {
-                // Draw the pad info
-                ImGui.Text( $"{pad.GetDebugString()}" );
-                ImGui.Separator();
-                ImGui.Spacing();
+                if ( w != null && w is ScratchPadUI pad )
+                {
+                    // Draw the pad info
+                    ImGui.Text( $"{pad.GetDebugString()}" );
+                    ImGui.Separator();
+                    ImGui.Spacing();
+                }
             }
+            ImGui.Unindent();
+        }
+        if ( ImGui.CollapsingHeader( "Settings UI Data##DebugUIHeader") )
+        {
+            ImGui.Indent();
+
+            foreach ( Window w in WordsmithUI.Windows )
+            {
+                if ( w != null && w is SettingsUI settings )
+                {
+                    // Draw the pad info
+                    ImGui.Text( $"{settings.GetDebugString()}" );
+                    break;
+                }
+            }
+
+            ImGui.Unindent();
         }
     }
 }
