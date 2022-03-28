@@ -1,49 +1,9 @@
-﻿
+﻿using Wordsmith.Data;
+
 namespace Wordsmith;
 
 internal static class Extensions
 {
-    /// <summary>
-    /// Move an item inside of a List of T.
-    /// </summary>
-    /// <typeparam name="T">Generic Type</typeparam>
-    /// <param name="list">The extended list</param>
-    /// <param name="obj">The object to move</param>
-    /// <param name="index">The index to move to. Offset will be calculated already. If out of range, obj will be moved to first or last slot.</param>
-    internal static void Move<T>(this List<T> list, T obj, int index)
-    {
-        // Get the current index of the object.
-        int idx = list.IndexOf(obj);
-
-        // If the current index is lower than the index we're moving to we actually
-        // lower the new index by 1 because the indices will shift once we remove
-        // the item from it's current place in the list.
-        if (idx < index)
-            --index;
-
-        // If the index where we are moving the object to is the same as where it
-        // is already located then simply return.
-        else if (idx == index)
-            return;
-
-        // Remove the object
-        list.Remove(obj);
-
-        // As a failsafe, if the index is passed the end of the list, move the
-        // object to the end of the list.
-        if (index >= list.Count)
-            list.Add(obj);
-
-        // As a second failsafe, if the index is below zero, move the object to
-        // the front of the list.
-        else if (index < 0)
-            list.Insert(0, obj);
-
-        else
-            // Insert it at the new location.
-            list.Insert(index, obj);
-    }
-
     /// <summary>
     /// Capitalizes the first letter in a string.
     /// </summary>
@@ -158,59 +118,86 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Cleans the word of any punctuation marks that should not be at the beginning or end.
-    /// i.e. "Hello." becomes Hello
+    /// Unwraps the text string using the spaced and no space markers.
     /// </summary>
-    /// <param name="str"></param>
-    /// <returns>Returns the word from of starting and ending punctuation and spaces.</returns>
-    internal static string Clean( this string str )
+    /// <param name="s">The <see cref="string"/> to be unwrapped.</param>
+    /// <returns><see cref="string"/> with all wrap markers replaced.</returns>
+    internal static string Unwrap( this string s ) => s.Trim().Replace( Constants.SPACED_WRAP_MARKER + "\n", " " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "" );
+
+    /// <summary>
+    /// Takes a string and attempts to collect all of the words inside of it.
+    /// </summary>
+    /// <param name="s">The string to parse.</param>
+    /// <returns><see cref="Word"/> array containing all words in the string.</returns>
+    internal static Word[] Words( this string s )
     {
-        // Remove white space at the beginning and end. There shouldn't be any but just in case.
-        str = str.Trim();
+        s = s.Unwrap();
+        if ( s.Length == 0 )
+            return Array.Empty<Word>();
 
-        if ( str.EndsWith( "'s" ) )
-            str = str[0..^2];
+        List<Word> words = new();
 
-        // Loop
-        do
+        int start = 0;
+        int len = 1;
+        while ( start + len <= s.Length )
         {
-            // If the string is now empty, return an empty string.
-            if ( str.Length < 1 )
+            // Scoot the starting point until we've skipped all spaces, return carriage, and newline characters.
+            while ( start < s.Length && " \r\n".Contains( s[start] ) )
+                ++start;
+
+            // If the start has gone all the way to tend, leave the loop.
+            if ( start == s.Length )
                 break;
 
-            // Check the start and end of the word against every character.
-            bool doBreak = true;
-            foreach ( char c in Wordsmith.Configuration.PunctuationCleaningList )
+            if ( start + len == s.Length || " \r\n".Contains( s[start + len] ) )
             {
-                // Check the start of the string for the character
-                if ( str.StartsWith( c ) )
+                int wordoffset = 0;
+                int wordlenoffset = 0;
+                // If the word starting index is a punctuation character then we scoot the word offset forward up to the entire
+                // length of the current string.
+                while ( start + wordoffset < s.Length && Wordsmith.Configuration.PunctuationCleaningList.Contains( s[start + wordoffset] ) && wordoffset <= len )
+                    ++wordoffset;
+
+                // Default to false hyphen termination.
+                bool hyphen = false;
+                // If the word ends with a punctuation character then we scoot the word offset left up to the point that
+                // the offset puts us at -1 word length. This will happen when the word has no letters.
+                while ( start + len - wordlenoffset - 1 > -1 && Wordsmith.Configuration.PunctuationCleaningList.Contains( s[start + len - wordlenoffset - 1] ) && wordoffset <= len )
                 {
-                    // If the string starts with the symbol, remove the symbol and
-                    // prevent exiting the loop.
-                    str = str.Substring( 1 );
-                    doBreak = false;
+                    // If the character is a hyphen, flag it as true.
+                    if ( s[start + len - wordlenoffset - 1] == '-' )
+                        hyphen = true;
+
+                    // If the character is not a hyphen, flat it as false.
+                    else
+                        hyphen = false;
+
+                    ++wordlenoffset;
                 }
 
-                // If ignoring hyphen-ended words and the character is a hyphen, skip the 
-                // EndsWith check.
-                if ( Wordsmith.Configuration.IgnoreWordsEndingInHyphen && c == '-' )
-                    continue;
+                // Add the start offset to the len offset to account for the lost length at the start.
+                wordlenoffset += wordoffset;
 
-                // Check the ending of the string
-                if ( str.EndsWith( c ) )
+                // When we create the word we add the offset to ensure that we
+                // adjust the position as needed.
+                Word w = new()
                 {
-                    // Remove the last character and prevent loop breaking
-                    str = str.Substring( 0, str.Length - 1 );
-                    doBreak = false;
-                }
+                    StartIndex = start,
+                    EndIndex = start + len,
+                    WordIndex = start+wordoffset,
+                    WordLength = len-wordlenoffset,
+                    HyphenTerminated = hyphen
+                };
+
+                words.Add( w );
+                start += len;
+                len = 1;
+
+                continue;
             }
-
-            // If the break hasn't been prevented, break.
-            if ( doBreak )
-                break;
-        } while ( true );
-
-        return str;
+            ++len;
+        }
+        return words.ToArray();
     }
 
     /// <summary>
@@ -234,6 +221,7 @@ internal static class Extensions
     /// <param name="options"><see cref="StringSplitOptions"/> to use in the splitting.</param>
     /// <returns><see cref="string"/> array with all wrap markers replaced and split into lines at new line characters.</returns>
     internal static string[] Lines( this string s, StringSplitOptions options ) => s.Unwrap().Split( '\n', options );
+
     /// <summary>
     /// Returns the index of an item in an array.
     /// </summary>

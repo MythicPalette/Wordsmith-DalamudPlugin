@@ -51,17 +51,17 @@ public class Configuration : IPluginConfiguration
     /// <summary>
     /// Attempts to break text chunks at the nearest sentence rather than the nearest space.
     /// </summary>
-    public bool BreakOnSentence { get; set; } = true;
+    public bool SplitTextOnSentence { get; set; } = true;
 
     /// <summary>
     /// The symbols to consider the end of a sentence.
     /// </summary>
-    public string SplitPointDefinitions { get; set; } = ".?!";
+    public string SentenceTerminators { get; set; } = ".?!";
 
     /// <summary>
     /// The symbols that count as encapsulation characters. These can be next to SplitPoints.
     /// </summary>
-    public string EncapsulationCharacters { get; set; } = "\"'*-";
+    public string EncapsulationTerminators { get; set; } = "\"'*-";
 
     /// <summary>
     /// Specifies the continuation marker to use at the end of each chunk.
@@ -83,7 +83,7 @@ public class Configuration : IPluginConfiguration
     /// when someone uses a continuation marker that has something (1/3) and they want (3/3) on
     /// the last chunk.
     /// </summary>
-    public bool MarkLastChunk { get; set; } = false;
+    public bool ContinuationMarkerOnLast { get; set; } = false;
 
     /// <summary>
     /// If true, scratch pads will automatically clear their text after copying the last block.
@@ -105,7 +105,7 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public bool ReplaceDoubleSpaces { get; set; } = true;
 
-    public bool DetectHeaderInput { get; set; } = true;
+    public bool ParseHeaderInput { get; set; } = true;
 
     public Dictionary<int, Vector4> HeaderColors = new()
     {
@@ -133,6 +133,8 @@ public class Configuration : IPluginConfiguration
     public string DictionaryFile { get; set; } = "lang_en";
 
     public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
+
+    public int MaximumSuggestions { get; set; } = 5;
     #endregion
 
     #region Linkshell Settings
@@ -154,20 +156,30 @@ public class Configuration : IPluginConfiguration
         ResearchToTop = true;
 
         // Scratch Pad settings
+        AddContextMenuOption = true;
+        AutomaticallyClearAfterLastCopy = true;
         DeleteClosedScratchPads = true;
-        IgnoreWordsEndingInHyphen = true;
-        PunctuationCleaningList = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/";
         ShowTextInChunks = true;
-        BreakOnSentence = true;
+        SplitTextOnSentence = true;
+        ParseHeaderInput = true;
         OocOpeningTag = "(( ";
         OocClosingTag = " ))";
-        SplitPointDefinitions = ".?!";
-        EncapsulationCharacters = "\"'*-";
-        AutomaticallyClearAfterLastCopy = false;
-        ScratchPadTextEnterBehavior = 0;
+        ScratchPadTextEnterBehavior = Enums.EnterKeyAction.None;
+        SentenceTerminators = ".?!";
+        EncapsulationTerminators = "\"'*-";
+        ContinuationMarker = "(#c/#m)";
+        ContinuationMarkerOnLast = true;
         ScratchPadMaximumTextLength = 4096;
-        DetectHeaderInput = true;
-        ReplaceDoubleSpaces = true;
+
+        // Spellcheck
+        IgnoreWordsEndingInHyphen = true;
+        MaximumSuggestions = 5;
+        DictionaryFile = "lang_en";
+
+        // Linkshells
+        LinkshellNames = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
+
+        // Colors
         EnableTextHighlighting = true;
         SpellingErrorHighlightColor = new( 0.9f, 0.2f, 0.2f, 1f );
         HeaderColors = new()
@@ -183,9 +195,6 @@ public class Configuration : IPluginConfiguration
             { (int)Enums.ChatType.Echo, new( 0.75f, 0.75f, 0.75f, 1f ) },
             { (int)Enums.ChatType.Linkshell, new( 0.8f, 1f, 0.6f, 1f ) }
         };
-
-        // Spell Check settings
-        DictionaryFile = "lang_en";
 
         Save();
     }

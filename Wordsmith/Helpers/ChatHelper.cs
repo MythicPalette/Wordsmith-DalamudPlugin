@@ -33,20 +33,20 @@ internal class ChatHelper
             // Get the current possible string.
             string str = SubstringByByteCount(text, offset, availableBytes);
 
-            // Add the length of the string to the offset.
-            offset += str.Length;
-
             // Add the string to the list with the header and, if offset is not at
             // the end of the string yet, add the continuation marker for the player.
             if ( str.Trim().Length > 0 )
                 results.Add( new(
                         str.Trim() )
                 {
+                    StartIndex = offset + (str.Length - str.TrimStart().Length),
                     Header = header,
                     OutOfCharacterStartTag = OOC ? Wordsmith.Configuration.OocOpeningTag : "",
                     OutOfCharacterEndTag = OOC ? Wordsmith.Configuration.OocClosingTag : ""
                 } );
-                    //($"{(header.Length > 0 ? $"{header} " : "")}{(OOC ? Wordsmith.Configuration.OocOpeningTag : "")}{str.Trim()}{(OOC ? Wordsmith.Configuration.OocClosingTag : "")}");
+
+            // Add the length of the string to the offset.
+            offset += str.Length;
         }
 
         // If there is more than one result we want to do continuation markers
@@ -55,9 +55,8 @@ internal class ChatHelper
             // Iterate through the chunks and append the continuation marker. We have to do this
             // in a separate loop from when we created the chunks in case the user adds the #m tag
             // to their continuation marker and we need to know the total number of chunks.
-            for ( int i = 0; i < (Wordsmith.Configuration.MarkLastChunk ? results.Count : results.Count - 1); ++i )
+            for ( int i = 0; i < (Wordsmith.Configuration.ContinuationMarkerOnLast ? results.Count : results.Count - 1); ++i )
                 results[i].ContinuationMarker = Wordsmith.Configuration.ContinuationMarker.Replace( "#c", (i + 1).ToString() ).Replace( "#m", results.Count.ToString() );
-                    //results[i] += $" {Wordsmith.Configuration.ContinuationMarker.Replace("#c", (i + 1).ToString()).Replace("#m", results.Count.ToString())}";
         }
 
         // Return the results.
@@ -72,10 +71,10 @@ internal class ChatHelper
     /// <param name="byteLimit">The maximum byte length of the return.</param>
     /// <exception cref="IndexOutOfRangeException">Offset is out of range of text.</exception>
     /// <returns>A string that is under the byte limit.</returns>
-    protected static string SubstringByByteCount(string text, in int offset, in int byteLimit)
+    protected static string SubstringByByteCount(string text, in int startIndex, in int byteLimit)
     {
         // If the offset is out of index, throw an out of range exception
-        if (offset >= text.Length)
+        if ( startIndex >= text.Length)
             throw new IndexOutOfRangeException();
 
         // Designate a text encoder so we don't reinitialize a new one every time.
@@ -86,10 +85,10 @@ internal class ChatHelper
         int lastSentence = -1;
 
         // Start with a character length of 1 and try increasing lengths.
-        for (int length=1; length+offset<text.Length; ++length)
+        for (int length=1; length+ startIndex < text.Length; ++length)
         {
             // If the current length would be over the byte limit
-            if (encoder.GetByteCount(text.Substring(offset, length)) > byteLimit)
+            if (encoder.GetByteCount(text.Substring( startIndex, length)) > byteLimit)
             {
                 // reduce the length by one as we've officially crossed the maximum byte count.
                 --length;
@@ -98,36 +97,36 @@ internal class ChatHelper
                 if (lastSpace == -1)
                     lastSpace = length;
 
-                if (Wordsmith.Configuration.BreakOnSentence && lastSentence > 0 && lastSentence > offset)
-                    return text.Substring(offset, lastSentence);
+                if (Wordsmith.Configuration.SplitTextOnSentence && lastSentence > 0 && lastSentence > startIndex )
+                    return text.Substring( startIndex, lastSentence);
                 else
                     // get the substring starting from offset. If the character at offset+length is a space,
                     // split there. If not, go back to the last space found.
-                    return text.Substring(offset, (text[offset + length] == ' ' ? length : lastSpace));
+                    return text.Substring( startIndex, (text[startIndex + length] == ' ' ? length : lastSpace));
             }
 
             // If the current character is a new line.
-            else if (text[offset + length] == '\n')
-                return text.Substring(offset, length);
+            else if (text[startIndex + length] == '\n')
+                return text.Substring( startIndex, length);
 
             // Check if the current character is a space.
-            if (text[offset + length] == ' ')
+            if (text[startIndex + length] == ' ')
             {
                 // If it is, take note of it.
                 lastSpace = length;
 
                 // If the character is a split point 
-                if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 1]))
+                if (Wordsmith.Configuration.SentenceTerminators.Contains(text[startIndex + length - 1]))
                     lastSentence = length;
 
                 // If there are more characters previous
-                else if (offset+length -2 >= 0)
+                else if ( startIndex + length -2 >= 0)
                 {
                     // Check if we have a case of encapsulation like (Hello.)
-                    if(Wordsmith.Configuration.EncapsulationCharacters.Contains(text[offset+length-1]))
+                    if(Wordsmith.Configuration.EncapsulationTerminators.Contains(text[startIndex + length-1]))
                     {
                         // If the character is a split point 
-                        if (Wordsmith.Configuration.SplitPointDefinitions.Contains(text[offset + length - 2]))
+                        if (Wordsmith.Configuration.SentenceTerminators.Contains(text[startIndex + length - 2]))
                             lastSentence = length;
                     }
                 }
@@ -136,6 +135,6 @@ internal class ChatHelper
 
         // If we make it here, the remaining string from offset to end of string is all
         // all within the given byte limit so return the remaining substring.
-        return text[offset..^0];
+        return text[startIndex..^0];
     }
 }

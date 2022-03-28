@@ -14,7 +14,14 @@ internal static class WordsmithUI
     // passing in the image here just for simplicity
     internal static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
     internal static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
-    internal static void ShowScratchPad(string tellTarget) => _windows.Add(new ScratchPadUI(tellTarget));
+    internal static void ShowScratchPad( string tellTarget ) => Show<ScratchPadUI>( new ScratchPadUI( tellTarget ) );
+    //{
+    //    ScratchPadUI pad = new ScratchPadUI( tellTarget );
+    //    pad.IsOpen = true;
+
+    //    _windows.Add( pad );
+    //    WindowSystem.AddWindow( pad );
+    //}
     internal static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
     internal static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
     internal static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
@@ -26,17 +33,23 @@ internal static class WordsmithUI
     /// </summary>
     /// <typeparam name="T"><see cref="Window"/> child class to show.</typeparam>
     /// <param name="name"><see cref="string"/> name of the <see cref="Window"/></param>
-    private static void Show<T>(string name)
+    private static void Show<T>(object obj)
     {
         // If the given type is not a subclass of Window leave the method
         if (!typeof(T).IsSubclassOf(typeof(Window)))
             return;
-        
-        // Attempt to get the window by name.
-        Window? w = WindowSystem.GetWindow(name);
+
+        Window? w = null;
+        if ( obj is string name )
+        {
+            // Attempt to get the window by name.
+            w = WindowSystem.GetWindow( name );
+        }
+        else if ( obj is Window )
+            w = obj as Window;
 
         // If the result is null, create a new window
-        if ( w == null )
+        if ( w is null )
         {
             // Create the Window object
             w = (Activator.CreateInstance( typeof( T ) ) as Window)!;
@@ -53,14 +66,18 @@ internal static class WordsmithUI
                 // Add it to the list.
                 _windows.Add( w );
             }
-            else
-                PluginLog.LogError( $"Failed to create window {{{name}}}" );
         }
 
         // If the result wasn't null, open the window
         else
+        {
+            if (!_windows.Contains(w))
+            {
+                _windows.Add( w );
+                WindowSystem.AddWindow( w );
+            }
             w.IsOpen = true;
-        
+        }
     }
 
     /// <summary>
