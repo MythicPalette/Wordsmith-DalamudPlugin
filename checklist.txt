@@ -8,6 +8,9 @@
 
 [ ] Scratch Pad Behavior
 
+    [ ] Resizes Properly
+    [ ] Deletes on close if configured
+
     [ ] Properly wraps
         [ ] Prefers to wrap at spaces
         [ ] Retains spaces on unwrap
@@ -21,9 +24,9 @@
         [ ] Create new chunk at \n
         [ ] Ignores empty lines
 
-    [ ] Detects header
-        [ ] Detects header followed by ' '
-        [ ] Detects header followed by '\n'
+    [ ] Parse header
+        [ ] Parse header followed by ' '
+        [ ] Parse header followed by '\n'
 
     [ ] Spellcheck
         [ ] Properly handles contractions
