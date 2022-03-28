@@ -138,7 +138,7 @@ public class Configuration : IPluginConfiguration
         {(int)Enums.ChatType.Linkshell, new(0.8f, 1f, 0.6f, 1f) }
     };
 
-    public List<(int ChatType, string Alias)> HeaderAliases { get; set; } = new();
+    public List<(int ChatType, string Alias, object? data)> HeaderAliases { get; set; } = new();
     #endregion
 
     #region Spell Checker Settings

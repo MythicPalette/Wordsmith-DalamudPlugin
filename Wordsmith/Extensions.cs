@@ -200,6 +200,46 @@ internal static class Extensions
         return words.ToArray();
     }
 
+
+    internal static string? GetTarget( this string s )
+    {
+        // Split the string up.
+        string[] splits = s.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+        if ( splits.Length >= 2 )
+        {
+            // Check for a placeholder
+            if ( splits[1].StartsWith( "<" ) && splits[1].EndsWith( ">" ) )
+                return splits[1];
+
+            // Check for user name@world
+            else if ( splits.Length >= 3 )
+            {
+
+                // If the third element contains a @
+                if ( splits[2].Contains( "@" ) && s.StartsWith( $"{splits[0]} {splits[1]} {splits[2]}" ) )
+                    return $"{splits[1]} {splits[2]}";
+            }
+        }
+        return null;
+    }
+
+    internal static bool isTarget( this string s )
+    {
+        // No valid target has less than 3 characters.
+        if ( s.Length < 3 )
+            return false;
+
+        if ( s.StartsWith( "<" ) && s.EndsWith( ">" ) && !s.Contains(' '))
+            return true;
+
+        // Split the string up.
+        if ( s.Split( " " ).Length == 2 && s.Split( ' ' )[1].Contains( '@' ) )
+            return true;
+
+        return false;
+    }
+
     /// <summary>
     /// Returns the index of an item in an array.
     /// </summary>

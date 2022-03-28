@@ -33,7 +33,8 @@ public sealed class SettingsUI : Window
     // Alias Settings
     private int _newAliasSelection = 0;
     private string _newAlias = "";
-    private List<(int ChatType, string Alias)> _headerAliases = Wordsmith.Configuration.HeaderAliases;
+    private string _newAliasTarget = "";
+    private List<(int ChatType, string Alias, object? data)> _headerAliases = new(Wordsmith.Configuration.HeaderAliases);
 
     // Spellcheck Settings
     private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
@@ -79,8 +80,8 @@ public sealed class SettingsUI : Window
         result += $"\tNew Alias Selection: {this._newAliasSelection}\n";
         result += $"\tAliases:\n";
         result += $"\t]\n";
-        foreach ( (int i, string s) in this._headerAliases )
-            result += $"\t\t{i}: {s}\n";
+        foreach ( (int i, string s, object? o) in this._headerAliases )
+            result += $"\t\t{i}: {s}, {(o is null ? "NULL" : o)}\n";
 
         result += $"\t]\n\n";
 
@@ -341,12 +342,15 @@ public sealed class SettingsUI : Window
         {
             if ( ImGui.BeginChild( "AliasSettingsChild", new( -1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale ) ) )
             {
+                //
+                // Aliases
+                //
+                int spacing = 10;
                 if ( ImGui.BeginTable( "AliasesTabTable", 3, ImGuiTableFlags.BordersH ) )
                 {
                     ImGui.TableSetupColumn( "AliasChatTypeHeaderColumn", ImGuiTableColumnFlags.WidthFixed, 150*ImGuiHelpers.GlobalScale );
                     ImGui.TableSetupColumn( "AliasTextInputColumn", ImGuiTableColumnFlags.WidthStretch );
                     ImGui.TableSetupColumn( "AliasAddDeleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 30*ImGuiHelpers.GlobalScale );
-
 
                     // Get the chat type options.
                     List<string> options = new(Enum.GetNames(typeof(Enums.ChatType)));
@@ -361,26 +365,66 @@ public sealed class SettingsUI : Window
 
                     for (int i = 0; i < this._headerAliases.Count; ++i)
                     {
-                        (int ChatType, string Alias) alias = this._headerAliases[i];
+                        (int ChatType, string Alias, object? Data) alias = this._headerAliases[i];
 
                         string chatTypeName = options[alias.ChatType];
-
-                        float textWidth = ImGui.CalcTextSize( chatTypeName ).X;
 
                         // Draw the chat type.
                         ImGui.TableNextColumn();
                         ImGui.SetNextItemWidth( -1 );
+                        ImGui.Spacing();
                         ImGui.Text( $"{chatTypeName}" );
 
                         string output = alias.Alias;
                         // Add the input field.
                         ImGui.TableNextColumn();
-                        ImGui.SetNextItemWidth( -1 );
-                        if (ImGui.InputText( $"##{chatTypeName}Alias{alias}Input", ref output, 128, ImGuiInputTextFlags.EnterReturnsTrue ))
-                            this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim('\'', '/', ' ', '\r', '\n') );
+
+                        if ( chatTypeName != "Tell" || alias.Data is null)
+                        {
+                            ImGui.Spacing();
+                            ImGui.SetNextItemWidth( -1 );
+                            if ( ImGui.InputText( $"##{chatTypeName}Alias{alias}Input", ref output, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
+                                this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
+                        }
+                        else
+                        {
+                            // Get the size of the column.
+                            float size = ImGui.GetColumnWidth() - (spacing * ImGuiHelpers.GlobalScale);
+
+                            // Cut it in half and space for padding.
+                            size = size / 2;
+
+                            // Get the data as a string.
+                            string data = alias.Data as string ?? "";
+
+                            // Prepare an update flag.
+                            bool update = false;
+
+                            // Draw the target input. If the user hits enter, set update flag if the data was changed.
+                            ImGui.Spacing();
+                            ImGui.SetNextItemWidth( size );
+                            if (ImGui.InputTextWithHint( $"##{chatTypeName}Alias{alias}TargetTextEdit", $"User Name@World", ref data, 128, ImGuiInputTextFlags.EnterReturnsTrue))
+                                update = data != (alias.Data as string) && data.GetTarget() is not null;
+
+                            ImGui.SameLine( 0, 0 );
+                            ImGui.Spacing();
+                            // Same line.
+                            ImGui.SameLine( 0, spacing * ImGuiHelpers.GlobalScale );
+
+                            // Draw the alias input. If the user hits enter, set update flag if alias has changed.
+                            ImGui.SetNextItemWidth( size );
+                            if ( ImGui.InputText( $"##{chatTypeName}Alias{alias}Input", ref output, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
+                                update |= output != alias.Alias;
+
+                            // If update flag is enabled then update the item.
+                            if (update)
+                                this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
+
+
+                        }
 
                         ImGui.TableNextColumn();
-                        if ( ImGui.Button( "X", ImGuiHelpers.ScaledVector2( 25, 25 ) ))
+                        if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( 25, 25 ) ))
                             this._headerAliases.RemoveAt( i-- );
                     }
 
@@ -394,31 +438,59 @@ public sealed class SettingsUI : Window
                     // Show an input field for the new alias.
                     ImGui.TableNextColumn();
                     ImGui.Spacing();
-                    ImGui.SetNextItemWidth( -1 );
-                    ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128 );
+
+                    bool add = false;
+                    if ( options[this._newAliasSelection] != "Tell" )
+                    {
+                        ImGui.SetNextItemWidth( -1 );
+                        add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
+                    }
+                    else
+                    {
+                        // Get the size of the column.
+                        float size = ImGui.GetColumnWidth() - (spacing * ImGuiHelpers.GlobalScale);
+
+                        // Cut it in half and space for padding.
+                        size = size / 2;
+
+                        ImGui.SetNextItemWidth( size );
+                        ImGui.InputTextWithHint( $"##NewAliasTargetTextInput", $"User Name@World", ref this._newAliasTarget, 128 );
+
+                        ImGui.SameLine( 0, spacing * ImGuiHelpers.GlobalScale );
+
+                        ImGui.SetNextItemWidth( size );
+                        add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
+                    }
 
                     // Put the + button.
                     ImGui.TableNextColumn();
                     ImGui.Spacing();
-                    if ( ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( 25, 25 ) ) && this._newAliasSelection > 0 )
+                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( 25, 25 ) );
+
+                    if ( add && this._newAliasSelection > 0 )
                     {
+                        // Create a flag to check validity.
+                        bool valid = true;
+
                         // Check if the alias is already in use.
-                        bool exists = false;
-                        foreach ( (int i, string s) in this._headerAliases )
+                        foreach ( (int i, string s, object? o) in this._headerAliases )
                         {
-                            // If it is, flag it
+                            // If it is, flag it as invalid
                             if ( this._newAlias == s )
                             {
-                                exists = true;
+                                valid = false;
                                 break;
                             }
-
                         }
 
+                        // If the user did not enter a valid target then flag as invalid.
+                        if ( options[this._newAliasSelection] == "Tell" && !this._newAliasTarget.isTarget() )
+                            valid = false;
+
                         // If the alias doesn't exist then add it.
-                        if ( !exists )
+                        if ( valid )
                         {
-                            this._headerAliases.Add( new( this._newAliasSelection, this._newAlias.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ) ) );
+                            this._headerAliases.Add( new( this._newAliasSelection, this._newAlias.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), this._newAliasTarget.Length > 0 ? this._newAliasTarget : null ) );
                             this._newAliasSelection = 0;
                             this._newAlias = "";
                         }
@@ -743,7 +815,7 @@ public sealed class SettingsUI : Window
         this._scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
         // Alias Settings
-        this._headerAliases = Wordsmith.Configuration.HeaderAliases;
+        this._headerAliases = new(Wordsmith.Configuration.HeaderAliases);
 
         // Spell Check Settings
         this._fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
@@ -814,6 +886,10 @@ public sealed class SettingsUI : Window
 
         if ((Enums.EnterKeyAction)this._scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
             Wordsmith.Configuration.ScratchPadTextEnterBehavior = (Enums.EnterKeyAction)this._scratchEnter;
+
+        // Alias Settings
+        if (this._headerAliases != Wordsmith.Configuration.HeaderAliases)
+            Wordsmith.Configuration.HeaderAliases = this._headerAliases;
 
         // Spell Check settings.
         if (this._fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)

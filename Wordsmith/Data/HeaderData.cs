@@ -55,12 +55,10 @@ internal struct HeaderData
             else
                 continue;
 
-            // None of these three types should be allowed passed this point.
+            // Neither of these two types should be allowed passed this point.
             if ( i == (int)ChatType.Linkshell )
                 continue;
             if ( i == (int)ChatType.CrossWorldLinkshell )
-                continue;
-            if ( i == (int)ChatType.Tell )
                 continue;
 
             // If there is a header to fit with the chat type.
@@ -81,14 +79,24 @@ internal struct HeaderData
         if ( this.ChatType == ChatType.None )
         {
             // For each alias
-            foreach ( (int id, string alias) in Wordsmith.Configuration.HeaderAliases )
+            foreach ( (int id, string alias, object? data) in Wordsmith.Configuration.HeaderAliases )
             {
                 // If a matching alias is found
-                if ( headstring.StartsWith( $"/{alias} " ) )
+                if ( headstring.StartsWith( $"/{alias} " ) || headstring.StartsWith($"/{alias}\n") )
                 {
                     // If the ID for the alias is Tell
-                    if ( id == (int)ChatType.Tell )
+                    if ( id == (int)ChatType.Tell && data == null )
+                    {
+                        this.Headstring = $"/{alias}";
                         this.ChatType = ChatType.Tell;
+                    }
+                    else if ( id == (int)ChatType.Tell && data is string dataString )
+                    {
+                        this.Headstring = $"/{alias}";
+                        this.ChatType = ChatType.Tell;
+                        this.TellTarget = dataString;
+                        return;
+                    }
 
                     // If it isn't /Tell and the ChatType is within normal range
                     // simply assign the chat type.
@@ -96,7 +104,7 @@ internal struct HeaderData
                     {
                         // Assign the chat type and break from the loop.
                         this.ChatType = (ChatType)id;
-                        this.Headstring = $"/{alias} ";
+                        this.Headstring = $"/{alias}";
                         return;
                     }
 
@@ -112,7 +120,7 @@ internal struct HeaderData
                         this.CrossWorld = (id - (int)ChatType.Linkshell) >= 8;
 
                         // Set the HeadString property.
-                        this.Headstring = $"/{alias} ";
+                        this.Headstring = $"/{alias}";
                     }
                     break;
                 }
@@ -121,30 +129,11 @@ internal struct HeaderData
 
         if ( this.ChatType == ChatType.Tell )
         {
-            // Split the string up.
-            string[] splits = headstring.Split(" ", StringSplitOptions.RemoveEmptyEntries);
-            string target = "";
-
-            if ( splits.Length >= 2 )
-            {
-                // Check for a placeholder
-                if ( splits[1].StartsWith( "<" ) && splits[1].EndsWith( ">" ) )
-                    target = splits[1];
-
-                // Check for user name@world
-                else if ( splits.Length >= 3 )
-                {
-
-                    // If the third element contains a @ and it has a space after the world name
-                    if ( splits[2].Contains( "@" ) && headstring.StartsWith( $"{splits[0]} {splits[1]} {splits[2]} " ) )
-                        target = $"{splits[1]} {splits[2]}";
-                }
-            }
-
+            string target = headstring.GetTarget() ?? "";
             // If a target was found
             if ( target != "" )
             {
-                this.Headstring = $"{splits[0]} {target} ";
+                this.Headstring += $" {target}";
                 this.ChatType = ChatType.Tell;
                 this.TellTarget = target;
             }
