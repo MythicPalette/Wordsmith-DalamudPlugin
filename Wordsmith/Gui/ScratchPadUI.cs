@@ -8,7 +8,7 @@ using Wordsmith.Enums;
 
 namespace Wordsmith.Gui;
 
-internal class ScratchPadUI : Window
+internal class ScratchPadUI : Window, IReflected
 {
     /// <summary>
     /// A protected class used only for comparing multiple pad state elements at once.
@@ -63,6 +63,8 @@ internal class ScratchPadUI : Window
         }
 
         public override int GetHashCode() => HashCode.Combine(ChatType, ScratchText, UseOOC, TellTarget);
+
+        public override string ToString() => $"{{ ChatType: {this.ChatType}, ScratchText: \"{this.ScratchText}\", UseOOC: {this.UseOOC}, TellTarget: \"{this.TellTarget}\", CrossWorld: {this.CrossWorld}, Linkshell: {this.Linkshell} }}";
     }
 
     /// <summary>
@@ -77,7 +79,7 @@ internal class ScratchPadUI : Window
     /// </summary>
     #region ID
     protected static int _nextID = 0;
-    public static int LastID => _nextID;
+    public static int LastID => _nextID-1;
     public static int NextID => _nextID++;
     public int ID { get; set; }
     #endregion

@@ -5,7 +5,7 @@ using Wordsmith.Helpers;
 
 namespace Wordsmith.Gui;
 
-public class ThesaurusUI : Window
+public class ThesaurusUI : Window, IReflected
 {
     protected string _search = "";
     protected string _query = "";

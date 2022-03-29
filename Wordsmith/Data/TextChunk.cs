@@ -51,4 +51,6 @@ internal class TextChunk
     /// </summary>
     /// <param name="text">The text that forms the chunk.</param>
     internal TextChunk(string text) => this.Text = text;
+
+    public override string ToString() => $"{{ StartIndex: {this.StartIndex}, Header: \"{this.Header}\", Text: \"{this.Text}\", Words: {this.Words}, Marker: {this.ContinuationMarker}, OOC Start: \"{this.OutOfCharacterStartTag}\", OOC End: \"{this.OutOfCharacterEndTag}\" }}";
 }

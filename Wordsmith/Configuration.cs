@@ -3,7 +3,7 @@
 namespace Wordsmith;
 
 [Serializable]
-public class Configuration : IPluginConfiguration
+public class Configuration : IPluginConfiguration, IReflected
 {
     [NonSerialized]
     internal bool RecentlySaved = false;

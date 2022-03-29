@@ -1,4 +1,5 @@
-﻿using Wordsmith.Data;
+﻿using System.Reflection;
+using Wordsmith.Data;
 
 namespace Wordsmith;
 
@@ -9,16 +10,16 @@ internal static class Extensions
     /// </summary>
     /// <param name="s">The string to capitalize the first letter of.</param>
     /// <returns>A <see cref="string"/> with the first letter capitalized.</returns>
-    internal static string CaplitalizeFirst(this string s)
+    internal static string CaplitalizeFirst( this string s )
     {
         // If the length is one, just change the char and send it back.
-        if (s.Length == 1)
-            return char.ToUpper(s[0]).ToString();
+        if ( s.Length == 1 )
+            return char.ToUpper( s[0] ).ToString();
 
         // If the length is greater than 1, capitalize the first char and
         // get the remaining substring to lower.
-        else if (s.Length > 1)
-            return char.ToUpper(s[0]).ToString() + s.Substring(1).ToLower();
+        else if ( s.Length > 1 )
+            return char.ToUpper( s[0] ).ToString() + s.Substring( 1 ).ToLower();
 
         // If we reach this return, the string is empty, return as-is.
         return s;
@@ -29,21 +30,21 @@ internal static class Extensions
     /// </summary>
     /// <param name="s">String to space.</param>
     /// <returns>A properly spaced <see cref="string"/></returns>
-    internal static string SpaceByCaps(this string s)
+    internal static string SpaceByCaps( this string s )
     {
         // If there aren't at least two characters then return.
-        if (s.Length < 2)
+        if ( s.Length < 2 )
             return s;
 
         string result = s[0].ToString();
 
         string caps = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         // Iterate through each character not in the first index
-        for (int i =1; i< s.Length; ++i)// char c in s[1..^0])
+        for ( int i = 1; i < s.Length; ++i )// char c in s[1..^0])
         {
             // If the character is a capital letter and the letter before
             // it is not then add a space.
-            if (caps.Contains(s[i]) && !caps.Contains(s[i-1]))
+            if ( caps.Contains( s[i] ) && !caps.Contains( s[i - 1] ) )
                 result += " ";
 
             // Add the character to the result.
@@ -58,19 +59,19 @@ internal static class Extensions
     /// </summary>
     /// <param name="s">The string to remove double spaces from.</param>
     /// <returns><see cref="string"/> with double-spacing fixed.</returns>
-    internal static string FixSpacing(this string s)
+    internal static string FixSpacing( this string s )
     {
         // Start by initially running the replace command.
         do
         {
             // Replace double spaces.
-            s = s.Replace("  ", " ");
+            s = s.Replace( "  ", " " );
 
             // Loop because 3 spaces together will only get knocked down
             // to 2 spaces and it won't check again so we need to. With
             // each pass, any area with more than one space will become
             // less spaced until only one remains.
-        } while (s.Contains("  "));
+        } while ( s.Contains( "  " ) );
 
         // Return the correctly spaced string.
         return s;
@@ -82,13 +83,13 @@ internal static class Extensions
     /// <param name="s">The string to remove double spaces from.</param>
     /// <param name="cursorPos">A reference to a text cursor to be manipulated.</param>
     /// <returns><see cref="string"/> with double-spacing fixed.</returns>
-    internal static string FixSpacing(this string s, ref int cursorPos)
+    internal static string FixSpacing( this string s, ref int cursorPos )
     {
         int idx;
         do
         {
             // Get the position of the first double space.
-            idx = s.IndexOf("  ");
+            idx = s.IndexOf( "  " );
             if ( idx == cursorPos - 1 )
             {
                 idx = s[cursorPos..^0].IndexOf( "  " );
@@ -97,10 +98,10 @@ internal static class Extensions
             }
 
             // If the index is greater than -1;
-            if (idx > -1)
+            if ( idx > -1 )
             {
                 // If the index is 0 just remove the space from the front of the line.
-                if (idx == 0)
+                if ( idx == 0 )
                     s = s[1..^0];
 
                 // Remove the space from inside the string.
@@ -109,10 +110,10 @@ internal static class Extensions
 
                 // If the removed space is at a lower index than the cursor
                 // move the cursor back a space to account for the position change.
-                if (idx <= cursorPos)
+                if ( idx <= cursorPos )
                     cursorPos -= 1;
             }
-        } while (idx > -1);
+        } while ( idx > -1 );
 
         return s;
     }
@@ -230,7 +231,7 @@ internal static class Extensions
         if ( s.Length < 3 )
             return false;
 
-        if ( s.StartsWith( "<" ) && s.EndsWith( ">" ) && !s.Contains(' '))
+        if ( s.StartsWith( "<" ) && s.EndsWith( ">" ) && !s.Contains( ' ' ) )
             return true;
 
         // Split the string up.
@@ -247,16 +248,158 @@ internal static class Extensions
     /// <param name="array">The array to find the object in.</param>
     /// <param name="obj">The object to locate within the array.</param>
     /// <returns><see cref="int"/> index of <typeparamref name="T"/> in array or -1 if not found.</returns>
-    internal static int IndexOf<T>(this T[] array, T obj)
+    internal static int IndexOf<T>( this T[] array, T obj )
     {
         // Iterate and compare each item and return the index if
         // a match is found.
-        for (int i = 0; i < array.Length; ++i)
-            if (array[i]?.Equals(obj) ?? false)
+        for ( int i = 0; i < array.Length; ++i )
+            if ( array[i]?.Equals( obj ) ?? false )
                 return i;
 
         // If no match is found, return -1 to signal that it isn't in
         // the array.
         return -1;
+    }
+
+    internal static IReadOnlyList<(int Type, string Name, string Value)> GetProperties( this IReflected reflected, params string[]? excludes )
+    {
+        Type t = reflected.GetType();
+
+        List<(int Type, string Name, string Value)> result = new();
+
+        // Get properties
+        foreach ( PropertyInfo p in t.GetProperties().Where( x => !excludes?.Contains( x.Name ) ?? true ) )
+            result.Add( new( 0, p.Name, GetValueString( p.GetValue( reflected ) ) ) );
+
+        // Get fields
+        foreach ( FieldInfo f in t.GetFields( BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static ).Where( x => !excludes?.Contains( x.Name ) ?? true ) )
+            result.Add( new( 1, f.Name, GetValueString( f.GetValue( reflected ) ) ) );
+
+        return result;
+    }
+
+    private static string GetValueString( object? obj )
+    {
+        if ( obj is null )
+            return "NULL";
+
+        else if ( obj.IsGenericList() )
+        {
+            System.Collections.ArrayList? arrayList = ReflectListToArrayList( obj );
+            if ( arrayList is null )
+                return "NULL";
+
+            string result = "{ \"";
+            for ( int i = 0; i < arrayList.Count; ++i )
+            {
+                if ( i > 0 )
+                    result += ", \"";
+                result += arrayList[i]?.ToString() ?? "NULL";
+            }
+            result += "\" }";
+            return result;
+        }
+
+        else if ( obj.IsGenericDictionary())
+        {
+            List<string>? pairs = ReflectDictionaryToArrayList( obj );
+            if ( pairs is not null )
+                return "NULL";
+
+            string result = "{ \"";
+            for ( int i = 0; i < (pairs?.Count ?? 0); ++i )
+            {
+                if ( i > 0 )
+                    result += ", \"";
+                result += pairs?[i] ?? "NULL";
+            }
+            result += "\" }";
+            return result;
+        }
+
+        else if ( obj.GetType().IsArray )
+        {
+            if ( obj is object[] objects)
+            {
+                string result = "[ \"";
+                for ( int i = 0; i < objects.Length; ++i )
+                {
+                    if ( i > 0 )
+                        result += ", \"";
+                    result += objects[i].ToString();
+                }
+                result += "\" ]";
+                return result;
+            }
+            return "Enumerable";
+        }
+        return obj.ToString() ?? "NULL";
+    }
+
+    public static bool IsGenericList( this object o )
+    {
+        var oType = o.GetType();
+        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( List<> )));
+    }
+
+    public static bool IsGenericDictionary( this object o )
+    {
+        var oType = o.GetType();
+        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( Dictionary<,> )));
+    }
+
+    public static bool IsGenericEnumerable( this object o )
+    {
+        var oType = o.GetType();
+        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( IEnumerable<> )));
+    }
+
+    private static System.Collections.ArrayList? ReflectListToArrayList( object o )
+    {
+        Type t = o.GetType();
+        MethodInfo? mi = t.GetMethod("ToArray");
+        Array? array = (Array?)mi?.Invoke( o, null );
+        return array is null ? null : new(array);
+    }
+
+    private static List<string>? ReflectDictionaryToArrayList( object o)
+    {
+        Type t = o.GetType();
+
+        // Get the keys
+        var keys = t.GetProperty("Keys")?.GetValue(o);
+
+        // Return null if unable to get keys.
+        if ( keys is null )
+            return null;
+
+        // Convert the keys to an array.
+        Type keyCollectionType = keys.GetType();
+        MethodInfo? keyToArray = keyCollectionType.GetMethod("ToArray");
+        Array? keyArray = (Array?)keyToArray?.Invoke( keys, null );
+
+        // Return null if the array is null or empty
+        if ( keyArray is null || keyArray.Length == 0)
+            return null;
+
+        // Get the values
+        var values = t.GetProperty("Values")?.GetValue(o);
+
+        // Return null if unable to get values.
+        if ( values is null )
+            return null;
+
+        // Convert the values to an array.
+        Type valueCollectionType = values.GetType();
+        MethodInfo? valueToArray = valueCollectionType.GetMethod("ToArray");
+        Array? valueArray = (Array?)valueToArray?.Invoke( values, null );
+
+
+        List<string> result = new();
+        for ( int i = 0; i < keyArray.Length; ++i )
+        {
+            result.Add( $"{ keyArray.GetValue( i ) }: { valueArray.GetValue( i ) }" );
+        }
+        return result;
     }
 }

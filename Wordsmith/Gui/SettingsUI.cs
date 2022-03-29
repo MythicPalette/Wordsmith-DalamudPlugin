@@ -5,7 +5,7 @@ using Wordsmith.Data;
 
 namespace Wordsmith.Gui;
 
-public sealed class SettingsUI : Window
+public sealed class SettingsUI : Window, IReflected
 {
     private const int FOOTERHEIGHT = 100;
 

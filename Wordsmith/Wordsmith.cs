@@ -6,6 +6,8 @@ global using System.Numerics;
 global using System.Collections.Generic;
 global using Dalamud.Logging;
 
+global using Wordsmith.Interfaces;
+
 using Dalamud.Game.Command;
 using Dalamud.Data;
 using Dalamud.IoC;
