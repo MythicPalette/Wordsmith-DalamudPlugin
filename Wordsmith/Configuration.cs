@@ -3,21 +3,32 @@
 namespace Wordsmith;
 
 [Serializable]
-public class Configuration : IPluginConfiguration
+public class Configuration : IPluginConfiguration, IReflected
 {
     [NonSerialized]
     internal bool RecentlySaved = false;
 
     public int Version { get; set; } = 0;
-
-    public int SearchHistoryCount { get; set; } = 10;
-    public bool ResearchToTop { get; set; } = true;
-
     public float FontSize { get; set; } = 17f;
     public float JpFontSize { get; set; } = 17f;
     public float SymbolFontSize { get; set; } = 17f;
 
-    // Scratch Pad settings
+    #region Thesaurus Settings
+    //
+    // Thesaurus Settings
+    //
+    public int SearchHistoryCount { get; set; } = 10;
+    public bool ResearchToTop { get; set; } = true;
+    #endregion
+
+    #region Scratch Pad Settings
+    //
+    // Scrach Pad Settings
+    //
+
+    /// <summary>
+    /// When true, scratchpads are disposed when closed.
+    /// </summary>
     public bool DeleteClosedScratchPads { get; set; } = true;
 
     /// <summary>
@@ -41,7 +52,7 @@ public class Configuration : IPluginConfiguration
     /// <summary>
     /// The spell checker will attempt to delete these punctuation marks from the beginning and end of every word
     /// </summary>
-    public string PunctuationCleaningList { get; set; } = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
+    internal string PunctuationCleaningList { get; set; } = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
 
     /// <summary>
     /// Toggles displaying text in copy chunks.
@@ -83,7 +94,7 @@ public class Configuration : IPluginConfiguration
     /// when someone uses a continuation marker that has something (1/3) and they want (3/3) on
     /// the last chunk.
     /// </summary>
-    public bool ContinuationMarkerOnLast { get; set; } = false;
+    public bool ContinuationMarkerOnLast { get; set; } = true;
 
     /// <summary>
     /// If true, scratch pads will automatically clear their text after copying the last block.
@@ -105,8 +116,14 @@ public class Configuration : IPluginConfiguration
     /// </summary>
     public bool ReplaceDoubleSpaces { get; set; } = true;
 
+    /// <summary>
+    /// When true Scratch Pads will attempt to parse the header from the chat.
+    /// </summary>
     public bool ParseHeaderInput { get; set; } = true;
 
+    /// <summary>
+    /// A dictionary containing the different colors for chat headers.
+    /// </summary>
     public Dictionary<int, Vector4> HeaderColors = new()
     {
         {(int)Enums.ChatType.Emote, new(0.9f, 0.9f, 0.9f, 1f) },
@@ -120,6 +137,9 @@ public class Configuration : IPluginConfiguration
         {(int)Enums.ChatType.Echo, new(0.75f, 0.75f, 0.75f, 1f) },
         {(int)Enums.ChatType.Linkshell, new(0.8f, 1f, 0.6f, 1f) }
     };
+
+    public List<(int ChatType, string Alias, object? data)> HeaderAliases { get; set; } = new();
+    #endregion
 
     #region Spell Checker Settings
     /// <summary>
@@ -157,7 +177,7 @@ public class Configuration : IPluginConfiguration
 
         // Scratch Pad settings
         AddContextMenuOption = true;
-        AutomaticallyClearAfterLastCopy = true;
+        AutomaticallyClearAfterLastCopy = false;
         DeleteClosedScratchPads = true;
         ShowTextInChunks = true;
         SplitTextOnSentence = true;
@@ -170,6 +190,9 @@ public class Configuration : IPluginConfiguration
         ContinuationMarker = "(#c/#m)";
         ContinuationMarkerOnLast = true;
         ScratchPadMaximumTextLength = 4096;
+
+        // Alias Settings
+        HeaderAliases = new();
 
         // Spellcheck
         IgnoreWordsEndingInHyphen = true;

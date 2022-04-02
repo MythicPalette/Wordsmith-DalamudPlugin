@@ -2,10 +2,11 @@
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Data;
+using Wordsmith.Enums;
 
 namespace Wordsmith.Gui;
 
-public sealed class SettingsUI : Window
+public sealed class SettingsUI : Window, IReflected
 {
     private const int FOOTERHEIGHT = 100;
 
@@ -30,9 +31,14 @@ public sealed class SettingsUI : Window
     private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
     private int _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
+    // Alias Settings
+    private int _newAliasSelection = 0;
+    private string _newAlias = "";
+    private string _newAliasTarget = "";
+    private List<(int ChatType, string Alias, object? data)> _headerAliases = new(Wordsmith.Configuration.HeaderAliases);
+
     // Spellcheck Settings
     private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
-    private bool _enableTextColor = Wordsmith.Configuration.EnableTextHighlighting;
     private int _maxSuggestions = Wordsmith.Configuration.MaximumSuggestions;
     private string _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
 
@@ -42,8 +48,67 @@ public sealed class SettingsUI : Window
 
     // Colors Settings
     private Vector4 _backupColor = new();
+    private bool _enableTextColor = Wordsmith.Configuration.EnableTextHighlighting;
     private Vector4 _spellingErrorColor = Wordsmith.Configuration.SpellingErrorHighlightColor;
     private Dictionary<int, Vector4> _headerColors = Wordsmith.Configuration.HeaderColors;
+
+    internal string GetDebugString()
+    {
+        string result = "Settings UI:";
+        result += $"Thesaurus Settings\n";
+        result += $"\tSearch History Limit: {this._searchHistoryCountChange}\n";
+        result += $"\tMove Re-searches to top: {this._researchToTopChange}\n\n";
+
+        result += $"Scratch Pad Settings:\n";
+        result += $"\tContext Menu Enabled: {this._contextMenu}\n";
+        result += $"\tDelete Closed Pads: {this._deleteClosed}\n";
+        result += $"\tIgnore Hyphen Terminated: {this._ignoreHypen}\n";
+        result += $"\tShow Text in Chunks: {this._showChunks}\n";
+        result += $"\tBreak on Sentence: {this._onSentence}\n";
+        result += $"\tParse Header: {this._detectHeader}\n";
+        result += $"\tOOC Opening: {this._oocOpening}\n";
+        result += $"\tOOC Closing: {this._oocClosing}\n";
+        result += $"\tSentence Terminators: {this._sentenceTerminators}\n";
+        result += $"\tEncap Terminators: {this._encapTerminators}\n";
+        result += $"\tContinue Marker: {this._continueMarker}\n";
+        result += $"\tMark Last Chunk: {this._markLastChunk}\n";
+        result += $"\tAuto Clear Pads: {this._autoClear}\n";
+        result += $"\tMax Text Length: {this._scratchMaxTextLen}\n";
+        result += $"\tCtrl+Enter Action: {this._scratchEnter}\n\n";
+
+        result += $"Alias Settings:\n";
+        result += $"\tNew Alias: {this._newAlias}\n";
+        result += $"\tNew Alias Selection: {this._newAliasSelection}\n";
+        result += $"\tAliases:\n";
+        result += $"\t]\n";
+        foreach ( (int i, string s, object? o) in this._headerAliases )
+            result += $"\t\t{i}: {s}, {(o is null ? "NULL" : o)}\n";
+
+        result += $"\t]\n\n";
+
+        result += $"Spellcheck Settings:\n";
+        result += $"\tFix Double Spaces: {this._fixDoubleSpace}\n";
+        result += $"\tMax Suggestions: {this._maxSuggestions}\n";
+        result += $"\tDictionary Filename: {this._dictionaryFilename}\n\n";
+
+        result += $"Linkshell Settings:\n";
+        result += $"\tLinkshell Names:\n\t[\n";
+        result += $"\t\t{string.Join( "\n\t\t", this._linkshells )}";
+        result += $"\t]\n";
+        result += $"\tCross-World Linkshell Names:\n[\n";
+        result += $"\t\t{string.Join( "\n\t\t", this._cwlinkshells )}";
+        result += $"\t]\n\n";
+
+        result += $"Color Settings:\n";
+        result += $"\tBackup Color: {this._backupColor}";
+        result += $"\tEnable Text Color: {this._enableTextColor}";
+        result += $"\tSpelling Error Color: {this._spellingErrorColor}";
+        result += $"\tHeader Colors:\n\t[\n";
+        foreach ( KeyValuePair<int, Vector4> kv in this._headerColors )
+            result += $"\t\t<{kv.Value.X}, {kv.Value.Y}, {kv.Value.Z}, {kv.Value.W}>";
+        result += $"\t]";
+        return result;
+    }
 
     public SettingsUI() : base($"{Wordsmith.AppName} - Settings")
     {
@@ -74,6 +139,7 @@ public sealed class SettingsUI : Window
         {
             DrawThesaurusTab();
             DrawScratchPadTab();
+            DrawAliasesTab();
             DrawSpellCheckTab();
             DrawLinkshellTab();
             DrawColorsTab();
@@ -271,6 +337,185 @@ public sealed class SettingsUI : Window
         }
     }
 
+    private void DrawAliasesTab()
+    {
+        if ( ImGui.BeginTabItem( "Aliases##SettingsUITabItem" ) )
+        {
+            if ( ImGui.BeginChild( "AliasSettingsChild", new( -1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale ) ) )
+            {
+                //
+                // Aliases
+                //
+                ImGui.TextWrapped( $"Aliases are like nicknames for chat commands. For example if you set the alias \"me\" for Emote you can type /me instead of /em and the correct chat channel will be parsed." );
+                int spacing = 10;
+                int tellBarWidth = 200;
+
+                if ( ImGui.BeginTable( "AliasesTabTable", 3, ImGuiTableFlags.BordersH ) )
+                {
+                    ImGui.TableSetupColumn( "AliasChatTypeHeaderColumn", ImGuiTableColumnFlags.WidthFixed, 150*ImGuiHelpers.GlobalScale );
+                    ImGui.TableSetupColumn( "AliasTextInputColumn", ImGuiTableColumnFlags.WidthStretch );
+                    ImGui.TableSetupColumn( "AliasAddDeleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 30*ImGuiHelpers.GlobalScale );
+
+                    // Get the chat type options.
+                    List<string> options = new(Enum.GetNames(typeof(Enums.ChatType)));
+
+                    options[0] = "Please Choose";
+                    options.Remove( "Linkshell" );
+                    options.Remove( "CrossWorldLinkshell" );
+
+                    for ( int toggle = 0; toggle < 2; ++toggle )
+                        for ( int i = 1; i <= 8; ++i )
+                            options.Add( $"{(toggle == 1 ? "CW-" : "")}Linkshell{i}" );
+
+                    for (int i = 0; i < this._headerAliases.Count; ++i)
+                    {
+                        (int ChatType, string Alias, object? Data) alias = this._headerAliases[i];
+
+                        string chatTypeName = options[alias.ChatType];
+
+                        // Draw the chat type.
+                        ImGui.TableNextColumn();
+                        ImGui.SetNextItemWidth( -1 );
+                        ImGui.Spacing();
+                        ImGui.Text( $"{chatTypeName}" );
+                        if ( ImGui.IsItemHovered() )
+                            ImGui.SetTooltip( "Chat header to use alias on." );
+
+                        string output = alias.Alias;
+                        // Add the input field.
+                        ImGui.TableNextColumn();
+
+                        bool update = false;
+                        ImGui.Spacing();
+                        if ( chatTypeName == "Tell" && alias.Data is not null)
+                        {
+                            // Get the data as a string.
+                            string data = alias.Data as string ?? "";
+
+                            // Set the width of the target entry.
+                            ImGui.SetNextItemWidth( tellBarWidth * ImGuiHelpers.GlobalScale );
+                            if (ImGui.InputTextWithHint( $"##{chatTypeName}Alias{alias}TargetTextEdit", $"User Name@World", ref data, 128, ImGuiInputTextFlags.EnterReturnsTrue))
+                                update = data != (alias.Data as string) && data.GetTarget() is not null;
+                            if ( ImGui.IsItemHovered() )
+                                ImGui.SetTooltip( "Edt the target of your tell. Hit the enter key after maing changes to update.\nYou must still click Apply to save the changes." );
+
+                            ImGui.SameLine( 0, 0 );
+                            ImGui.Spacing();
+                            // Same line.
+                            ImGui.SameLine( 0, spacing * ImGuiHelpers.GlobalScale );
+
+                            // Draw the alias input. If the user hits enter, set update flag if alias has changed.
+                            // Get the size of the column.
+                            float size = ImGui.GetColumnWidth();
+                            ImGui.SetNextItemWidth( size );
+                        }
+                        else
+                            ImGui.SetNextItemWidth( -1 );
+
+                        update |= ImGui.InputText( $"##{chatTypeName}Alias{alias}Input", ref output, 128, ImGuiInputTextFlags.EnterReturnsTrue );
+                        if ( ImGui.IsItemHovered() )
+                            ImGui.SetTooltip( "Edit the alias here. Hit the enter key after making changes to update.\nYou must still click Apply to save the changes." );
+
+                        // If update flag is enabled then update the item.
+                        if ( update )
+                            this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
+
+                        ImGui.TableNextColumn();
+                        if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( 25, 25 ) ))
+                            this._headerAliases.RemoveAt( i-- );
+                    }
+
+
+                    // Display the chat type selection.
+                    ImGui.TableNextColumn();
+                    ImGui.Spacing();
+                    ImGui.SetNextItemWidth( -1 );
+                    ImGui.Combo( "##NewAliasChatTypeSelection", ref this._newAliasSelection, options.ToArray(), options.Count );
+                    if ( ImGui.IsItemHovered() )
+                        ImGui.SetTooltip( "Chat header to use alias on." );
+                    // Show an input field for the new alias.
+                    ImGui.TableNextColumn();
+                    ImGui.Spacing();
+
+                    bool add = false;
+                    if ( options[this._newAliasSelection] == "Tell" )
+                    {
+                        // Set the size of the tell target.
+                        ImGui.SetNextItemWidth( tellBarWidth * ImGuiHelpers.GlobalScale );
+
+                        // Display the target entry.
+                        ImGui.InputTextWithHint( $"##NewAliasTargetTextInput", $"User Name@World", ref this._newAliasTarget, 128 );
+                        if ( ImGui.IsItemHovered() )
+                            ImGui.SetTooltip( "This is the target of your tell. i.e. \"<t>\" or \"User Name@World\"" );
+
+                        // Insert the spacing.
+                        ImGui.SameLine( 0, spacing * ImGuiHelpers.GlobalScale );
+
+                        // Get the size of alias text area.
+                        float size = ImGui.GetColumnWidth();
+                        ImGui.SetNextItemWidth( size );
+                    }
+                    else
+                        ImGui.SetNextItemWidth( -1 );
+
+                    add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
+                    if ( ImGui.IsItemHovered() )
+                        ImGui.SetTooltip( "Enter the desired alias here without the \"/\" character" );
+
+                    // Put the + button.
+                    ImGui.TableNextColumn();
+                    ImGui.Spacing();
+                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( 25, 25 ) );
+
+                    if ( add && this._newAliasSelection > 0 )
+                    {
+                        // Create a flag to check validity.
+                        bool valid = true;
+
+                        // Check if the alias is already in use.
+                        foreach ( (int i, string s, object? o) in this._headerAliases )
+                        {
+                            // If it is, flag it as invalid
+                            if ( this._newAlias == s )
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+
+                        // Check if the alias is used by a default option.
+                        for( int i = 0; i < Enum.GetNames(typeof(ChatType)).Length; ++i )
+                        {
+                            ChatType ct = (ChatType)i;
+                            if ( $"/{this._newAlias.ToLower()}" == ct.GetShortHeader() || $"/{this._newAlias.ToLower()}" == ct.GetLongHeader() )
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+
+                        // If the user did not enter a valid target then flag as invalid.
+                        if ( options[this._newAliasSelection] == "Tell" && !this._newAliasTarget.isTarget() )
+                            valid = false;
+
+                        // If the alias doesn't exist then add it.
+                        if ( valid )
+                        {
+                            this._headerAliases.Add( new( this._newAliasSelection, this._newAlias.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), this._newAliasTarget.Length > 0 ? this._newAliasTarget : null ) );
+                            this._newAliasSelection = 0;
+                            this._newAlias = "";
+                        }
+                    }
+                    ImGui.Spacing();
+
+                    ImGui.EndTable();
+                }
+                ImGui.EndChild();
+            }
+            ImGui.EndTabItem();
+        }
+    }
+
     private void DrawSpellCheckTab()
     {
         if (ImGui.BeginTabItem("Spell Check##SettingsUITabItem"))
@@ -352,9 +597,9 @@ public sealed class SettingsUI : Window
 
                         ImGui.TableNextColumn();
                         if ( ImGui.Button( $"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2( -1, 25 ) ) )
-                            Lang.RemoveDictionaryEntry( Wordsmith.Configuration.CustomDictionaryEntries[i] );
+                            Lang.RemoveDictionaryEntry( Wordsmith.Configuration.CustomDictionaryEntries[i--] );
 
-                        if (ImGui.IsItemHovered())
+                        else if (ImGui.IsItemHovered())
                             ImGui.SetTooltip($"Permanently deletes {Wordsmith.Configuration.CustomDictionaryEntries[i]} from your custom dictionary.");
                     }
                     ImGui.EndTable();
@@ -580,6 +825,9 @@ public sealed class SettingsUI : Window
         this._scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
         this._scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
 
+        // Alias Settings
+        this._headerAliases = new(Wordsmith.Configuration.HeaderAliases);
+
         // Spell Check Settings
         this._fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
         this._dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
@@ -649,6 +897,10 @@ public sealed class SettingsUI : Window
 
         if ((Enums.EnterKeyAction)this._scratchEnter != Wordsmith.Configuration.ScratchPadTextEnterBehavior)
             Wordsmith.Configuration.ScratchPadTextEnterBehavior = (Enums.EnterKeyAction)this._scratchEnter;
+
+        // Alias Settings
+        if (this._headerAliases != Wordsmith.Configuration.HeaderAliases)
+            Wordsmith.Configuration.HeaderAliases = this._headerAliases;
 
         // Spell Check settings.
         if (this._fixDoubleSpace != Wordsmith.Configuration.ReplaceDoubleSpaces)
