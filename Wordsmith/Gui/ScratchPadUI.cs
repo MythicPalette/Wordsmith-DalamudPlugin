@@ -542,7 +542,7 @@ internal class ScratchPadUI : Window, IReflected
         // Draw header
         if ( chunk.Header.Length > 0 )
         {
-            ImGui.TextColored( Wordsmith.Configuration.HeaderColors[(int)_chatType], chunk.Header );
+            ImGui.TextColored( Wordsmith.Configuration.HeaderColors[(int)_chatType], chunk.Header.Replace("%", "%%") );
             width += ImGui.CalcTextSize( chunk.Header ).X;
             sameLine = true;
         }
@@ -551,7 +551,7 @@ internal class ScratchPadUI : Window, IReflected
         if (_useOOC)
         {
             ImGui.SameLine( 0, 2 * ImGuiHelpers.GlobalScale );
-            ImGui.Text( Wordsmith.Configuration.OocOpeningTag );
+            ImGui.Text( Wordsmith.Configuration.OocOpeningTag.Replace( "%", "%%") );
             width += ImGui.CalcTextSize( Wordsmith.Configuration.OocOpeningTag ).X;
             sameLine = true;
         }
@@ -575,9 +575,9 @@ internal class ScratchPadUI : Window, IReflected
                 width = objWidth;
 
             if ( _corrections?.Count > 0 && _corrections[0].StartIndex == word.StartIndex+chunk.StartIndex)
-                ImGui.TextColored( Wordsmith.Configuration.SpellingErrorHighlightColor, text );
+                ImGui.TextColored( Wordsmith.Configuration.SpellingErrorHighlightColor, text.Replace( "%", "%%") );
             else
-                ImGui.Text(text);
+                ImGui.Text(text.Replace( "%", "%%"));
 
 #if DEBUG
             if ( ImGui.IsItemHovered() )
@@ -600,7 +600,7 @@ internal class ScratchPadUI : Window, IReflected
                 width = ImGui.CalcTextSize( Wordsmith.Configuration.OocClosingTag ).X;
 
             // Draw text.
-            ImGui.Text( Wordsmith.Configuration.OocClosingTag );
+            ImGui.Text( Wordsmith.Configuration.OocClosingTag.Replace( "%", "%%") );
         }
 
         if (_chunks.Count > 1)
@@ -618,7 +618,7 @@ internal class ScratchPadUI : Window, IReflected
                 else
                     width = ImGui.CalcTextSize( chunk.ContinuationMarker ).X;
 
-                ImGui.Text( chunk.ContinuationMarker );
+                ImGui.Text( chunk.ContinuationMarker.Replace( "%", "%%") );
             }
         }
     }
