@@ -7,8 +7,7 @@ namespace Wordsmith;
 // to do any cleanup
 internal static class WordsmithUI
 {
-    private static List<Window> _windows { get; set; } = new();
-    internal static IReadOnlyList<Window> Windows => _windows;
+    internal static IReadOnlyList<Window> Windows => WindowSystem.Windows;
     internal static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
 
     // passing in the image here just for simplicity
@@ -26,7 +25,10 @@ internal static class WordsmithUI
     internal static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
     internal static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
     internal static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
+
+#if DEBUG
     internal static void ShowDebugUI() => Show<DebugUI>( $"{Wordsmith.AppName} - Debug" );
+#endif
 
     /// <summary>
     /// Shows the window with the specified name or creates a new one.
@@ -62,20 +64,15 @@ internal static class WordsmithUI
 
                 // Add it to the WindowSystem.
                 WindowSystem.AddWindow( w );
-
-                // Add it to the list.
-                _windows.Add( w );
             }
         }
 
         // If the result wasn't null, open the window
         else
         {
-            if (!_windows.Contains(w))
-            {
-                _windows.Add( w );
+            if (!WindowSystem.Windows.Contains(w))
                 WindowSystem.AddWindow( w );
-            }
+
             w.IsOpen = true;
         }
     }
@@ -89,9 +86,6 @@ internal static class WordsmithUI
         // If the Window can be disposed do it.
         if (w is IDisposable disposable)
             disposable.Dispose();
-
-        // Remove from the list
-        _windows.Remove(w);
 
         // Remove from the WindowSystem
         WindowSystem.RemoveWindow(w);
@@ -131,7 +125,7 @@ internal static class WordsmithUI
     /// </summary>
     internal static void Update()
     {
-        foreach ( Window w in _windows )
+        foreach ( Window w in WindowSystem.Windows )
             w.Update();
     }
 
@@ -140,8 +134,7 @@ internal static class WordsmithUI
     /// </summary>
     internal static void Dispose()
     {
-        Window[] windows = _windows.ToArray();
-        foreach ( Window w in windows )
-            RemoveWindow( w );
+        while ( WindowSystem.Windows.Count > 0 )
+            RemoveWindow( WindowSystem.Windows[0] );
     }
 }

@@ -9,7 +9,6 @@
 [ ] Scratch Pad Behavior
 
     [ ] Resizes Properly
-    [ ] Deletes on close if configured
 
     [ ] Properly wraps
         [ ] Prefers to wrap at spaces
@@ -57,6 +56,10 @@
         [ ] Clears.
         [ ] Saves cleared text.
         [ ] Undo Clear.
+
+    [ ] Auto-Delete On Close
+        [ ] Retains text if not deleting pad.
+        [ ] Delete Pad button functions correctly.
 -----------------------------------------------------------------------------
 
 [ ] Settings Behavior

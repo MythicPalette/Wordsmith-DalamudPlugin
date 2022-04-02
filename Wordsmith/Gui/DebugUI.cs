@@ -1,14 +1,11 @@
-﻿using Dalamud.Interface;
+﻿#if DEBUG
+
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Wordsmith.Interfaces;
-
 namespace Wordsmith.Gui;
-
 internal sealed class DebugUI : Window
 {
-    internal static bool ShowWordIndex = false;
-
     public DebugUI() : base( $"{Wordsmith.AppName} - Debug" )
     {
         this.SizeConstraints = new()
@@ -19,10 +16,7 @@ internal sealed class DebugUI : Window
 
         this.Flags |= ImGuiWindowFlags.HorizontalScrollbar;
 
-#if DEBUG
         PluginLog.LogDebug( $"DebugUI created." );
-        FFXIVClientStructs.Resolver.Initialize();
-#endif
     }
     public override void Draw()
     {
@@ -71,7 +65,6 @@ internal sealed class DebugUI : Window
             }
         }
     }
-
     private void DrawClassData( IReflected? reflected, object id, params string[]? excludes )
     {
         if ( reflected == null )
@@ -103,3 +96,4 @@ internal sealed class DebugUI : Window
         ImGui.Spacing();
     }
 }
+#endif

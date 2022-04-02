@@ -261,6 +261,7 @@ internal static class Extensions
         return -1;
     }
 
+#if DEBUG
     internal static IReadOnlyList<(int Type, string Name, string Value)> GetProperties( this IReflected reflected, params string[]? excludes )
     {
         Type t = reflected.GetType();
@@ -402,4 +403,5 @@ internal static class Extensions
         }
         return result;
     }
+#endif
 }

@@ -2,6 +2,7 @@
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Data;
+using Wordsmith.Enums;
 
 namespace Wordsmith.Gui;
 
@@ -345,7 +346,10 @@ public sealed class SettingsUI : Window, IReflected
                 //
                 // Aliases
                 //
+                ImGui.TextWrapped( $"Aliases are like nicknames for chat commands. For example if you set the alias \"me\" for Emote you can type /me instead of /em and the correct chat channel will be parsed." );
                 int spacing = 10;
+                int tellBarWidth = 200;
+
                 if ( ImGui.BeginTable( "AliasesTabTable", 3, ImGuiTableFlags.BordersH ) )
                 {
                     ImGui.TableSetupColumn( "AliasChatTypeHeaderColumn", ImGuiTableColumnFlags.WidthFixed, 150*ImGuiHelpers.GlobalScale );
@@ -374,37 +378,26 @@ public sealed class SettingsUI : Window, IReflected
                         ImGui.SetNextItemWidth( -1 );
                         ImGui.Spacing();
                         ImGui.Text( $"{chatTypeName}" );
+                        if ( ImGui.IsItemHovered() )
+                            ImGui.SetTooltip( "Chat header to use alias on." );
 
                         string output = alias.Alias;
                         // Add the input field.
                         ImGui.TableNextColumn();
 
-                        if ( chatTypeName != "Tell" || alias.Data is null)
+                        bool update = false;
+                        ImGui.Spacing();
+                        if ( chatTypeName == "Tell" && alias.Data is not null)
                         {
-                            ImGui.Spacing();
-                            ImGui.SetNextItemWidth( -1 );
-                            if ( ImGui.InputText( $"##{chatTypeName}Alias{alias}Input", ref output, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
-                                this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
-                        }
-                        else
-                        {
-                            // Get the size of the column.
-                            float size = ImGui.GetColumnWidth() - (spacing * ImGuiHelpers.GlobalScale);
-
-                            // Cut it in half and space for padding.
-                            size = size / 2;
-
                             // Get the data as a string.
                             string data = alias.Data as string ?? "";
 
-                            // Prepare an update flag.
-                            bool update = false;
-
-                            // Draw the target input. If the user hits enter, set update flag if the data was changed.
-                            ImGui.Spacing();
-                            ImGui.SetNextItemWidth( size );
+                            // Set the width of the target entry.
+                            ImGui.SetNextItemWidth( tellBarWidth * ImGuiHelpers.GlobalScale );
                             if (ImGui.InputTextWithHint( $"##{chatTypeName}Alias{alias}TargetTextEdit", $"User Name@World", ref data, 128, ImGuiInputTextFlags.EnterReturnsTrue))
                                 update = data != (alias.Data as string) && data.GetTarget() is not null;
+                            if ( ImGui.IsItemHovered() )
+                                ImGui.SetTooltip( "Edt the target of your tell. Hit the enter key after maing changes to update.\nYou must still click Apply to save the changes." );
 
                             ImGui.SameLine( 0, 0 );
                             ImGui.Spacing();
@@ -412,16 +405,20 @@ public sealed class SettingsUI : Window, IReflected
                             ImGui.SameLine( 0, spacing * ImGuiHelpers.GlobalScale );
 
                             // Draw the alias input. If the user hits enter, set update flag if alias has changed.
+                            // Get the size of the column.
+                            float size = ImGui.GetColumnWidth();
                             ImGui.SetNextItemWidth( size );
-                            if ( ImGui.InputText( $"##{chatTypeName}Alias{alias}Input", ref output, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
-                                update |= output != alias.Alias;
-
-                            // If update flag is enabled then update the item.
-                            if (update)
-                                this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
-
-
                         }
+                        else
+                            ImGui.SetNextItemWidth( -1 );
+
+                        update |= ImGui.InputText( $"##{chatTypeName}Alias{alias}Input", ref output, 128, ImGuiInputTextFlags.EnterReturnsTrue );
+                        if ( ImGui.IsItemHovered() )
+                            ImGui.SetTooltip( "Edit the alias here. Hit the enter key after making changes to update.\nYou must still click Apply to save the changes." );
+
+                        // If update flag is enabled then update the item.
+                        if ( update )
+                            this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
 
                         ImGui.TableNextColumn();
                         if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( 25, 25 ) ))
@@ -434,33 +431,36 @@ public sealed class SettingsUI : Window, IReflected
                     ImGui.Spacing();
                     ImGui.SetNextItemWidth( -1 );
                     ImGui.Combo( "##NewAliasChatTypeSelection", ref this._newAliasSelection, options.ToArray(), options.Count );
-
+                    if ( ImGui.IsItemHovered() )
+                        ImGui.SetTooltip( "Chat header to use alias on." );
                     // Show an input field for the new alias.
                     ImGui.TableNextColumn();
                     ImGui.Spacing();
 
                     bool add = false;
-                    if ( options[this._newAliasSelection] != "Tell" )
+                    if ( options[this._newAliasSelection] == "Tell" )
                     {
-                        ImGui.SetNextItemWidth( -1 );
-                        add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
-                    }
-                    else
-                    {
-                        // Get the size of the column.
-                        float size = ImGui.GetColumnWidth() - (spacing * ImGuiHelpers.GlobalScale);
+                        // Set the size of the tell target.
+                        ImGui.SetNextItemWidth( tellBarWidth * ImGuiHelpers.GlobalScale );
 
-                        // Cut it in half and space for padding.
-                        size = size / 2;
-
-                        ImGui.SetNextItemWidth( size );
+                        // Display the target entry.
                         ImGui.InputTextWithHint( $"##NewAliasTargetTextInput", $"User Name@World", ref this._newAliasTarget, 128 );
+                        if ( ImGui.IsItemHovered() )
+                            ImGui.SetTooltip( "This is the target of your tell. i.e. \"<t>\" or \"User Name@World\"" );
 
+                        // Insert the spacing.
                         ImGui.SameLine( 0, spacing * ImGuiHelpers.GlobalScale );
 
+                        // Get the size of alias text area.
+                        float size = ImGui.GetColumnWidth();
                         ImGui.SetNextItemWidth( size );
-                        add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
                     }
+                    else
+                        ImGui.SetNextItemWidth( -1 );
+
+                    add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
+                    if ( ImGui.IsItemHovered() )
+                        ImGui.SetTooltip( "Enter the desired alias here without the \"/\" character" );
 
                     // Put the + button.
                     ImGui.TableNextColumn();
@@ -477,6 +477,17 @@ public sealed class SettingsUI : Window, IReflected
                         {
                             // If it is, flag it as invalid
                             if ( this._newAlias == s )
+                            {
+                                valid = false;
+                                break;
+                            }
+                        }
+
+                        // Check if the alias is used by a default option.
+                        for( int i = 0; i < Enum.GetNames(typeof(ChatType)).Length; ++i )
+                        {
+                            ChatType ct = (ChatType)i;
+                            if ( $"/{this._newAlias.ToLower()}" == ct.GetShortHeader() || $"/{this._newAlias.ToLower()}" == ct.GetLongHeader() )
                             {
                                 valid = false;
                                 break;
