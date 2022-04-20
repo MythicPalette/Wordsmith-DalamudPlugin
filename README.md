@@ -60,8 +60,5 @@ The thesaurus references a large library of synonyms, antonyms, and related word
 [To Top](#wordsmith)
 
 ## How To Install
-![Screenshot_48](https://user-images.githubusercontent.com/67084868/154162943-0b184d42-5e6b-4254-93cd-0d824d49f529.png)
 
-Installation is fairly easy. First, you must be using Dalamud, the best way to do that is use XivLauncher found [here](https://github.com/goatcorp/FFXIVQuickLauncher). During installation, be sure to enable Dalamud! Once you've done that, go into the game and type /xlsettings to open Dalamud Settings. Go to the "Experimental" tab. You will see "Custom Plugin Repositories" just a little way down. Add https://raw.githubusercontent.com/LadyDefile/DalamudPlugins/main/plugins.json to your custom repositories (copy/paste the link into the text field then click the + button at the end).
-
-Save and type /xlplugins to go find it and click Install. That easy.
+Installation is super easy now! Wordsmith is part of the official repo so all you have to do is go find it in the plugin list.
