@@ -21,7 +21,7 @@ The Scratch Pads are the star feature here. You enter the text into the textbox 
 ## Chunk Headers
 ![Screenshot_44](https://user-images.githubusercontent.com/67084868/154022608-9e8b4898-ff15-4e95-9062-1ad8eadb2ff9.png)![Screenshot_43](https://user-images.githubusercontent.com/67084868/154022620-f1f03fc9-f7b1-41bf-834e-3d45e6b5e291.png)
 
-Chunk Headers (highlighted by a red box in the screenshots above) are the text that will be put in front of each copied chunk. Paste with confidence knowing that you'll never paste into the wrong chat again.
+Chunk Headers (highlighted by a red box in the screenshots above) are the text that will be put in front of each copied chunk. Paste with confidence knowing that you'll never paste into the wrong chat again. You can choose your chunk headers by using the drop down as shown above or by typing it like you would in a normal chat window (i.e. /p will automatically select party chat for you. ) You can even create chat aliases. Have someone you roleplay with frequently in /tell? Create an alias for it! For example, if you create an alias for "/t My Friend@ThaWorld" as "friendo". Just type /friendo and it will automatically change to "/t My Friend@ThaWorld" making it quick and easy to access your favorite chat modes.
 
 [To Top](#wordsmith)
 
