@@ -105,6 +105,7 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     #region Chat Header
     internal ChatType _chatType = 0;
+    protected bool _header_parse = Wordsmith.Configuration.ParseHeaderInput;
     protected string _telltarget = "";
     protected int _linkshell = 0;
     protected bool _crossWorld = false;
@@ -375,7 +376,8 @@ internal class ScratchPadUI : Window, IReflected
     protected void DrawHeader()
     {
         // Set the column count.
-        int columns = 2;
+        int default_columns = 3;
+        int columns = default_columns;
 
         // If using Tell or Linkshells, we need 3 columns
         if (_chatType == ChatType.Tell || _chatType == ChatType.Linkshell)
@@ -383,20 +385,32 @@ internal class ScratchPadUI : Window, IReflected
 
         if (ImGui.BeginTable($"##ScratchPad{ID}HeaderTable", columns))
         {
-            // Setup 2-3 columns depending on the selected chat header.
-            if (columns == 3)
+            // Setup the header lock and chat mode columns.
+            ImGui.TableSetupColumn( $"Scratchpad{ID}HeaderLockColumn", ImGuiTableColumnFlags.WidthFixed, 25 * ImGuiHelpers.GlobalScale );
+
+            // If there is an extra column, insert it here.
+            if ( columns > default_columns )
             {
-                ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 90 * ImGuiHelpers.GlobalScale);
-                ImGui.TableSetupColumn($"ScratchPad{ID}CustomTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+                ImGui.TableSetupColumn( $"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthFixed, 90 * ImGuiHelpers.GlobalScale );
+                ImGui.TableSetupColumn( $"ScratchPad{ID}CustomTargetColumn", ImGuiTableColumnFlags.WidthStretch, 2 );
             }
             else
-                ImGui.TableSetupColumn($"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
+                ImGui.TableSetupColumn( $"Scratchpad{ID}ChatmodeColumn", ImGuiTableColumnFlags.WidthStretch, 2);
 
+            // Setup the OOC column.
             ImGui.TableSetupColumn($"Scratchpad{ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale);
+
+            // Header parse lock
+            ImGui.TableNextColumn();
+            ImGui.SetNextItemWidth( -1 );
+            if ( Dalamud.Interface.Components.ImGuiComponents.IconButton( (_header_parse ? FontAwesomeIcon.LockOpen : FontAwesomeIcon.Lock) ) )
+                _header_parse = !_header_parse;
+            if ( ImGui.IsItemHovered() )
+                ImGui.SetTooltip( $"Temporarily {(_header_parse ? "locks" : "unlocks")} header parsing on this pad." );
 
             // Header selection
             ImGui.TableNextColumn();
-            ImGui.SetNextItemWidth(-1);
+            ImGui.SetNextItemWidth( -1 );
 
             // Get the header options.
             string[] options = Enum.GetNames(typeof(ChatType));
@@ -1032,7 +1046,6 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     public override void OnClose()
     {
-        base.OnClose();
         if (Wordsmith.Configuration.DeleteClosedScratchPads)
         {
             _cancellationTokenSource?.Cancel();
@@ -1052,7 +1065,7 @@ internal class ScratchPadUI : Window, IReflected
             // If the user hits the right key and this makes it so that a \r character is to the left of the cursor
             // move the cursor again until passed all \r keys. This will make the cursor go from \r|\r\n to \r\r|\n
             // then to \r\r\n|
-            if (ImGui.IsKeyPressed(ImGui.GetKeyIndex(ImGuiKey.RightArrow)))
+            if (ImGui.IsKeyPressed(ImGuiKey.RightArrow))//ImGui.GetKeyIndex(ImGuiKey.RightArrow)))
             {
                 while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
                 {
@@ -1108,7 +1121,7 @@ internal class ScratchPadUI : Window, IReflected
         int pos = data->CursorPos;
 
         // Check for header input.
-        if (Wordsmith.Configuration.ParseHeaderInput)
+        if ( _header_parse )
             txt = CheckForHeader(txt, ref pos);
 
         // Wrap the string if there is enough there.
@@ -1146,7 +1159,7 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     /// <param name="text">Text to parse from</param>
     /// <param name="cursorPos">Cursor position</param>
-    /// <returns></returns>
+    /// <returns>The text string with header removed.</returns>
     protected string CheckForHeader(string text, ref int cursorPos)
     {
         // The text must have a length and must start with a slash. If

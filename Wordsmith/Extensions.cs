@@ -399,7 +399,7 @@ internal static class Extensions
         List<string> result = new();
         for ( int i = 0; i < keyArray.Length; ++i )
         {
-            result.Add( $"{ keyArray.GetValue( i ) }: { valueArray.GetValue( i ) }" );
+            result.Add( $"{ keyArray.GetValue( i ) }: { valueArray?.GetValue( i ) }" );
         }
         return result;
     }

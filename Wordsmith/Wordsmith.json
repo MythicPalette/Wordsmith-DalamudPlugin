@@ -11,5 +11,6 @@
     "notepad",
     "notes"
   ],
-  "IsHide": "False"
+  "IsHide": "False",
+  "DalamudApiLevel": 6
 }

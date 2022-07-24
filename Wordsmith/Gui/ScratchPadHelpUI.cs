@@ -109,9 +109,10 @@ public class ScratchPadHelpUI : Window
 
                     ImGui.EndTable();
                 }
+                ImGui.EndTabItem();
             }
 
-            if (ImGui.BeginTabItem($"Roleplaying"))
+            if (ImGui.BeginTabItem($"Roleplaying##HelpTabBarItem"))
             {
                 ImGui.TextWrapped($"Some useful terms to know about roleplaying.");
                 if (ImGui.BeginTable("##RoleplayTermsHelpTable", 2))
@@ -159,8 +160,10 @@ public class ScratchPadHelpUI : Window
                     }
                     ImGui.EndTable();
                 }
-                ImGui.EndTabBar();
+                ImGui.EndTabItem();
             }
+
+            ImGui.EndTabBar();
         }
     }
 }
