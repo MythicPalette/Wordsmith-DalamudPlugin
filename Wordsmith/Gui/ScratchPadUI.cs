@@ -543,7 +543,7 @@ internal class ScratchPadUI : Window, IReflected
                     ImGui.Separator();
 
                     if (Wordsmith.Configuration.EnableTextHighlighting)
-                        DrawChunkItem( this._chunks[i] );
+                        DrawChunkItem( this._chunks[i], this._chatType );
                     else
                     {
                         // Set width and display the chunk.
@@ -570,7 +570,7 @@ internal class ScratchPadUI : Window, IReflected
         ImGui.Spacing();
     }
 
-    protected void DrawChunkItem(TextChunk chunk)
+    protected void DrawChunkItem(TextChunk chunk, ChatType ct)
     {
         // Split it into words.
 
@@ -581,7 +581,7 @@ internal class ScratchPadUI : Window, IReflected
         // Draw header
         if ( chunk.Header.Length > 0 )
         {
-            ImGui.TextColored( Wordsmith.Configuration.HeaderColors[(int)_chatType], chunk.Header.Replace("%", "%%") );
+            ImGui.TextColored( Wordsmith.Configuration.HeaderColors[(int)ct], chunk.Header.Replace("%", "%%") );
             width += ImGui.CalcTextSize( chunk.Header ).X;
             sameLine = true;
         }
@@ -934,7 +934,7 @@ internal class ScratchPadUI : Window, IReflected
             if ( i > 0 )
                 ImGui.Spacing();
 
-            DrawChunkItem( tlist[i] );
+            DrawChunkItem( tlist[i], p.ChatType );
         }
 
         // End the group.
