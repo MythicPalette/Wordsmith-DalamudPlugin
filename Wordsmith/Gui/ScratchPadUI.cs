@@ -10,6 +10,7 @@ namespace Wordsmith.Gui;
 
 internal class ScratchPadUI : Window, IReflected
 {
+    protected const string SPELL_CHECK_NOTICE = "Checking your spelling...";
     /// <summary>
     /// A protected class used only for comparing multiple pad state elements at once.
     /// </summary>
@@ -934,7 +935,10 @@ internal class ScratchPadUI : Window, IReflected
         _cancellationTokenSource?.Cancel();
 
         // Clear any errors and notifications.
-        _notices.Add("Checking your spelling...");
+        _notices.Clear();
+
+        // Notify the user that spelling is being checked.
+        _notices.Add( SPELL_CHECK_NOTICE );
 
         // Don't spell check an empty input.
         if (_scratch.Length == 0)
@@ -957,7 +961,7 @@ internal class ScratchPadUI : Window, IReflected
         _corrections = new();
         _corrections.AddRange(Helpers.SpellChecker.CheckString( _scratch ));
         _spellChecked = true;
-        _notices.Remove("Checking your spelling...");
+        _notices.RemoveAll( x=> x == SPELL_CHECK_NOTICE );
     }
 
     /// <summary>
