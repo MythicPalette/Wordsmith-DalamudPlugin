@@ -942,7 +942,7 @@ internal class ScratchPadUI : Window, IReflected
 
         // Create a border around the group
         Rect2 r = new(ImGui.GetItemRectMin(), new( ImGui.GetWindowWidth() - 20 * ImGuiHelpers.GlobalScale, ImGui.GetItemRectMax().Y - ImGui.GetItemRectMin().Y));
-        ImGui.GetWindowDrawList().AddRect(r.Position, r.Size + r.Position, ImGui.GetColorU32(ImGui.GetColorU32(ImGuiCol.Text)));
+        ImGui.GetWindowDrawList().AddRect(r.Position, r.Size + r.Position, ImGui.GetColorU32(ImGuiCol.Text));
 
         // TODO rebuild the history item.
         // * Replace scratch ( Confirmation if scratch not empty. )
