@@ -87,12 +87,12 @@ internal struct HeaderData
                     // If the ID for the alias is Tell
                     if ( id == (int)ChatType.Tell && data == null )
                     {
-                        this.Headstring = $"/{alias}";
+                        this.Headstring = $"/{alias} ";
                         this.ChatType = ChatType.Tell;
                     }
                     else if ( id == (int)ChatType.Tell && data is string dataString )
                     {
-                        this.Headstring = $"/{alias}";
+                        this.Headstring = $"/{alias} ";
                         this.ChatType = ChatType.Tell;
                         this.TellTarget = dataString;
                         return;
@@ -104,7 +104,7 @@ internal struct HeaderData
                     {
                         // Assign the chat type and break from the loop.
                         this.ChatType = (ChatType)id;
-                        this.Headstring = $"/{alias}";
+                        this.Headstring = $"/{alias} ";
                         return;
                     }
 
@@ -120,7 +120,7 @@ internal struct HeaderData
                         this.CrossWorld = (id - (int)ChatType.Linkshell) >= 8;
 
                         // Set the HeadString property.
-                        this.Headstring = $"/{alias}";
+                        this.Headstring = $"/{alias} ";
                     }
                     break;
                 }
