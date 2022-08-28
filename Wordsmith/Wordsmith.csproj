@@ -30,13 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="..\dictionaries\lang_de" />
     <Content Remove="..\dictionaries\lang_en_complete" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Resources\NotoSans-Italic.ttf" />
-    <None Remove="Resources\NotoSans-Regular.ttf" />
-    <None Remove="Resources\NotoSansJP-Regular.otf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -49,12 +44,6 @@
     <RepositoryUrl>https://github.com/LadyDefile/Wordsmith</RepositoryUrl>
     <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\NotoSans-Italic.ttf" />
-    <EmbeddedResource Include="Resources\NotoSans-Regular.ttf" />
-    <EmbeddedResource Include="Resources\NotoSansJP-Regular.otf" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DalamudPackager" Version="2.1.7" />
