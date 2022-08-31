@@ -18,6 +18,7 @@ internal static class WordsmithUI
     internal static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
     internal static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
     internal static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
+    internal static void ShowErrorWindow( Dictionary<string, object> d, string name ) => WindowSystem.AddWindow( new ErrorWindow( d ) { IsOpen = true } );
 
     // Window removal queue system.
     private static bool _window_lock = false;
@@ -61,6 +62,7 @@ internal static class WordsmithUI
 
                 // Add it to the WindowSystem.
                 WindowSystem.AddWindow( w );
+                return;
             }
         }
 
@@ -71,6 +73,7 @@ internal static class WordsmithUI
                 WindowSystem.AddWindow( w );
 
             w.IsOpen = true;
+            return;
         }
     }
 

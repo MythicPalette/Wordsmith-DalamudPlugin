@@ -1,10 +1,11 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using ImGuiNET;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using ImGuiNET;
 using Wordsmith.Data;
 using Wordsmith.Enums;
+using Wordsmith.Interfaces;
 
 namespace Wordsmith.Gui;
 
@@ -127,8 +128,6 @@ internal class ScratchPadUI : Window, IReflected
     protected bool _textchanged = false;
     protected List<PadState> _text_history = new();
 
-    protected bool _scrollToBottom = false;
-
     protected float _lastWidth = 0;
     protected bool _ignoreTextEdit = false;
 
@@ -142,23 +141,8 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     protected CancellationTokenSource? _cancellationTokenSource;
 
-    private readonly Dictionary<string, (string Title, string Message)> _debugLines = new();
-    internal string GetDebugString()
-    {
-        string result = $"Pad ID: {this.ID}\nScratchString: {this._scratch.Unwrap()}\nOOC {this._useOOC}\nChunks[{this._chunks.Count}]:";
-
-        foreach ( TextChunk chunk in this._chunks!)
-            result += $"\n\t[{chunk.StartIndex}]\t{chunk.CompleteText.Replace( Constants.SPACED_WRAP_MARKER + "\n", "\\r\\r\\n " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "\\r\\n" )}";
-
-        result += $"\n\nCorrections:";
-        foreach ( Word w in this._corrections )
-            result += $"\n\t [{w.StartIndex}|{w.WordIndex}..{w.EndIndex}|{w.WordEndIndex}]\t{w.GetString( this._scratch )} | {w.GetWordString( this._scratch )}";
-
-        foreach(KeyValuePair<string, (string Title, string Message)> kvp in this._debugLines )
-            result += $"\n{kvp.Value.Title}\n\t- {kvp.Value.Message}";
-
-        return result;
-    }
+    // TODO Refactor
+    protected internal System.Timers.Timer _spellchecktimer = new(Wordsmith.Configuration.AutoSpellCheckDelay * 1000) { AutoReset = false, Enabled = false };
 
     /// <summary>
     /// Gets the slash command (if one exists) and the tell target if one is needed.
@@ -182,6 +166,28 @@ internal class ScratchPadUI : Window, IReflected
 
         return result;
     }
+
+    /// <summary>
+    /// Gets the height of the footer.
+    /// </summary>
+    /// <param name="IncludeTextbox">If false, the height of the textbox is not added to the result.</param>
+    /// <returns></returns>
+    public float GetFooterHeight( bool IncludeTextbox = true )
+    {
+        float result = 70;
+        if ( !Wordsmith.Configuration.DeleteClosedScratchPads )
+            result += 28;
+
+        if ( IncludeTextbox )
+            result += 90;
+
+        if ( this._corrections.Count > 0 )
+            result += 32;
+
+        return result * ImGuiHelpers.GlobalScale;
+    }
+
+    #region Constructors
     /// <summary>
     /// Default constructor
     /// </summary>
@@ -197,6 +203,7 @@ internal class ScratchPadUI : Window, IReflected
         this.Flags |= ImGuiWindowFlags.NoScrollbar;
         this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
         this.Flags |= ImGuiWindowFlags.MenuBar;
+        this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this.DoSpellCheck(); this._spellchecktimer.Enabled = false; };
     }
     
     /// <summary>
@@ -215,86 +222,90 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     /// <param name="chatType"><see cref="int"/> chat type.</param>
     public ScratchPadUI(int chatType) : this() => this._chatType = (ChatType)chatType;
-
-    /// <summary>
-    /// Gets the height of the footer.
-    /// </summary>
-    /// <param name="IncludeTextbox">If false, the height of the textbox is not added to the result.</param>
-    /// <returns></returns>
-    public float GetFooterHeight(bool IncludeTextbox = true)
-    {
-        float result = 70;
-        if (!Wordsmith.Configuration.DeleteClosedScratchPads)
-            result += 28;
-
-        if (IncludeTextbox)
-            result += 90;
-
-        if ( this._corrections.Count > 0)
-            result += 32;
-
-        return result * ImGuiHelpers.GlobalScale;
-    }
-
+    #endregion
+    #region Overrides
     /// <summary>
     /// The Draw entrypoint for the <see cref="WindowSystem"/> to draw the window.
     /// </summary>
     public override void Draw()
     {
-        if (Wordsmith.Configuration.RecentlySaved)
-            Refresh();
-
-        DrawMenu();
-
-        if ( this._editorstate == Constants.EDITING_TEXT )
+        try
         {
-            DrawAlerts();
-            DrawHeader();
+            if ( Wordsmith.Configuration.RecentlySaved )
+                Refresh();
 
-            if ( ImGui.BeginChild( $"ScratchPad{this.ID}MainBodyChild", new( 0, -1 ) ) )
+            DrawMenu();
+
+            if ( this._editorstate == Constants.EDITING_TEXT )
             {
-                DrawChunkDisplay();
+                DrawAlerts();
+                DrawHeader();
 
-                // Draw multi-line input.
-                DrawMultilineTextInput();
-
-                // We do this here in case the window is being resized and we want
-                // to rewrap the text in the textbox.
-                if ( ImGui.GetWindowWidth() > this._lastWidth + 0.1 || ImGui.GetWindowWidth() < this._lastWidth - 0.1 )
+                if ( ImGui.BeginChild( $"ScratchPad{this.ID}MainBodyChild", new( 0, -1 ) ) )
                 {
-                    // Don't flag to ignore text edit if the window was just opened.
-                    if ( this._lastWidth > 0.1 )
-                        this._ignoreTextEdit = true;
+                    DrawChunkDisplay();
 
-                    // Turn _preserveCorrections on in case the user has incorrectly
-                    // spelled words while resizing.
-                    this._preserveCorrections = true;
+                    // Draw multi-line input.
+                    DrawMultilineTextInput();
 
-                    // Ignore cursor position requirement because we aren't adjusting that
-                    // just rewrapping.
-                    int ignore = 0;
+                    // We do this here in case the window is being resized and we want
+                    // to rewrap the text in the textbox.
+                    if ( ImGui.GetWindowWidth() > this._lastWidth + 0.1 || ImGui.GetWindowWidth() < this._lastWidth - 0.1 )
+                    {
+                        // Don't flag to ignore text edit if the window was just opened.
+                        if ( this._lastWidth > 0.1 )
+                            this._ignoreTextEdit = true;
 
-                    // Rewrap scratch
-                    this._scratch = WrapString( this._scratch, ref ignore );
+                        // Ignore cursor position requirement because we aren't adjusting that
+                        // just rewrapping.
+                        int ignore = 0;
 
-                    // Update the last known width.
-                    this._lastWidth = ImGui.GetWindowWidth();
+                        // Rewrap scratch
+                        this._scratch = WrapString( this._scratch, ref ignore );
+
+                        // Update the last known width.
+                        this._lastWidth = ImGui.GetWindowWidth();
+                    }
+
+                    // Draw the word replacement form.
+                    DrawWordReplacement();
+
+                    // Draw the buttons at the bottom of the screen.
+                    DrawFooter();
+
+                    // Close the child widget.
+                    ImGui.EndChild();
                 }
-
-                // Draw the word replacement form.
-                DrawWordReplacement();
-
-                // Draw the buttons at the bottom of the screen.
-                DrawFooter();
-
-                // Close the child widget.
-                ImGui.EndChild();
             }
+            else if ( this._editorstate == Constants.VIEWING_HISTORY )
+                DrawHistory();
         }
-        else if ( this._editorstate == Constants.VIEWING_HISTORY )
-            DrawHistory();
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
+    /// <summary>
+    /// Runs at each framework update.
+    /// </summary>
+    public override void Update()
+    {
+        base.Update();
+
+        if ( Wordsmith.Configuration.ReplaceDoubleSpaces )
+            _scratch = _scratch.FixSpacing();
+
+        Refresh();
+    }
+    #endregion
+    #region Top
     /// <summary>
     /// Draws the menu bar at the top of the window.
     /// </summary>
@@ -503,8 +514,8 @@ internal class ScratchPadUI : Window, IReflected
         // Display spelling error message
         if ((this._corrections?.Count ?? 0) > 0)
             alerts.Add(new($"Found {this._corrections!.Count} spelling errors.", Constants.CORRECTIONS_FOUND));
-        else if ( this._spellChecked && alerts.FirstOrDefault<(string message, int code)>(x => x.code == Constants.CORRECTIONS_NOT_FOUND) == default(ValueTuple<string,int>))
-            alerts.Add(new($"No spelling errors found!", Constants.CORRECTIONS_NOT_FOUND));
+        //else if ( this._spellChecked && alerts.FirstOrDefault<(string message, int code)>(x => x.code == Constants.CORRECTIONS_NOT_FOUND) == default(ValueTuple<string,int>))
+        //    alerts.Add(new($"No spelling errors found!", Constants.CORRECTIONS_NOT_FOUND));
 
         // If there are no alerts, return.
         if (alerts.Count == 0)
@@ -519,7 +530,8 @@ internal class ScratchPadUI : Window, IReflected
                 ImGui.Text(alert.Message);
         }
     }
-
+    #endregion
+    #region Body
     /// <summary>
     /// Draws the text chunk display.
     /// </summary>
@@ -776,20 +788,22 @@ internal class ScratchPadUI : Window, IReflected
                 OnAddToDictionary( 0 );
         }
     }
-
+    #endregion
+    #region Bottom
     /// <summary>
     /// Draws the buttons at the foot of the window.
     /// </summary>
     protected void DrawFooter()
     {
-        if (ImGui.BeginTable($"{this.ID}FooterButtonTable", 3))
+        
+        if (ImGui.BeginTable($"{this.ID}FooterButtonTable", (Wordsmith.Configuration.AutoSpellCheck ? 2 : 3)))
         {
             // Setup the three columns for the buttons. I use a table here for easy space sharing.
             // The table will handle all sizing and positioning of the buttons automatically with no
             // extra input from me.
             ImGui.TableSetupColumn($"{this.ID}FooterCopyColumn", ImGuiTableColumnFlags.WidthStretch, 1);
             ImGui.TableSetupColumn($"{this.ID}FooterClearButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
-            ImGui.TableSetupColumn($"{this.ID}FooterSpellCheckButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
+            //ImGui.TableSetupColumn($"{this.ID}FooterSpellCheckButtonColumn", ImGuiTableColumnFlags.WidthStretch, 1);
 
             // Draw the copy button.
             ImGui.TableNextColumn();
@@ -800,24 +814,27 @@ internal class ScratchPadUI : Window, IReflected
             DrawClearButton();
 
             // If spell check is disabled, make the button dark so it appears as though it is disabled.
-            if (!Data.Lang.Enabled)
+            if (!Lang.Enabled)
                 ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.5f);
 
-            // Draw the spell check button.
-            ImGui.TableNextColumn();
-            if ( this._scratch.Length == 0 )
-                ImGui.BeginDisabled();
+            if ( !Wordsmith.Configuration.AutoSpellCheck )
+            {
+                // Draw the spell check button.
+                ImGui.TableNextColumn();
+                if ( this._scratch.Length == 0 )
+                    ImGui.BeginDisabled();
 
-            if (ImGui.Button($"Spell Check##Scratch{this.ID}", ImGuiHelpers.ScaledVector2(-1, 25)))
-                if (Lang.Enabled) // If the dictionary is functional then do the spell check.
-                    DoSpellCheck();
+                if ( ImGui.Button( $"Spell Check##Scratch{this.ID}", ImGuiHelpers.ScaledVector2( -1, 25 ) ) )
+                    if ( Lang.Enabled ) // If the dictionary is functional then do the spell check.
+                        DoSpellCheck();
 
-            if ( this._scratch.Length == 0 )
-                ImGui.EndDisabled();
+                if ( this._scratch.Length == 0 )
+                    ImGui.EndDisabled();
 
-            // If spell check is disabled, pop the stylevar to return to normal.
-            if (!Data.Lang.Enabled)
-                ImGui.PopStyleVar();
+                // If spell check is disabled, pop the stylevar to return to normal.
+                if ( !Lang.Enabled )
+                    ImGui.PopStyleVar();
+            }
 
             ImGui.EndTable();
         }
@@ -902,14 +919,28 @@ internal class ScratchPadUI : Window, IReflected
                 DoClearText();
         }
     }
-
+    #endregion
+    #region History
     /// <summary>
     /// Draws the user's message history.
     /// </summary>
     protected void DrawHistory()
     {
-        for (int i = 0; i < this._text_history.Count; ++i )//( PadState p in this._text_history )
-            DrawHistoryItem( this._text_history[i], i );
+        try
+        {
+            for ( int i = 0; i < this._text_history.Count; ++i )//( PadState p in this._text_history )
+                DrawHistoryItem( this._text_history[i], i );
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
     // TODO Move this to appropriate area
@@ -922,141 +953,204 @@ internal class ScratchPadUI : Window, IReflected
     /// <param name="s">The text for the history.</param>
     protected void DrawHistoryItem(PadState p, int idx)
     {
-        // Create a group.
-        ImGui.BeginGroup();
-
-        // Get the text chunks.
-        List<TextChunk> tlist = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(p.ChatType, p.TellTarget, p.CrossWorld, p.Linkshell), p.ScratchText, p.UseOOC);
-
-        // Display the chunks.
-        for ( int i = 0; i < tlist.Count; ++i )
+        try
         {
-            if ( i > 0 )
-                ImGui.Spacing();
+            // Create a group.
+            ImGui.BeginGroup();
 
-            DrawChunkItem( tlist[i], p.ChatType );
+            // Get the text chunks.
+            List<TextChunk> tlist = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(p.ChatType, p.TellTarget, p.CrossWorld, p.Linkshell), p.ScratchText, p.UseOOC);
+
+            // Display the chunks.
+            for ( int i = 0; i < tlist.Count; ++i )
+            {
+                if ( i > 0 )
+                    ImGui.Spacing();
+
+                DrawChunkItem( tlist[i], p.ChatType );
+            }
+
+            // End the group.
+            ImGui.EndGroup();
+
+            // Create a border around the group
+            Rect2 r = new(ImGui.GetItemRectMin(), new( ImGui.GetWindowWidth() - 20 * ImGuiHelpers.GlobalScale, ImGui.GetItemRectMax().Y - ImGui.GetItemRectMin().Y));
+            ImGui.GetWindowDrawList().AddRect( r.Position, r.Size + r.Position, ImGui.GetColorU32( ImGuiCol.Text ) );
+
+            // TODO rebuild the history item.
+            // * Replace scratch ( Confirmation if scratch not empty. )
+            // * Replace header ( Confirmation if header locked. )
+            // * Replace OOC.
+            if ( ImGui.BeginPopup( $"ScratchPad{this.ID}History{idx}Popup" ) )
+            {
+                if ( ImGui.MenuItem( $"Reload Pad State##ScratchPad{this.ID}HistoryItem{idx}Reload" ) )
+                {
+                    // Get the current pad state
+                    PadState snapshot = new( this );
+
+                    // Get the selected pad state
+                    PadState selected = this._text_history[this._selected_history];
+
+                    // Revert to given padstate
+                    this._chatType = selected.ChatType;
+                    this._telltarget = selected.TellTarget;
+                    this._crossWorld = selected.CrossWorld;
+                    this._linkshell = selected.Linkshell;
+                    this._scratch = selected.ScratchText;
+
+                    // Exit history.
+                    this._editorstate = Constants.EDITING_TEXT;
+
+                    // Save the pre-change pad state.
+                    AppendHistory( snapshot );
+
+                    // Unselect the history time.
+                    this._selected_history = -1;
+
+                    // Close the popup
+                    ImGui.CloseCurrentPopup();
+                }
+                else if ( ImGui.MenuItem( $"Copy Text To Clipboard##ScratchPad{this.ID}HistoryItem{idx}Copy" ) )
+                {
+                    // Get the selected pad state
+                    PadState selected = this._text_history[this._selected_history];
+
+                    // Get each chunk
+                    List<TextChunk> chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(selected.ChatType, selected.TellTarget, selected.CrossWorld, selected.Linkshell), selected.ScratchText, selected.UseOOC);
+
+                    // Get the text from every chunk.
+                    List<string> text = new();
+                    foreach ( TextChunk t in chunks )
+                        text.Add( t.CompleteText );
+
+                    // Set the clipboard text.
+                    ImGui.SetClipboardText( string.Join( '\n', text.ToArray() ) );
+
+                    // Notify the user that the text was copied.
+                    Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+
+                    // Unselect the history time.
+                    this._selected_history = -1;
+
+                    // Close the popup
+                    ImGui.CloseCurrentPopup();
+                }
+                else if ( ImGui.MenuItem( $"Delete##ScratchPad{this.ID}HistoryItem{idx}Delete" ) )
+                {
+                    // Remove the history item.
+                    this._text_history.RemoveAt( this._selected_history );
+
+                    // Unselect the history time.
+                    this._selected_history = -1;
+
+                    // Close the popup
+                    ImGui.CloseCurrentPopup();
+                }
+                else if ( ImGui.MenuItem( $"Delete All##ScratchPad{this.ID}HistoryItem{idx}DeleteAll" ) )
+                {
+                    // Remove the history item.
+                    this._text_history.Clear();
+
+                    // Unselect the history time.
+                    this._selected_history = -1;
+
+                    // Close the popup
+                    ImGui.CloseCurrentPopup();
+                }
+
+                ImGui.EndPopup();
+            }
+            if ( ImGui.IsMouseClicked( ImGuiMouseButton.Right ) && r.Contains( ImGui.GetMousePos() ) )
+            {
+                ImGui.OpenPopup( $"ScratchPad{this.ID}History{idx}Popup" );
+                this._selected_history = idx;
+            }
         }
-
-        // End the group.
-        ImGui.EndGroup();
-
-        // Create a border around the group
-        Rect2 r = new(ImGui.GetItemRectMin(), new( ImGui.GetWindowWidth() - 20 * ImGuiHelpers.GlobalScale, ImGui.GetItemRectMax().Y - ImGui.GetItemRectMin().Y));
-        ImGui.GetWindowDrawList().AddRect(r.Position, r.Size + r.Position, ImGui.GetColorU32(ImGuiCol.Text));
-
-        // TODO rebuild the history item.
-        // * Replace scratch ( Confirmation if scratch not empty. )
-        // * Replace header ( Confirmation if header locked. )
-        // * Replace OOC.
-        if ( ImGui.BeginPopup( $"ScratchPad{this.ID}History{idx}Popup" ) )
+        catch ( Exception e )
         {
-            if ( ImGui.MenuItem( $"Reload Pad State##ScratchPad{this.ID}HistoryItem{idx}Reload" ) )
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
             {
-                // Get the current pad state
-                PadState snapshot = new( this );
-
-                // Get the selected pad state
-                PadState selected = this._text_history[this._selected_history];
-
-                // Revert to given padstate
-                this._chatType = selected.ChatType;
-                this._telltarget = selected.TellTarget;
-                this._crossWorld = selected.CrossWorld;
-                this._linkshell = selected.Linkshell;
-                this._scratch = selected.ScratchText;
-                this._preserveCorrections = false;
-
-                // Exit history.
-                this._editorstate = Constants.EDITING_TEXT;
-
-                // Save the pre-change pad state.
-                AppendHistory( snapshot );
-
-                // Unselect the history time.
-                this._selected_history = -1;
-
-                // Close the popup
-                ImGui.CloseCurrentPopup();
-            }
-            else if ( ImGui.MenuItem( $"Copy Text To Clipboard##ScratchPad{this.ID}HistoryItem{idx}Copy") )
-            {
-                // Get the selected pad state
-                PadState selected = this._text_history[this._selected_history];
-
-                // Get each chunk
-                List<TextChunk> chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(selected.ChatType, selected.TellTarget, selected.CrossWorld, selected.Linkshell), selected.ScratchText, selected.UseOOC);
-
-                // Get the text from every chunk.
-                List<string> text = new();
-                foreach ( TextChunk t in chunks )
-                    text.Add( t.CompleteText );
-
-                // Set the clipboard text.
-                ImGui.SetClipboardText( string.Join( '\n', text.ToArray() ) );
-
-                // Notify the user that the text was copied.
-                Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
-
-                // Unselect the history time.
-                this._selected_history = -1;
-
-                // Close the popup
-                ImGui.CloseCurrentPopup();
-            }
-            else if ( ImGui.MenuItem( $"Delete##ScratchPad{this.ID}HistoryItem{idx}Delete" ) )
-            {
-                // Remove the history item.
-                this._text_history.RemoveAt( this._selected_history );
-
-                // Unselect the history time.
-                this._selected_history = -1;
-
-                // Close the popup
-                ImGui.CloseCurrentPopup();
-            }
-            else if ( ImGui.MenuItem( $"Delete All##ScratchPad{this.ID}HistoryItem{idx}DeleteAll" ) )
-            {
-                // Remove the history item.
-                this._text_history.Clear();
-
-                // Unselect the history time.
-                this._selected_history = -1;
-
-                // Close the popup
-                ImGui.CloseCurrentPopup();
-            }
-
-            ImGui.EndPopup();
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
         }
-        if ( ImGui.IsMouseClicked( ImGuiMouseButton.Right ) && r.Contains(ImGui.GetMousePos()) )
+    }
+    
+    /// <summary>
+    /// Creates a new history entry while moving duplicates and overflow.
+    /// </summary>
+    /// <param name="p">The <see cref="PadState"/> to be added to history.</param>
+    protected void AppendHistory( PadState p )
+    {
+        try
         {
-            ImGui.OpenPopup( $"ScratchPad{this.ID}History{idx}Popup" );
-            this._selected_history = idx;
+            // Save the text state in case it was an accidental 
+            // rebuild of the state.
+            if ( p.ScratchText.Length > 0 )
+            {
+                // Remove any duplicates of this pad state to prevent
+                // building a list of the same edit.
+                this._text_history.RemoveAll( x => x.Equals( p ) );
+
+                // Add the history to the end of the list.
+                this._text_history.Add( p );
+            }
+
+            // If there are too many history states, remove the extra(s).
+            if ( this._text_history.Count > Wordsmith.Configuration.ScratchPadHistoryLimit )
+                this._text_history.RemoveAt( 0 );
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
         }
     }
 
+    #endregion
+    #region Button Backend
     /// <summary>
     /// Gets the next chunk of text and copies it to the player's clipboard.
     /// </summary>
     protected void DoCopyToClipboard()
     {
-        // If there are no chunks to copy exit the function.
-        if ( this._chunks.Count == 0)
-            return;
+        try
+        {
+            // If there are no chunks to copy exit the function.
+            if ( this._chunks.Count == 0 )
+                return;
 
-        // Copy the next chunk over.
-        ImGui.SetClipboardText( this._chunks[this._nextChunk++].CompleteText.Trim());
+            // Copy the next chunk over.
+            ImGui.SetClipboardText( this._chunks[this._nextChunk++].CompleteText.Trim() );
 
-        // If we're not at the last chunk, return.
-        if ( this._nextChunk < this._chunks.Count)
-            return;
+            // If we're not at the last chunk, return.
+            if ( this._nextChunk < this._chunks.Count )
+                return;
 
-        // After this point, we assume we've copied the last chunk.
-        this._nextChunk = 0;
+            // After this point, we assume we've copied the last chunk.
+            this._nextChunk = 0;
 
-        // If configured to clear text after last copy
-        if (Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
-            DoClearText();
+            // If configured to clear text after last copy
+            if ( Wordsmith.Configuration.AutomaticallyClearAfterLastCopy )
+                DoClearText();
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
     /// <summary>
@@ -1065,21 +1159,34 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     protected void DoClearText()
     {
-        // Ignore empty strings.
-        if ( this._scratch.Length == 0)
-            return;
+        try
+        {
+            // Ignore empty strings.
+            if ( this._scratch.Length == 0 )
+                return;
 
-        // Create a history state.
-        AppendHistory( new( this ) );
+            // Create a history state.
+            AppendHistory( new( this ) );
 
-        // Clear any corrections.
-        this._corrections = new();
+            // Clear any corrections.
+            this._corrections = new();
 
-        // Clear scratch.
-        this._scratch = "";
+            // Clear scratch.
+            this._scratch = "";
 
-        // Enable undo.
-        this._canUndo = true;
+            // Enable undo.
+            this._canUndo = true;
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
     /// <summary>
@@ -1088,21 +1195,34 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     protected void UndoClearText()
     {
-        // If undo is locked or there are no previous states then abort
-        if ( !this._canUndo || this._text_history.Count == 0 )
-            return;
+        try
+        {
+            // If undo is locked or there are no previous states then abort
+            if ( !this._canUndo || this._text_history.Count == 0 )
+                return;
 
-        // Get the last pad state
-        PadState p = this._text_history.Last();
+            // Get the last pad state
+            PadState p = this._text_history.Last();
 
-        // Recover the text
-        this._scratch = p.ScratchText;
+            // Recover the text
+            this._scratch = p.ScratchText;
 
-        // disable undoing further.
-        this._canUndo = false;
+            // disable undoing further.
+            this._canUndo = false;
 
-        // Delete the history entry.
-        this._text_history.Remove( p );
+            // Delete the history entry.
+            this._text_history.Remove( p );
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
     /// <summary>
@@ -1110,92 +1230,148 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     protected void DoSpellCheck()
     {
-        // If there are any outstanding tokens, cancel them.
-        _cancellationTokenSource?.Cancel();
+        try
+        {
+#if DEBUG
+            PluginLog.LogDebug( "Running spell check." );
+#endif
 
-        // Clear any errors and notifications.
-        _notices.Clear();
+            // If there are any outstanding tokens, cancel them.
+            _cancellationTokenSource?.Cancel();
 
-        // Don't spell check an empty input.
-        if (_scratch.Length == 0)
-            return;
+            // Clear any errors and notifications.
+            _notices.Clear();
 
-        // Notify the user that spelling is being checked.
-        _notices.Add( (Constants.SPELL_CHECK_NOTICE, Constants.CHECKING_SPELLING) );
+            // Don't spell check an empty input.
+            if ( _scratch.Length == 0 )
+                return;
 
-        // Create a new token source.
-        this._cancellationTokenSource = new();
+            // Notify the user that spelling is being checked.
+            _notices.Add( (Constants.SPELL_CHECK_NOTICE, Constants.CHECKING_SPELLING) );
 
-        // Create and start the spell check task.
-        Task t = new(DoSpellCheckAsync, this._cancellationTokenSource.Token);
-        t.Start();
+            // Create a new token source.
+            this._cancellationTokenSource = new();
+
+            // Create and start the spell check task.
+            Task t = new(() => DoSpellCheckAsync(this._cancellationTokenSource.Token));
+            t.Start();
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
     /// <summary>
     /// The spell check task to run.
     /// </summary>
-    protected unsafe void DoSpellCheckAsync()
+    protected unsafe void DoSpellCheckAsync(CancellationToken token)
     {
-        // Clear any old corrections to prevent them from stacking.
-        this._corrections = new();
-        this._corrections.AddRange(Helpers.SpellChecker.CheckString( this._scratch ));
-        this._spellChecked = true;
-        this._notices.RemoveAll( x=> x.Item2 == Constants.CHECKING_SPELLING );
-    }
+        try
+        {
+            if ( token.IsCancellationRequested )
+                return;
+            // Clear any old corrections to prevent them from stacking.
+            Word[] results = Helpers.SpellChecker.CheckString( this._scratch, token );
 
+#if DEBUG
+            PluginLog.LogDebug( $"Found {results.Length} errors." );
+#endif
+
+
+            this._notices.RemoveAll( x => x.Item2 == Constants.CHECKING_SPELLING );
+
+            if ( token.IsCancellationRequested )
+            {
+#if DEBUG
+                PluginLog.LogDebug( "Cancelling spell check." );
+#endif
+                return;
+            }
+            this._corrections = new();
+            this._corrections.AddRange( results );
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
+    }
+    #endregion
+    #region Callbacks
     /// <summary>
     /// Replaces spelling errors with the given text or ignores an error if _replaceText is blank
     /// </summary>
     /// <param name="index"><see cref="int"/> index of the correction in correction list.</param>
     protected void OnReplace(int index)
     {
-        // If the text box is not empty when the user hits enter then
-        // update the text.
-        if ( this._replaceText.Length > 0 && index < this._corrections.Count)
+        try
         {
-            // Get the first object
-            Word word = this._corrections[index];
-
-            // Get the string builder on the unwrapped scratch string.
-            StringBuilder sb = new(this._scratch.Unwrap());
-
-            // Remove the original word.
-            sb.Remove( word.WordIndex, word.WordLength );
-
-            // Insert the new text.
-            sb.Insert( word.WordIndex, this._replaceText.Trim() );
-
-            this._scratch = sb.ToString();
-
-            // Preserving corrections prevents the Update method from
-            // clearing the list of corrections even though the text
-            // in the box has changed.
-            this._preserveCorrections = true;
-
-            // Remove the word from the list.
-            this._corrections.Remove( word );
-
-            // Adjust the index of all following words.
-            if ( this._replaceText.Length != word.WordLength )
+            // If the text box is not empty when the user hits enter then
+            // update the text.
+            if ( this._replaceText.Length > 0 && index < this._corrections.Count )
             {
-                foreach ( Word w in this._corrections )
-                    w.Offset( this._replaceText.Length - word.WordLength );
+                // Get the first object
+                Word word = this._corrections[index];
+
+                // Get the string builder on the unwrapped scratch string.
+                StringBuilder sb = new(this._scratch.Unwrap());
+
+                // Remove the original word.
+                sb.Remove( word.WordIndex, word.WordLength );
+
+                // Insert the new text.
+                sb.Insert( word.WordIndex, this._replaceText.Trim() );
+
+                this._scratch = sb.ToString();
+
+                // Remove the word from the list.
+                this._corrections.Remove( word );
+
+                // Adjust the index of all following words.
+                if ( this._replaceText.Length != word.WordLength )
+                {
+                    foreach ( Word w in this._corrections )
+                        w.Offset( this._replaceText.Length - word.WordLength );
+                }
+
+#if DEBUG
+                if ( this._replaceText == "CRASHTEST" )
+                    WordsmithUI.ShowErrorWindow( this.Dump(), $"ScratchPad{this.ID}CrashTestErrorWindow" );
+#endif
+
+                // Clear out replacement text.
+                this._replaceText = "";
+
+                int ignore = -1;
+                this._scratch = CheckForHeader( this._scratch, ref ignore );
+
+                ignore = 0;
+                // Rewrap the text string.
+                this._scratch = WrapString( this._scratch, ref ignore );
             }
-
-            // Clear out replacement text.
-            this._replaceText = "";
-
-            int ignore = -1;
-            this._scratch = CheckForHeader( this._scratch, ref ignore );
-
-            ignore = 0;
-            // Rewrap the text string.
-            this._scratch = WrapString( this._scratch, ref ignore );
         }
-
-        // If corrections are not emptied then disable preserve.
-        if ( this._corrections.Count == 0)
-            this._preserveCorrections = false;
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
     /// <summary>
@@ -1205,23 +1381,36 @@ internal class ScratchPadUI : Window, IReflected
     /// <param name="index"><see cref="int"/> index of the correction in correction list.</param>
     protected void OnAddToDictionary(int index)
     {
-        Word word = this._corrections[index];
-        // Get the word
-        string newWord = word.GetWordString(this._scratch);
+        try
+        {
+            Word word = this._corrections[index];
+            // Get the word
+            string newWord = word.GetWordString(this._scratch);
 
-        // Add the cleaned word to the dictionary.
-        Lang.AddDictionaryEntry( newWord );
+            // Add the cleaned word to the dictionary.
+            Lang.AddDictionaryEntry( newWord );
 
-        // Remove the cleaned word from the dictionary
-        this._corrections.RemoveAt( index );
+            // Remove the cleaned word from the dictionary
+            this._corrections.RemoveAt( index );
 
-        // Get rid of any spelling corrections with the same word
-        foreach ( Word w in this._corrections )
-            if ( this._scratch.Substring(w.WordIndex, w.WordLength) == newWord )
-                this._corrections.Remove( w );
+            // Get rid of any spelling corrections with the same word
+            foreach ( Word w in this._corrections )
+                if ( this._scratch.Substring( w.WordIndex, w.WordLength ) == newWord )
+                    this._corrections.Remove( w );
 
-        if ( this._corrections.Count == 0 )
-            Refresh();
+            if ( this._corrections.Count == 0 )
+                Refresh();
+        }
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
     }
 
     /// <summary>
@@ -1243,35 +1432,58 @@ internal class ScratchPadUI : Window, IReflected
     /// <returns>Always returns 0</returns>
     public unsafe int OnTextCallback( ImGuiInputTextCallbackData* data )
     {
-        if ( data->EventFlag == ImGuiInputTextFlags.CallbackAlways )
+        try
         {
-            // If the user hits the right key and this makes it so that a \r character is to the left of the cursor
-            // move the cursor again until passed all \r keys. This will make the cursor go from \r|\r\n to \r\r|\n
-            // then to \r\r\n|
-            if (ImGui.IsKeyPressed(ImGuiKey.RightArrow))//ImGui.GetKeyIndex(ImGuiKey.RightArrow)))
+            if ( data->EventFlag == ImGuiInputTextFlags.CallbackAlways )
             {
-                while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
+                // If the user hits the right key and this makes it so that a \r character is to the left of the cursor
+                // move the cursor again until passed all \r keys. This will make the cursor go from \r|\r\n to \r\r|\n
+                // then to \r\r\n|
+                if ( ImGui.IsKeyPressed( ImGuiKey.RightArrow ) )//ImGui.GetKeyIndex(ImGuiKey.RightArrow)))
                 {
-                    data->CursorPos++;
+                    while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
+                    {
+                        data->CursorPos++;
 #if DEBUG
-                    PluginLog.LogDebug( $"Moved cursor to the right." );
+                        PluginLog.LogDebug( $"Moved cursor to the right." );
 #endif
+                    }
+                }
+                if ( data->CursorPos > 0 )
+                {
+                    while ( data->CursorPos > 0 && data->Buf[data->CursorPos - 1] == '\r' )
+                    {
+                        data->CursorPos--;
+#if DEBUG
+                        PluginLog.LogDebug( "Moved cursor to the left." );
+#endif
+                    }
                 }
             }
-            if (data->CursorPos > 0)
+            else
             {
-                while ( data->CursorPos > 0 && data->Buf[data->CursorPos - 1] == '\r' )
+                this._corrections?.Clear();
+                OnTextEdit( data );
+
+                if ( Wordsmith.Configuration.AutoSpellCheck )
                 {
-                    data->CursorPos--;
-#if DEBUG
-                    PluginLog.LogDebug( "Moved cursor to the left." );
-#endif
+                    this._spellchecktimer.Stop();
+
+                    if ( this._scratch.Length > 0 )
+                        this._spellchecktimer.Start();
                 }
             }
         }
-        else
-            return OnTextEdit( data );
-
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
         return 0;
     }
 
@@ -1282,64 +1494,77 @@ internal class ScratchPadUI : Window, IReflected
     /// <returns></returns>
     public unsafe int OnTextEdit(ImGuiInputTextCallbackData* data)
     {
-        // If _ignoreTextEdit is true then the reason for the edit
-        // was a resize and the text has already been wrapped so
-        // we simply return from here.
-        if ( this._ignoreTextEdit )
+        try
         {
-            this._ignoreTextEdit = false;
-            return 0;
+            // If _ignoreTextEdit is true then the reason for the edit
+            // was a resize and the text has already been wrapped so
+            // we simply return from here.
+            if ( this._ignoreTextEdit )
+            {
+                this._ignoreTextEdit = false;
+                return 0;
+            }
+
+            UTF8Encoding utf8 = new();
+
+            // For some reason, ImGui's InputText never verifies that BufTextLen never goes negative
+            // which can lead to some serious problems and crashes with trying to get the string.
+            // Here we do the check ourself with the turnery operator. If it does happen to be
+            // a negative number, return a blank string so the rest of the code can continue as normal
+            // at which point the buffer will be cleared and BufTextLen will be set to 0, preventing any
+            // memory damage or crashes.
+            string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen) : "";
+
+            int pos = data->CursorPos;
+
+            // Check for header input.
+            if ( _header_parse )
+                txt = CheckForHeader( txt, ref pos );
+
+            // Wrap the string if there is enough there.
+            if ( txt.Length > 0 )
+                txt = WrapString( txt, ref pos );
+
+            // Convert the string back to bytes.
+            byte[] bytes = utf8.GetBytes(txt);
+
+            // Replace with new values.
+            for ( int i = 0; i < bytes.Length; ++i )
+                data->Buf[i] = bytes[i];
+
+            // Terminate the string.
+            data->Buf[bytes.Length] = 0;
+
+            // Assign the new buffer text length. This is the
+            // number of bytes that make up the text, not the number
+            // of characters in the text.
+            data->BufTextLen = bytes.Length;
+
+            // Reassing the cursor position to adjust for the change in text lengths.
+            data->CursorPos = pos;
+
+            // Flag the buffer as dirty so ImGui will rebuild the buffer
+            // and redraw the text in the InputText.
+            data->BufDirty = 1;
+
+            // Set the text changed flag.
+            _textchanged = true;
         }
-
-        UTF8Encoding utf8 = new();
-
-        // For some reason, ImGui's InputText never verifies that BufTextLen never goes negative
-        // which can lead to some serious problems and crashes with trying to get the string.
-        // Here we do the check ourself with the turnery operator. If it does happen to be
-        // a negative number, return a blank string so the rest of the code can continue as normal
-        // at which point the buffer will be cleared and BufTextLen will be set to 0, preventing any
-        // memory damage or crashes.
-        string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen) : "";
-
-        int pos = data->CursorPos;
-
-        // Check for header input.
-        if ( _header_parse )
-            txt = CheckForHeader(txt, ref pos);
-
-        // Wrap the string if there is enough there.
-        if (txt.Length > 0)
-            txt = WrapString(txt, ref pos);
-
-        // Convert the string back to bytes.
-        byte[] bytes = utf8.GetBytes(txt);
-
-        // Replace with new values.
-        for (int i = 0; i < bytes.Length; ++i)
-            data->Buf[i] = bytes[i];
-
-        // Terminate the string.
-        data->Buf[bytes.Length] = 0;
-
-        // Assign the new buffer text length. This is the
-        // number of bytes that make up the text, not the number
-        // of characters in the text.
-        data->BufTextLen = bytes.Length;
-
-        // Reassing the cursor position to adjust for the change in text lengths.
-        data->CursorPos = pos;
-
-        // Flag the buffer as dirty so ImGui will rebuild the buffer
-        // and redraw the text in the InputText.
-        data->BufDirty = 1;
-
-        // Set the text changed flag.
-        _textchanged = true;
-
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
         // Return 0 to signal no errors.
         return 0;
     }
-
+    #endregion
+    #region String Manipulation
     /// <summary>
     /// Check for a chat header at the start of a string.
     /// </summary>
@@ -1348,37 +1573,52 @@ internal class ScratchPadUI : Window, IReflected
     /// <returns>The text string with header removed.</returns>
     protected string CheckForHeader(string text, ref int cursorPos)
     {
-        // The text must have a length and must start with a slash. If
-        // there is no slash, it is impossible to contain a header.
-        if (text.Length > 1)
+        try
         {
-            // Default to ChatType None
-            HeaderData headerData = new(text);
+            // The text must have a length and must start with a slash. If
+            // there is no slash, it is impossible to contain a header.
+            if ( text.Length > 1 )
+            {
+                // Default to ChatType None
+                HeaderData headerData = new(text);
 
-            // If the header data was not validated return to avoid
-            // the rest of the checks.
-            if ( !headerData.Valid )
-                return text;
+                // If the header data was not validated return to avoid
+                // the rest of the checks.
+                if ( !headerData.Valid )
+                    return text;
 
 #if DEBUG
-            PluginLog.LogDebug($"txt :: {text} | head :: {headerData.ChatType}");
+                PluginLog.LogDebug( $"txt :: {text} | head :: {headerData.ChatType}" );
 #endif
 
-            //If a chat header was found
-            if (headerData.ChatType != ChatType.None && cursorPos >= headerData.Length)
-            {
-                this._chatType = headerData.ChatType;
-                this._linkshell = headerData.Linkshell;
-                this._crossWorld = headerData.CrossWorld;
-                this._telltarget = headerData.TellTarget;
+                //If a chat header was found
+                if ( headerData.ChatType != ChatType.None && cursorPos >= headerData.Length )
+                {
+                    this._chatType = headerData.ChatType;
+                    this._linkshell = headerData.Linkshell;
+                    this._crossWorld = headerData.CrossWorld;
+                    this._telltarget = headerData.TellTarget;
 
-                text = text.Remove( 0, headerData.Length );
-                cursorPos -= headerData.Length;                
+                    text = text.Remove( 0, headerData.Length );
+                    cursorPos -= headerData.Length;
+                }
+
+                // If the header hasn't been detected, check for a corresponding alias
             }
-
-            // If the header hasn't been detected, check for a corresponding alias
+            return text;
         }
-        return text;
+
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
+        return "";
     }
 
     /// <summary>
@@ -1388,156 +1628,153 @@ internal class ScratchPadUI : Window, IReflected
     /// <returns></returns>
     protected string WrapString(string text, ref int cursorPos)
     {
-        // If the string is empty then just return it.
-        if (text.Length == 0)
-            return text;
-
-        // Trim any return carriages off the end. This can happen if the user
-        // backspaces a new line character off of the end.
-        text = text.TrimEnd('\r');
-
-        // Replace all wrap markers with spaces and adjust cursor offset. Do this before
-        // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
-        while (text.Contains(Constants.SPACED_WRAP_MARKER+'\n'))
+        try
         {
-            int idx = text.IndexOf(Constants.SPACED_WRAP_MARKER + '\n');
-            text = text[0..idx] + " " + text[(idx + (Constants.SPACED_WRAP_MARKER + '\n').Length)..^0];
+            // If the string is empty then just return it.
+            if ( text.Length == 0 )
+                return text;
 
-            // We adjust the cursor position by one less than the wrap marker
-            // length to account for the space that replaces it.
-            if (cursorPos > idx)
-                cursorPos -= Constants.SPACED_WRAP_MARKER.Length;
-            
-        }
+            // Trim any return carriages off the end. This can happen if the user
+            // backspaces a new line character off of the end.
+            text = text.TrimEnd( '\r' );
 
-        while (text.Contains(Constants.NOSPACE_WRAP_MARKER+'\n'))
-        {
-            int idx = text.IndexOf(Constants.NOSPACE_WRAP_MARKER + '\n');
-            text = text[0..idx] + text[(idx + (Constants.NOSPACE_WRAP_MARKER + '\n').Length)..^0];
-
-            if (cursorPos > idx)
-                cursorPos -= (Constants.NOSPACE_WRAP_MARKER + '\n').Length;
-        }
-        
-        // Replace double spaces if configured to do so.
-        if (Wordsmith.Configuration.ReplaceDoubleSpaces)
-            text = text.FixSpacing(ref cursorPos);
-
-        // Get the maximum allowed character width.
-        float width = this._lastWidth - (35 * ImGuiHelpers.GlobalScale);
-
-        // Iterate through each character.
-        int lastSpace = 0;
-        int offset = 0;
-        for (int i = 1; i < text.Length; ++i)
-        {
-            // If the current character is a space, mark it as a wrap point.
-            if (text[i] == ' ')
-                lastSpace = i;
-
-            // If the size of the text is wider than the available size
-            float txtWidth = ImGui.CalcTextSize(text[offset..i ]).X;
-            if (txtWidth + 10*ImGuiHelpers.GlobalScale > width)
+            // Replace all wrap markers with spaces and adjust cursor offset. Do this before
+            // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
+            while ( text.Contains( Constants.SPACED_WRAP_MARKER + '\n' ) )
             {
-                // Replace the last previous space with a new line
-                StringBuilder sb = new(text);
+                int idx = text.IndexOf(Constants.SPACED_WRAP_MARKER + '\n');
+                text = text[0..idx] + " " + text[(idx + (Constants.SPACED_WRAP_MARKER + '\n').Length)..^0];
 
-                if (lastSpace > offset)
-                {
-                    sb.Remove(lastSpace, 1);
-                    sb.Insert(lastSpace, Constants.SPACED_WRAP_MARKER+'\n');
-                    offset = lastSpace + Constants.SPACED_WRAP_MARKER.Length;
-                    i += Constants.SPACED_WRAP_MARKER.Length;
+                // We adjust the cursor position by one less than the wrap marker
+                // length to account for the space that replaces it.
+                if ( cursorPos > idx )
+                    cursorPos -= Constants.SPACED_WRAP_MARKER.Length;
 
-                    // Adjust cursor position for the marker but not
-                    // the new line as the new line is replacing the space.
-                    if (lastSpace < cursorPos)
-                        cursorPos += Constants.SPACED_WRAP_MARKER.Length;
-                }
-                else
-                {
-                    sb.Insert(i, Constants.NOSPACE_WRAP_MARKER + '\n');
-                    offset = i + Constants.NOSPACE_WRAP_MARKER.Length;
-                    i += Constants.NOSPACE_WRAP_MARKER.Length;
-
-                    // Adjust cursor position for the marker and the
-                    // new line since both are inserted.
-                    if (cursorPos > i - Constants.NOSPACE_WRAP_MARKER.Length)
-                        cursorPos += Constants.NOSPACE_WRAP_MARKER.Length + 1;
-                }
-                text = sb.ToString();
             }
-        }
-        return text;
-    }
 
-    /// <summary>
-    /// Creates a new history entry while moving duplicates and overflow.
-    /// </summary>
-    /// <param name="p">The <see cref="PadState"/> to be added to history.</param>
-    protected void AppendHistory(PadState p)
-    {
-        // Save the text state in case it was an accidental 
-        // rebuild of the state.
-        if ( p.ScratchText.Length > 0 )
+            while ( text.Contains( Constants.NOSPACE_WRAP_MARKER + '\n' ) )
+            {
+                int idx = text.IndexOf(Constants.NOSPACE_WRAP_MARKER + '\n');
+                text = text[0..idx] + text[(idx + (Constants.NOSPACE_WRAP_MARKER + '\n').Length)..^0];
+
+                if ( cursorPos > idx )
+                    cursorPos -= (Constants.NOSPACE_WRAP_MARKER + '\n').Length;
+            }
+
+            // Replace double spaces if configured to do so.
+            if ( Wordsmith.Configuration.ReplaceDoubleSpaces )
+                text = text.FixSpacing( ref cursorPos );
+
+            // Get the maximum allowed character width.
+            float width = this._lastWidth - (35 * ImGuiHelpers.GlobalScale);
+
+            // Iterate through each character.
+            int lastSpace = 0;
+            int offset = 0;
+            for ( int i = 1; i < text.Length; ++i )
+            {
+                // If the current character is a space, mark it as a wrap point.
+                if ( text[i] == ' ' )
+                    lastSpace = i;
+
+                // If the size of the text is wider than the available size
+                float txtWidth = ImGui.CalcTextSize(text[offset..i ]).X;
+                if ( txtWidth + 10 * ImGuiHelpers.GlobalScale > width )
+                {
+                    // Replace the last previous space with a new line
+                    StringBuilder sb = new(text);
+
+                    if ( lastSpace > offset )
+                    {
+                        sb.Remove( lastSpace, 1 );
+                        sb.Insert( lastSpace, Constants.SPACED_WRAP_MARKER + '\n' );
+                        offset = lastSpace + Constants.SPACED_WRAP_MARKER.Length;
+                        i += Constants.SPACED_WRAP_MARKER.Length;
+
+                        // Adjust cursor position for the marker but not
+                        // the new line as the new line is replacing the space.
+                        if ( lastSpace < cursorPos )
+                            cursorPos += Constants.SPACED_WRAP_MARKER.Length;
+                    }
+                    else
+                    {
+                        sb.Insert( i, Constants.NOSPACE_WRAP_MARKER + '\n' );
+                        offset = i + Constants.NOSPACE_WRAP_MARKER.Length;
+                        i += Constants.NOSPACE_WRAP_MARKER.Length;
+
+                        // Adjust cursor position for the marker and the
+                        // new line since both are inserted.
+                        if ( cursorPos > i - Constants.NOSPACE_WRAP_MARKER.Length )
+                            cursorPos += Constants.NOSPACE_WRAP_MARKER.Length + 1;
+                    }
+                    text = sb.ToString();
+                }
+            }
+            return text;
+        }
+        catch ( Exception e )
         {
-            // Remove any duplicates of this pad state to prevent
-            // building a list of the same edit.
-            this._text_history.RemoveAll( x => x.Equals( p ) );
-
-            // Add the history to the end of the list.
-            this._text_history.Add( p );
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
         }
-
-        // If there are too many history states, remove the extra(s).
-        if ( this._text_history.Count > Wordsmith.Configuration.ScratchPadHistoryLimit )
-            this._text_history.RemoveAt( 0 );
+        return "";
     }
-    
-    /// <summary>
-    /// Runs at each framework update.
-    /// </summary>
-    public override void Update()
-    {
-        base.Update();
-
-        if (Wordsmith.Configuration.ReplaceDoubleSpaces)
-            _scratch = _scratch.FixSpacing();
-
-        _scrollToBottom = _lastState.ScratchText != _scratch;
-
-        Refresh();
-    }
+    #endregion
 
     /// <summary>
     /// Updates the window.
     /// </summary>
     internal void Refresh()
     {
-        PadState newState = new(this);
-        if ( this._lastState == newState )
-            return;
-
-        // Cancel any outstanding tokens.
-        this._cancellationTokenSource?.Cancel();
-
-        // If text has been entered, disable undo.
-        if ( this._scratch.Length > 0 )
-            this._canUndo = false;
-
-        // If not preserving the error list, clear it.
-        if (!this._preserveCorrections )
+        try
         {
-            this._corrections = new();
-            this._spellChecked = false;
+            PadState newState = new(this);
+            if ( this._lastState == newState )
+                return;
+
+            // If text has been entered, disable undo.
+            if ( this._scratch.Length > 0 )
+                this._canUndo = false;
+
+            // Update the last state.
+            this._lastState = newState;
+
+            // Rebuild chunks and reset chunk position counter.
+            this._chunks = Helpers.ChatHelper.FFXIVify( GetFullChatHeader(), this.ScratchString, this._useOOC );
+            this._nextChunk = 0;
+
+            this._spellchecktimer.Interval = Wordsmith.Configuration.AutoSpellCheckDelay * 1000;
         }
-        this._preserveCorrections = false;
+        catch ( Exception e )
+        {
+            Dictionary<string, object> dump = this.Dump();
+            dump["Exception"] = new Dictionary<string, string>()
+            {
+                { "Error", e.ToString() },
+                { "Message", e.Message }
+            };
+            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
+        }
+    }
+    internal Dictionary<string, object> Dump()
+    {
+        // Get the list of results
+        IReadOnlyList<(int Type, string Name, string Value) > data = this.GetProperties();
 
-        // Update the last state.
-        this._lastState = newState;
+        Dictionary<string, object> result = new Dictionary<string, object>();
+        // Get Properties
+        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
+            result[Name] = Value;
 
-        // Rebuild chunks and reset chunk position counter.
-        this._chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(), this.ScratchString, this._useOOC );
-        this._nextChunk = 0;
+        // Get Fields
+        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
+            result[Name] = Value;
+
+        return result;
     }
 }

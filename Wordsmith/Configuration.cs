@@ -157,6 +157,10 @@ public class Configuration : IPluginConfiguration, IReflected
     public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
 
     public int MaximumSuggestions { get; set; } = 5;
+
+    public bool AutoSpellCheck { get; set; } = true;
+
+    public float AutoSpellCheckDelay { get; set; } = 1f;
     #endregion
 
     #region Linkshell Settings
@@ -200,6 +204,8 @@ public class Configuration : IPluginConfiguration, IReflected
         IgnoreWordsEndingInHyphen = true;
         MaximumSuggestions = 5;
         DictionaryFile = "lang_en";
+        AutoSpellCheck = true;
+        AutoSpellCheckDelay = 1f;
 
         // Linkshells
         LinkshellNames = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
