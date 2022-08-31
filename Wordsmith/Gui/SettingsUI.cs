@@ -41,6 +41,8 @@ public sealed class SettingsUI : Window, IReflected
     private bool _fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
     private int _maxSuggestions = Wordsmith.Configuration.MaximumSuggestions;
     private string _dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
+    private bool _autospellcheck = Wordsmith.Configuration.AutoSpellCheck;
+    private float _autospellcheckdelay = Wordsmith.Configuration.AutoSpellCheckDelay;
 
     // Linkshell Settings
     private string[] _cwlinkshells = Wordsmith.Configuration.CrossWorldLinkshellNames;
@@ -532,6 +534,11 @@ public sealed class SettingsUI : Window, IReflected
         {
             if (ImGui.BeginChild("DictionarySettingsChild", new(-1, ImGui.GetWindowSize().Y - FOOTERHEIGHT * ImGuiHelpers.GlobalScale)))
             {
+                ImGui.Checkbox( "Automatic Spell Check", ref this._autospellcheck );
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( "When enabled, spell check will automatically run after a pause in typing is detected." );
+                ImGui.SameLine();
+
                 // Ignore Hyphen terminated words.
                 ImGui.Checkbox("Ignore Hyphen-Terminated Words##SettingsUICheckbox", ref this._ignoreHypen);
                 if (ImGui.IsItemHovered())
@@ -539,7 +546,7 @@ public sealed class SettingsUI : Window, IReflected
                 ImGui.SameLine();
 
                 // Auto-Fix Spaces
-                ImGui.Checkbox("Automatically Fix Multiple Spaces In Text.", ref this._fixDoubleSpace);
+                ImGui.Checkbox("Fix Spaces In Text.", ref this._fixDoubleSpace);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("When enabled, Scratch Pads will programmatically remove extra\nspaces from your text for you.");
                 ImGui.Separator();
@@ -547,6 +554,11 @@ public sealed class SettingsUI : Window, IReflected
                 ImGui.DragInt( "Maximum Suggestions", ref this._maxSuggestions, 0.1f, 0, 100 );
                 if ( ImGui.IsItemHovered() )
                     ImGui.SetTooltip( "The number of spelling suggestions to return with spell checking. 0 is unlimited results." );
+                ImGui.Separator();
+
+                ImGui.DragFloat( "Auto-Spellcheck Delay (Seconds)", ref this._autospellcheckdelay, 0.1f, 0.1f, 100f );
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( "The time in seconds to wait after typing stops to spell check." );
                 ImGui.Separator();
 
                 // Dictionary File
@@ -840,6 +852,8 @@ public sealed class SettingsUI : Window, IReflected
         this._fixDoubleSpace = Wordsmith.Configuration.ReplaceDoubleSpaces;
         this._dictionaryFilename = Wordsmith.Configuration.DictionaryFile;
         this._maxSuggestions = Wordsmith.Configuration.MaximumSuggestions;
+        this._autospellcheck = Wordsmith.Configuration.AutoSpellCheck;
+        this._autospellcheckdelay = Wordsmith.Configuration.AutoSpellCheckDelay;
 
         // Linkshell Settings
         this._linkshells = Wordsmith.Configuration.LinkshellNames;
@@ -920,8 +934,14 @@ public sealed class SettingsUI : Window, IReflected
             Lang.Reinit();
         }
 
+        if ( this._autospellcheck != Wordsmith.Configuration.AutoSpellCheck)
+            Wordsmith.Configuration.AutoSpellCheck = this._autospellcheck;
+
         if (this._maxSuggestions != Wordsmith.Configuration.MaximumSuggestions)
             Wordsmith.Configuration.MaximumSuggestions = this._maxSuggestions;
+
+        if (this._autospellcheckdelay != Wordsmith.Configuration.AutoSpellCheckDelay)
+            Wordsmith.Configuration.AutoSpellCheckDelay = this._autospellcheckdelay;
 
         // Linkshell settings
         if (this._linkshells != Wordsmith.Configuration.LinkshellNames)

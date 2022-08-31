@@ -1,4 +1,5 @@
-﻿using Wordsmith.Data;
+﻿using System.Threading;
+using Wordsmith.Data;
 
 namespace Wordsmith.Helpers;
 
@@ -9,7 +10,17 @@ public class SpellChecker
     /// </summary>
     /// <param name="str">The string to be tested.</param>
     /// <returns>True if no spelling errors or all errors resolved.</returns>
-    internal static Word[] CheckString(string str)
+    internal static Word[] CheckString( string str )
+    /// <summary>
+    /// Check the given string for any possible spelling mistakes.
+    /// </summary>
+    /// <param name="str">The string to be tested.</param>
+    /// <returns>True if no spelling errors or all errors resolved.</returns>
+    {
+        return CheckString( str, new CancellationTokenSource().Token );
+    }
+
+    internal static Word[] CheckString( string str, CancellationToken token )
     {
         List<Word> results = new();
         
@@ -18,6 +29,9 @@ public class SpellChecker
         // Iterate through all of the words.
         for ( int i = 0; i < words.Length; ++i )
         {
+            if ( token.IsCancellationRequested )
+                return results.ToArray();
+
             Word word = words[i];
 
             // If the word is hyphen terminated, then ignore it.
