@@ -59,35 +59,5 @@ namespace Wordsmith.Properties {
                 resourceCulture = value;
             }
         }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] NotoSans_Italic {
-            get {
-                object obj = ResourceManager.GetObject("NotoSans_Italic", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] NotoSans_Regular {
-            get {
-                object obj = ResourceManager.GetObject("NotoSans_Regular", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized resource of type System.Byte[].
-        /// </summary>
-        internal static byte[] NotoSansJP_Regular {
-            get {
-                object obj = ResourceManager.GetObject("NotoSansJP_Regular", resourceCulture);
-                return ((byte[])(obj));
-            }
-        }
     }
 }

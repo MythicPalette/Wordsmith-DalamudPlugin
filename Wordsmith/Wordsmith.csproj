@@ -3,16 +3,17 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.4.2.0</Version>
+    <Version>1.4.3</Version>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
     <LangVersion>preview</LangVersion>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>$(AppData)\XIVLauncher\devPlugins\Wordsmith\</OutputPath>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,13 +30,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="..\dictionaries\lang_de" />
     <Content Remove="..\dictionaries\lang_en_complete" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="Resources\NotoSans-Italic.ttf" />
-    <None Remove="Resources\NotoSans-Regular.ttf" />
-    <None Remove="Resources\NotoSansJP-Regular.otf" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,13 +46,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Resources\NotoSans-Italic.ttf" />
-    <EmbeddedResource Include="Resources\NotoSans-Regular.ttf" />
-    <EmbeddedResource Include="Resources\NotoSansJP-Regular.otf" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="DalamudPackager" Version="2.1.5" />
+    <PackageReference Include="DalamudPackager" Version="2.1.8" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
     <PackageReference Include="SharpDX.Direct2D1" Version="4.2.0" />
     <PackageReference Include="XivCommon" Version="4.0.0" />

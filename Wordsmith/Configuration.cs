@@ -139,6 +139,8 @@ public class Configuration : IPluginConfiguration, IReflected
     };
 
     public List<(int ChatType, string Alias, object? data)> HeaderAliases { get; set; } = new();
+
+    public int ScratchPadHistoryLimit { get; set; } = 5;
     #endregion
 
     #region Spell Checker Settings
