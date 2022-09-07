@@ -13,8 +13,6 @@ using Dalamud.Data;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 
-using XivCommon;
-using XivCommon.Functions.ContextMenu;
 using Lumina.Excel.GeneratedSheets;
 
 namespace Wordsmith;
@@ -64,11 +62,6 @@ public sealed class Wordsmith : IDalamudPlugin
     /// </summary>
     internal static Configuration Configuration { get; private set; } = null!;
 
-    /// <summary>
-    /// Reference to <see cref="XivCommonBase"/> for context menu support.
-    /// </summary>
-    internal static XivCommonBase XivCommon { get; private set; } = null!;
-
     #region Constructor and Disposer
     /// <summary>
     /// Default constructor.
@@ -87,10 +80,6 @@ public sealed class Wordsmith : IDalamudPlugin
         PluginInterface.UiBuilder.Draw += WordsmithUI.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += WordsmithUI.ShowSettings;
 
-        // Setup the context menu.
-        XivCommon = new XivCommonBase(Hooks.ContextMenu);
-        XivCommon.Functions.ContextMenu.OpenContextMenu += this.OnContextMenu;
-
         // Initialize the dictionary.
         Data.Lang.Init();
     }
@@ -103,7 +92,6 @@ public sealed class Wordsmith : IDalamudPlugin
         // Remove events.
         PluginInterface.UiBuilder.Draw -= WordsmithUI.Draw;
         PluginInterface.UiBuilder.OpenConfigUi -= WordsmithUI.ShowSettings;
-        XivCommon.Functions.ContextMenu.OpenContextMenu -= this.OnContextMenu;
 
         // Remove command handlers.
         CommandManager.RemoveHandler(THES_CMD_STRING);
@@ -124,26 +112,6 @@ public sealed class Wordsmith : IDalamudPlugin
             WordsmithUI.ShowScratchPad(x);
         else
             WordsmithUI.ShowScratchPad(-1);
-    }
-    private void OnContextMenu(ContextMenuOpenArgs args)
-    {
-        // If the user doesn't want the context menu option return from the function.
-        if (!Configuration.AddContextMenuOption)
-            return;
-
-        // Get the "Send Tell" option.
-        int index = args.Items.FindIndex(a => a is NativeContextMenuItem n && n.Name.TextValue == "Send Tell");
-
-        // If there is no "Send Tell" option exit the function.
-        if (index < 0)
-            return;
-
-        // Get the world name.
-        World? w = DataManager.Excel.GetSheet<World>()?.GetRow(args.ObjectWorld);
-
-        // If the world name was found, create a scratch pad targetting the player@world.
-        if (w != null)
-            args.Items.Insert(args.Items.Count, new NormalContextMenuItem("Tell in Scratch Pad", selectedArgs => WordsmithUI.ShowScratchPad($"{args.Text}@{w?.Name}")));
     }
     #endregion
 }

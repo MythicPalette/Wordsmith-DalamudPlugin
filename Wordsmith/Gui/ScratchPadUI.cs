@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 using Wordsmith.Data;
 using Wordsmith.Enums;
 using Wordsmith.Interfaces;
@@ -495,39 +496,40 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     protected void DrawAlerts()
     {
-        List<(string Message, int Level)> alerts = new();
-
-        // Display errors
-        if ( this._errors.Count > 0)
-        {
-            foreach ((string err, int code) in this._errors )
-                alerts.Add(new(err, code));
-        }
-
-        // Display notices.
-        if (_notices.Count > 0)
-        {
-            foreach ((string n, int code) in this._notices )
-                alerts.Add(new(n, code));
-        }
-
-        // Display spelling error message
-        if ((this._corrections?.Count ?? 0) > 0)
-            alerts.Add(new($"Found {this._corrections!.Count} spelling errors.", Constants.CORRECTIONS_FOUND));
-        //else if ( this._spellChecked && alerts.FirstOrDefault<(string message, int code)>(x => x.code == Constants.CORRECTIONS_NOT_FOUND) == default(ValueTuple<string,int>))
-        //    alerts.Add(new($"No spelling errors found!", Constants.CORRECTIONS_NOT_FOUND));
-
-        // If there are no alerts, return.
-        if (alerts.Count == 0)
-            return;
-
         // Draw all alerts.
-        foreach ((string Message, int Level) alert in alerts)
+        try
         {
-            if (alert.Level < 0)
-                ImGui.TextColored(new(255, 0, 0, 255), alert.Message);
-            else
-                ImGui.Text(alert.Message);
+            List<(string Message, int Level)> alerts = new();
+
+            // Display errors
+            if ( this._errors.Count > 0)
+                alerts.AddRange( this._errors );
+
+            // Display notices.
+            if (_notices.Count > 0)
+                alerts.AddRange( this._notices );
+
+            // Display spelling error message
+            if ((this._corrections?.Count ?? 0) > 0)
+                alerts.Add(new($"Found {this._corrections!.Count} spelling errors.", Constants.CORRECTIONS_FOUND));
+
+            // If there are no alerts, return.
+            if (alerts.Count == 0)
+                return;
+
+            // Draw the alerts.
+            foreach ( (string Message, int Level) alert in alerts )
+            {
+                if ( alert.Level < 0 )
+                    ImGui.TextColored( new( 255, 0, 0, 255 ), alert.Message );
+                else
+                    ImGui.Text( alert.Message );
+            }
+        }
+
+        catch (InvalidOperationException e)
+        {
+            PluginLog.LogDebug( $"InvalidOperationException in DrawAlerts(). This can be ignored." );
         }
     }
     #endregion
@@ -844,8 +846,17 @@ internal class ScratchPadUI : Window, IReflected
         {
             if (ImGui.Button($"Delete Pad##Scratch{this.ID}", ImGuiHelpers.ScaledVector2(-1, 25)))
             {
-                this.IsOpen = false;
-                WordsmithUI.RemoveWindow(this);
+                if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
+                {
+                    WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete this pad?", ( mb ) =>
+                    {
+                        if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                            WordsmithUI.RemoveWindow( this );
+                    },
+                    ImGuiHelpers.ScaledVector2(200, 100));
+                }
+                else
+                    WordsmithUI.RemoveWindow(this);
             }
         }
     }

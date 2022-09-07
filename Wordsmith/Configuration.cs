@@ -32,10 +32,10 @@ public class Configuration : IPluginConfiguration, IReflected
     public bool DeleteClosedScratchPads { get; set; } = true;
 
     /// <summary>
-    /// When true, a context menu item is added to context menus that contain 
-    /// the "Send Tell" command.
+    /// When true, a confirmation window will pop up asking if the user would like to delete
+    /// the scratch pad that they closed with the Delete Pad button or through settings.
     /// </summary>
-    public bool AddContextMenuOption { get; set; } = true;
+    public bool ConfirmCloseScratchPads { get; set; } = true;
 
     /// <summary>
     /// If true, the spellchecker will not attempt to match words ending in a hyphen.
@@ -182,9 +182,9 @@ public class Configuration : IPluginConfiguration, IReflected
         ResearchToTop = true;
 
         // Scratch Pad settings
-        AddContextMenuOption = true;
         AutomaticallyClearAfterLastCopy = false;
         DeleteClosedScratchPads = true;
+        ConfirmCloseScratchPads = true;
         ShowTextInChunks = true;
         SplitTextOnSentence = true;
         ParseHeaderInput = true;

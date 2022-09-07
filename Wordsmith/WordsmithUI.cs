@@ -1,28 +1,67 @@
-﻿using Dalamud.Interface.Windowing;
+﻿using System.Collections.Generic;
+using Dalamud.Interface;
+using Dalamud.Interface.Windowing;
+using ImGuiNET;
 using Wordsmith.Gui;
+//using XivCommon.Functions;
+using static Wordsmith.Gui.MessageBox;
 
 namespace Wordsmith;
 
-// It is good to have this be disposable in general, in case you ever need it
-// to do any cleanup
+
 internal static class WordsmithUI
 {
     internal static IReadOnlyList<Window> Windows => WindowSystem.Windows;
     internal static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
 
-    // passing in the image here just for simplicity
     internal static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
     internal static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
     internal static void ShowScratchPad( string tellTarget ) => Show<ScratchPadUI>( new ScratchPadUI( tellTarget ) );
     internal static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
     internal static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
-    internal static void ShowRestoreSettings() => Show<RestoreDefaultsUI>($"{Wordsmith.AppName} - Restore Default Settings");
-    internal static void ShowResetDictionary() => Show<ResetDictionaryUI>($"{Wordsmith.AppName} - Reset Dictionary");
+
+    #region Alerts and Messages
+    internal static void ShowMessageBox(
+        string title,
+        string message,
+        Action<MessageBox>? callback = null,
+        Vector2? size = null,
+        ImGuiWindowFlags flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse,
+        ButtonStyle buttonStyle = ButtonStyle.OkCancel
+        ) => WordsmithUI.AddWindow( new MessageBox(title, message, callback, size, flags, buttonStyle) );
+
+    internal static void ShowRestoreSettings() => WordsmithUI.AddWindow( new MessageBox(
+        $"{Wordsmith.AppName} - Restore Default Settings",
+        "Restoring defaults resets all settings to their original values (not including words added to your dictionary). Proceed?",
+        ( mb ) =>
+        {
+            if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                Wordsmith.Configuration.ResetToDefault();
+        },
+        ImGuiHelpers.ScaledVector2( 300, 180 ),
+        buttonStyle: MessageBox.ButtonStyle.OkCancel
+        ) );
+    internal static void ShowResetDictionary() => WordsmithUI.AddWindow( new MessageBox( 
+        $"{Wordsmith.AppName} - Reset Dictionary",
+        "This will delete all entries that you added to the dictionary.This cannot be undone. Proceed?",
+        (mb) => {
+            if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+            {
+                Wordsmith.Configuration.CustomDictionaryEntries = new();
+                Wordsmith.Configuration.Save();
+            }
+        },
+        ImGuiHelpers.ScaledVector2( 300, 160 ),
+        buttonStyle: MessageBox.ButtonStyle.OkCancel
+        ) );
+    #endregion
+
     internal static void ShowErrorWindow( Dictionary<string, object> d, string name ) => WindowSystem.AddWindow( new ErrorWindow( d ) { IsOpen = true } );
 
-    // Window removal queue system.
+    // Window queue system.
     private static bool _window_lock = false;
     private static List<Window> _removal_queue = new();
+    private static List<Window> _add_queue = new();
 
 #if DEBUG
     internal static void ShowDebugUI() => Show<DebugUI>( $"{Wordsmith.AppName} - Debug" );
@@ -61,7 +100,7 @@ internal static class WordsmithUI
                 w.IsOpen = true;
 
                 // Add it to the WindowSystem.
-                WindowSystem.AddWindow( w );
+                WordsmithUI.AddWindow( w );
                 return;
             }
         }
@@ -70,7 +109,7 @@ internal static class WordsmithUI
         else
         {
             if (!WindowSystem.Windows.Contains(w))
-                WindowSystem.AddWindow( w );
+                WordsmithUI.AddWindow( w );
 
             w.IsOpen = true;
             return;
@@ -103,6 +142,30 @@ internal static class WordsmithUI
         // If the windows are locked queue deletion for next cycle
         else
             _removal_queue.Add( w );
+    }
+
+    internal static void AddWindow(Window w)
+    {
+        if ( !_window_lock )
+        {
+            try
+            {
+                if ( WindowSystem.GetWindow(w.WindowName) != null )
+                {
+                    PluginLog.LogError( $"Unable to add window {w.WindowName}. Window already Exists." );
+                }
+                else
+                {
+                    WindowSystem.AddWindow( w );
+                }
+            }
+            catch ( Exception e )
+            {
+                PluginLog.LogError( e.ToString() );
+            }
+        }
+        else
+            _add_queue.Add( w );
     }
 
     /// <summary>
@@ -151,18 +214,16 @@ internal static class WordsmithUI
     /// </summary>
     internal static void CleanWindowList()
     {
-        // If the queue is null or empty return.
-        if ( _removal_queue is null )
-            return;
-        if ( _removal_queue.Count < 1 )
-            return;
-
         // Remove each window.
         foreach ( Window w in _removal_queue )
             RemoveWindow( w );
 
+        foreach (Window w in _add_queue )
+            AddWindow( w );
+
         // Clear the list.
         _removal_queue.Clear();
+        _add_queue.Clear();
     }
 
     /// <summary>

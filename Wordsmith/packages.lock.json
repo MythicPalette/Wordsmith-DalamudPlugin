@@ -25,12 +25,6 @@
           "SharpDX.DXGI": "4.2.0"
         }
       },
-      "XivCommon": {
-        "type": "Direct",
-        "requested": "[4.0.0, )",
-        "resolved": "4.0.0",
-        "contentHash": "gM8ahhUA3gniqb2TFdXtHwGKyctBuMb1SuiZ36OD9MEqOiQHTnJSlSP6jr+NkGSFaP5OCr21wu//nGOlXCSdqg=="
-      },
       "Microsoft.NETCore.Platforms": {
         "type": "Transitive",
         "resolved": "1.1.0",

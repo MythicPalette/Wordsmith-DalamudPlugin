@@ -15,8 +15,8 @@ public sealed class SettingsUI : Window, IReflected
     private bool _researchToTopChange = Wordsmith.Configuration.ResearchToTop;
 
     // Scratch Pad settings.
-    private bool _contextMenu = Wordsmith.Configuration.AddContextMenuOption;
     private bool _deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
+    private bool _confirmDeleteClosed = Wordsmith.Configuration.ConfirmCloseScratchPads;
     private bool _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
     private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
     private bool _onSentence = Wordsmith.Configuration.SplitTextOnSentence;
@@ -62,8 +62,8 @@ public sealed class SettingsUI : Window, IReflected
         result += $"\tMove Re-searches to top: {this._researchToTopChange}\n\n";
 
         result += $"Scratch Pad Settings:\n";
-        result += $"\tContext Menu Enabled: {this._contextMenu}\n";
         result += $"\tDelete Closed Pads: {this._deleteClosed}\n";
+        result += $"\tConfirm Delete Pads: {this._confirmDeleteClosed}\n";
         result += $"\tIgnore Hyphen Terminated: {this._ignoreHypen}\n";
         result += $"\tShow Text in Chunks: {this._showChunks}\n";
         result += $"\tBreak on Sentence: {this._onSentence}\n";
@@ -164,12 +164,6 @@ public sealed class SettingsUI : Window, IReflected
                     ImGui.TableSetupColumn( "SettingsUiScratchPadChildTableRightColumn" );
 
                     ImGui.TableNextColumn();
-                    // Add to context menu.
-                    ImGui.Checkbox( "Add to context menu.", ref this._contextMenu );
-                    if ( ImGui.IsItemHovered() )
-                        ImGui.SetTooltip( "If enabled the option \"Tell in Scratch\" will be added to\ncontext menus that have \"Send Tell\"." );
-
-                    ImGui.TableNextColumn();
                     // Auto-Clear Scratch Pad
                     ImGui.Checkbox( "Auto-clear Scratch Pad", ref this._autoClear );
                     if ( ImGui.IsItemHovered() )
@@ -180,6 +174,12 @@ public sealed class SettingsUI : Window, IReflected
                     ImGui.Checkbox( "Auto-Delete Scratch Pads On Close##SettingsUICheckbox", ref this._deleteClosed );
                     if ( ImGui.IsItemHovered() )
                         ImGui.SetTooltip( "When enabled it will delete the scratch pad on close.\nWhen disabled you will have a delete button at the bottom." );
+
+                    ImGui.TableNextColumn();
+                    // Auto Delete Scratch Pads
+                    ImGui.Checkbox( "Confirm Scratch Pad Delete##SettingsUICheckbox", ref this._confirmDeleteClosed );
+                    if ( ImGui.IsItemHovered() )
+                        ImGui.SetTooltip( "When enabled a confirmation window will appear before deleting the Scratch Pad." );                    
 
                     ImGui.TableNextColumn();
                     // Show text in chunks.
@@ -311,7 +311,27 @@ public sealed class SettingsUI : Window, IReflected
                             ImGui.TableNextColumn();
 
                             if ( ImGui.Button( $"Close##SettingsUIPadListClose{pad.ID}", new( -1, 25 * ImGuiHelpers.GlobalScale ) ) )
-                                WordsmithUI.RemoveWindow( pad );
+                            {
+                                try
+                                {
+                                    if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
+                                    {
+                                        WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete Scratch Pad {pad.ID}?", ( mb ) =>
+                                        {
+                                            if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                                                WordsmithUI.RemoveWindow( pad );
+                                        },
+                                        ImGuiHelpers.ScaledVector2( 200, 100 )
+                                        );
+                                    }
+                                    else
+                                        WordsmithUI.RemoveWindow( pad );
+                                }
+                                catch (Exception e)
+                                {
+                                    PluginLog.LogError( e.ToString() );
+                                }
+                            }
                         }
                     }
                     ImGui.EndTable();
@@ -830,9 +850,9 @@ public sealed class SettingsUI : Window, IReflected
         this._researchToTopChange = Wordsmith.Configuration.ResearchToTop;
 
         // Scratch Pad settings.
-        this._contextMenu = Wordsmith.Configuration.AddContextMenuOption;
         this._autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
         this._deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
+        this._confirmDeleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
         this._ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
         this._showChunks = Wordsmith.Configuration.ShowTextInChunks;
         this._onSentence = Wordsmith.Configuration.SplitTextOnSentence;
@@ -875,14 +895,14 @@ public sealed class SettingsUI : Window, IReflected
             Wordsmith.Configuration.ResearchToTop = this._researchToTopChange;
 
         // Scratch Pad settings.
-        if (this._contextMenu != Wordsmith.Configuration.AddContextMenuOption)
-            Wordsmith.Configuration.AddContextMenuOption = this._contextMenu;
-
         if (this._autoClear != Wordsmith.Configuration.AutomaticallyClearAfterLastCopy)
             Wordsmith.Configuration.AutomaticallyClearAfterLastCopy = _autoClear;
 
         if (this._deleteClosed != Wordsmith.Configuration.DeleteClosedScratchPads)
             Wordsmith.Configuration.DeleteClosedScratchPads = this._deleteClosed;
+
+        if ( this._confirmDeleteClosed != Wordsmith.Configuration.ConfirmCloseScratchPads )
+            Wordsmith.Configuration.ConfirmCloseScratchPads = this._confirmDeleteClosed;
 
         if (this._ignoreHypen != Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
             Wordsmith.Configuration.IgnoreWordsEndingInHyphen = this._ignoreHypen;

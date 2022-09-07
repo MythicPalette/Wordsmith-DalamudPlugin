@@ -1,35 +1,25 @@
-﻿using Dalamud.Interface;
-using Dalamud.Interface.Windowing;
-using ImGuiNET;
+﻿using ImGuiNET;
 
 
 namespace Wordsmith.Gui
 {
-    internal class ErrorWindow : Window
+    internal class ErrorWindow : MessageBox
     {
-        private Dictionary<string, object> _dump = new Dictionary<string, object>();
-        public ErrorWindow( Dictionary<string, object> dump ) : base( $"Wordsmith Error" )
-        {
-            this._dump = dump;
-            this.Flags = ImGuiWindowFlags.NoResize;
-            this.Flags |= ImGuiWindowFlags.NoScrollbar;
-            this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
-            this.Size = new( 250 * ImGuiHelpers.GlobalScale, 165 * ImGuiHelpers.GlobalScale );
-        }
+        private const string message = "Wordsmith has encountered an error.\nCopy error dump to clipboard and open bug report page?\n\nWARNING: I WILL be able to see anything and everything typed as part of the log.";
+        protected Dictionary<string, object> _dump = new Dictionary<string, object>();
+        public ErrorWindow( Dictionary<string, object> dump ) : base( $"Wordsmith Error", message, Callback, buttonStyle: ButtonStyle.YesNo) { this._dump = dump; }
 
-        public override void Draw()
+        public static void Callback(MessageBox mb)
         {
-            ImGui.TextWrapped( "Wordsmith has encountered an error.\nCopy error dump to clipboard and open bug report page?\n\nWARNING: I WILL be able to see anything and everything typed as part of the log." );
-            if ( ImGui.Button( $"Yes##CopyAndReportButton", new((ImGui.GetWindowWidth() / 2 ) - ( 10 * ImGuiHelpers.GlobalScale ), 25 * ImGuiHelpers.GlobalScale ) ))
+            if ( mb is ErrorWindow ew )
             {
-                ImGui.SetClipboardText( System.Text.Json.JsonSerializer.Serialize(this._dump, new System.Text.Json.JsonSerializerOptions() { IncludeFields = true } ) );
-                System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/LadyDefile/Wordsmith-DalamudPlugin/issues" ) { UseShellExecute = true } );
-
-                WordsmithUI.RemoveWindow( this );
+                if ( ew.Result == DialogResult.Yes )
+                {
+                    ImGui.SetClipboardText( System.Text.Json.JsonSerializer.Serialize( ew._dump, new System.Text.Json.JsonSerializerOptions() { IncludeFields = true } ) );
+                    System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/LadyDefile/Wordsmith-DalamudPlugin/issues" ) { UseShellExecute = true } );
+                }
             }
-            ImGui.SameLine();
-            if ( ImGui.Button( $"No##CopyAndReportButton", new( (ImGui.GetWindowWidth() / 2) - (10 * ImGuiHelpers.GlobalScale), 25 * ImGuiHelpers.GlobalScale ) ) )
-                WordsmithUI.RemoveWindow( this );
+            WordsmithUI.RemoveWindow( mb );
         }
     }
 }
