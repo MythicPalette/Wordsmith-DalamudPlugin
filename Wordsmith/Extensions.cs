@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using Dalamud.Interface.Windowing;
 using Wordsmith.Data;
 
 namespace Wordsmith;
@@ -123,7 +124,7 @@ internal static class Extensions
     /// </summary>
     /// <param name="s">The <see cref="string"/> to be unwrapped.</param>
     /// <returns><see cref="string"/> with all wrap markers replaced.</returns>
-    internal static string Unwrap( this string s ) => s.Trim().Replace( Constants.SPACED_WRAP_MARKER + "\n", " " ).Replace( Constants.NOSPACE_WRAP_MARKER + "\n", "" );
+    internal static string Unwrap( this string s ) => s.Trim().Replace( Global.SPACED_WRAP_MARKER + "\n", " " ).Replace( Global.NOSPACE_WRAP_MARKER + "\n", "" );
 
     /// <summary>
     /// Takes a string and attempts to collect all of the words inside of it.
@@ -400,6 +401,26 @@ internal static class Extensions
         {
             result.Add( $"{ keyArray.GetValue( i ) }: { valueArray?.GetValue( i ) }" );
         }
+        return result;
+    }
+
+    internal static Dictionary<string, object> Dump(this IReflected reflected)
+    {
+        // Get the list of results
+        IReadOnlyList<(int Type, string Name, string Value) > data = reflected.GetProperties();
+
+        Dictionary<string, object> result = new Dictionary<string, object>();
+
+        result["Type"] = reflected.GetType().ToString();
+
+        // Get Properties
+        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
+            result[Name] = Value;
+
+        // Get Fields
+        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
+            result[Name] = Value;
+
         return result;
     }
 }

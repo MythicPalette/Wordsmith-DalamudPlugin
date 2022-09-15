@@ -1,5 +1,4 @@
-﻿#if DEBUG
-
+﻿
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
@@ -96,4 +95,3 @@ internal sealed class DebugUI : Window
         ImGui.Spacing();
     }
 }
-#endif

@@ -1,12 +1,26 @@
-﻿global using System;
-global using System.IO;
-global using System.Linq;
-global using System.Text;
-global using System.Numerics;
-global using System.Collections.Generic;
-global using Dalamud.Logging;
-
-global using Wordsmith.Interfaces;
+﻿// Author: Lady Defile
+// Description: Wordsmith is a plugin for Dalamud; a plugin API for Final Fantasy XIV Online.
+//
+// A note to anyone looking to explore this code and/or my future self if I forget how all of
+// this code works.
+// Wordsmith.cs is the main interface and the entry point for Dalamud.
+// WordsmithUI.cs manages the creation, showing/hiding, and disposal of user windows.
+// Extensions.cs has several extension methods.
+// Global.cs has plugin-wide constants and global usings
+//
+// Files in the Helpers namespace are processing code removed from the file that uses them.
+// This was done to help cut down on file inflation and clearly separate functions from UI
+// where possible.
+//
+// Files in the Data namespace are data container classes/structs. The exception is Lang.cs
+//
+// Data/Lang.cs is the file that manages the loading, searching, comparing, and unloading of
+// Wordsmith's internal dictionary. This is necessary for the spell checking feature to work.
+//
+// While the code may appear complicated, I've done my best to simply and compartmentalize
+// anything that I can to keep things easy to pick up. It should not be too difficult for
+// others or my future self to (re)visit the code in these files and quickly rediscover
+// the functions of each file as well as the flow of the program.
 
 using Dalamud.Game.Command;
 using Dalamud.Data;
@@ -111,7 +125,7 @@ public sealed class Wordsmith : IDalamudPlugin
         if (int.TryParse(args.Trim(), out x))
             WordsmithUI.ShowScratchPad(x);
         else
-            WordsmithUI.ShowScratchPad(-1);
+            WordsmithUI.ShowScratchPad();
     }
     #endregion
 }

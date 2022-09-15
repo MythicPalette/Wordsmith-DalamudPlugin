@@ -939,6 +939,9 @@
           "System.Threading": "4.3.0",
           "System.Xml.ReaderWriter": "4.3.0"
         }
+      },
+      "imguiwrappedinput": {
+        "type": "Project"
       }
     }
   }

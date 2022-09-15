@@ -1,6 +1,15 @@
-﻿namespace Wordsmith;
+﻿global using System;
+global using System.IO;
+global using System.Linq;
+global using System.Text;
+global using System.Numerics;
+global using System.Collections.Generic;
+global using Dalamud.Logging;
 
-internal static class Constants
+global using Wordsmith.Interfaces;
+namespace Wordsmith;
+
+internal static class Global
 {
     #region Strings
     internal const string SPACED_WRAP_MARKER = "\r\r";

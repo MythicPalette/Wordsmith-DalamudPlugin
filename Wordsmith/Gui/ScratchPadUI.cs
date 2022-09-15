@@ -125,7 +125,7 @@ internal class ScratchPadUI : Window, IReflected
     /// <summary>
     /// Editor state is the functional state of the editor.
     /// </summary>
-    protected int _editorstate = Constants.EDITING_TEXT;
+    protected int _editorstate = Global.EDITING_TEXT;
     protected bool _textchanged = false;
     protected List<PadState> _text_history = new();
 
@@ -189,10 +189,11 @@ internal class ScratchPadUI : Window, IReflected
     }
 
     #region Constructors
+    internal static string CreateWindowName( int id ) => $"{Wordsmith.AppName} - Scratch Pad #{id}";
     /// <summary>
     /// Default constructor
     /// </summary>
-    public ScratchPadUI() : base($"{Wordsmith.AppName} - Scratch Pad #{_nextID}")
+    public ScratchPadUI() : base(CreateWindowName(_nextID))
     {
         this.ID = NextID;
         this.SizeConstraints = new()
@@ -219,10 +220,23 @@ internal class ScratchPadUI : Window, IReflected
     }
 
     /// <summary>
-    /// Initializes a new <see cref="ScratchPadUI"/> object with chat header as the given type.
+    /// Initializes a new <see cref="ScratchPadUI"/> object with a specific ID
     /// </summary>
     /// <param name="chatType"><see cref="int"/> chat type.</param>
-    public ScratchPadUI(int chatType) : this() => this._chatType = (ChatType)chatType;
+    public ScratchPadUI(int id ) : base( $"{Wordsmith.AppName} - Scratch Pad #{id}" )
+    {
+        this.ID = id;
+        this.SizeConstraints = new()
+        {
+            MinimumSize = ImGuiHelpers.ScaledVector2( 400, 300 ),
+            MaximumSize = ImGuiHelpers.ScaledVector2( 9999, 9999 )
+        };
+
+        this.Flags |= ImGuiWindowFlags.NoScrollbar;
+        this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
+        this.Flags |= ImGuiWindowFlags.MenuBar;
+        this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this.DoSpellCheck(); this._spellchecktimer.Enabled = false; };
+    }
     #endregion
     #region Overrides
     /// <summary>
@@ -237,7 +251,7 @@ internal class ScratchPadUI : Window, IReflected
 
             DrawMenu();
 
-            if ( this._editorstate == Constants.EDITING_TEXT )
+            if ( this._editorstate == Global.EDITING_TEXT )
             {
                 DrawAlerts();
                 DrawHeader();
@@ -278,7 +292,7 @@ internal class ScratchPadUI : Window, IReflected
                     ImGui.EndChild();
                 }
             }
-            else if ( this._editorstate == Constants.VIEWING_HISTORY )
+            else if ( this._editorstate == Global.VIEWING_HISTORY )
                 DrawHistory();
         }
         catch ( Exception e )
@@ -365,15 +379,15 @@ internal class ScratchPadUI : Window, IReflected
                 }
 
                 // View/Close history
-                if ( this._editorstate == Constants.EDITING_TEXT )
+                if ( this._editorstate == Global.EDITING_TEXT )
                 {
                     if ( ImGui.MenuItem( $"View History##ScratchPad{this.ID}MenuItem" ) )
-                        this._editorstate = Constants.VIEWING_HISTORY;
+                        this._editorstate = Global.VIEWING_HISTORY;
                 }
-                else if ( this._editorstate == Constants.VIEWING_HISTORY )
+                else if ( this._editorstate == Global.VIEWING_HISTORY )
                 {
                     if ( ImGui.MenuItem( $"Close History##ScratchPad{this.ID}MenuItem" ) )
-                        this._editorstate = Constants.EDITING_TEXT;
+                        this._editorstate = Global.EDITING_TEXT;
                 }
 
                 // End Text menu
@@ -392,10 +406,9 @@ internal class ScratchPadUI : Window, IReflected
             if (ImGui.MenuItem($"Help##ScratchPad{this.ID}HelpMenu"))
                 WordsmithUI.ShowScratchPadHelp();
 
-#if DEBUG
-            if ( ImGui.MenuItem( $"Debug UI##ScratchPad{ID}DebugMenu" ) )
-                WordsmithUI.ShowDebugUI();
-#endif
+            if ( Wordsmith.Configuration.EnableDebug )
+                if ( ImGui.MenuItem( $"Debug UI##ScratchPad{ID}DebugMenu" ) )
+                    WordsmithUI.ShowDebugUI();
 
             //end Menu Bar
             ImGui.EndMenuBar();
@@ -511,7 +524,7 @@ internal class ScratchPadUI : Window, IReflected
 
             // Display spelling error message
             if ((this._corrections?.Count ?? 0) > 0)
-                alerts.Add(new($"Found {this._corrections!.Count} spelling errors.", Constants.CORRECTIONS_FOUND));
+                alerts.Add(new($"Found {this._corrections!.Count} spelling errors.", Global.CORRECTIONS_FOUND));
 
             // If there are no alerts, return.
             if (alerts.Count == 0)
@@ -632,10 +645,9 @@ internal class ScratchPadUI : Window, IReflected
             else
                 ImGui.Text(text.Replace( "%", "%%"));
 
-#if DEBUG
-            if ( ImGui.IsItemHovered() )
-                ImGui.SetTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}" );
-#endif
+            if ( Wordsmith.Configuration.EnableDebug )
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}" );
         }
 
         // Draw OOC
@@ -970,7 +982,11 @@ internal class ScratchPadUI : Window, IReflected
             ImGui.BeginGroup();
 
             // Get the text chunks.
-            List<TextChunk> tlist = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(p.ChatType, p.TellTarget, p.CrossWorld, p.Linkshell), p.ScratchText, p.UseOOC);
+            List<TextChunk>? result =  Helpers.ChatHelper.FFXIVify(GetFullChatHeader(p.ChatType, p.TellTarget, p.CrossWorld, p.Linkshell), p.ScratchText, p.UseOOC);
+            if ( result == null )
+                return;
+
+            List<TextChunk> tlist = result;
 
             // Display the chunks.
             for ( int i = 0; i < tlist.Count; ++i )
@@ -1010,7 +1026,7 @@ internal class ScratchPadUI : Window, IReflected
                     this._scratch = selected.ScratchText;
 
                     // Exit history.
-                    this._editorstate = Constants.EDITING_TEXT;
+                    this._editorstate = Global.EDITING_TEXT;
 
                     // Save the pre-change pad state.
                     AppendHistory( snapshot );
@@ -1027,22 +1043,25 @@ internal class ScratchPadUI : Window, IReflected
                     PadState selected = this._text_history[this._selected_history];
 
                     // Get each chunk
-                    List<TextChunk> chunks = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(selected.ChatType, selected.TellTarget, selected.CrossWorld, selected.Linkshell), selected.ScratchText, selected.UseOOC);
+                    List<TextChunk>? results = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(selected.ChatType, selected.TellTarget, selected.CrossWorld, selected.Linkshell), selected.ScratchText, selected.UseOOC);
+                    if ( results != null )
+                    {
+                        List<TextChunk> chunks = results;
 
-                    // Get the text from every chunk.
-                    List<string> text = new();
-                    foreach ( TextChunk t in chunks )
-                        text.Add( t.CompleteText );
+                        // Get the text from every chunk.
+                        List<string> text = new();
+                        foreach ( TextChunk t in chunks )
+                            text.Add( t.CompleteText );
 
-                    // Set the clipboard text.
-                    ImGui.SetClipboardText( string.Join( '\n', text.ToArray() ) );
+                        // Set the clipboard text.
+                        ImGui.SetClipboardText( string.Join( '\n', text.ToArray() ) );
 
-                    // Notify the user that the text was copied.
-                    Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+                        // Notify the user that the text was copied.
+                        Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
 
-                    // Unselect the history time.
-                    this._selected_history = -1;
-
+                        // Unselect the history time.
+                        this._selected_history = -1;
+                    }
                     // Close the popup
                     ImGui.CloseCurrentPopup();
                 }
@@ -1243,9 +1262,7 @@ internal class ScratchPadUI : Window, IReflected
     {
         try
         {
-#if DEBUG
-            PluginLog.LogDebug( "Running spell check." );
-#endif
+            PluginLog.LogVerbose( "Running spell check." );
 
             // If there are any outstanding tokens, cancel them.
             _cancellationTokenSource?.Cancel();
@@ -1258,7 +1275,7 @@ internal class ScratchPadUI : Window, IReflected
                 return;
 
             // Notify the user that spelling is being checked.
-            _notices.Add( (Constants.SPELL_CHECK_NOTICE, Constants.CHECKING_SPELLING) );
+            _notices.Add( (Global.SPELL_CHECK_NOTICE, Global.CHECKING_SPELLING) );
 
             // Create a new token source.
             this._cancellationTokenSource = new();
@@ -1289,20 +1306,18 @@ internal class ScratchPadUI : Window, IReflected
             if ( token.IsCancellationRequested )
                 return;
             // Clear any old corrections to prevent them from stacking.
-            Word[] results = Helpers.SpellChecker.CheckString( this._scratch, token );
+            Word[]? results = Helpers.SpellChecker.CheckString( this._scratch, token );
+            if ( results == null )
+                return;
 
-#if DEBUG
-            PluginLog.LogDebug( $"Found {results.Length} errors." );
-#endif
+            PluginLog.LogVerbose( $"Found {results.Length} errors." );
 
-
-            this._notices.RemoveAll( x => x.Item2 == Constants.CHECKING_SPELLING );
+            this._notices.RemoveAll( x => x.Item2 == Global.CHECKING_SPELLING );
 
             if ( token.IsCancellationRequested )
             {
-#if DEBUG
-                PluginLog.LogDebug( "Cancelling spell check." );
-#endif
+                if ( Wordsmith.Configuration.EnableDebug )
+                    PluginLog.LogDebug( "Cancelling spell check." );
                 return;
             }
             this._corrections = new();
@@ -1356,11 +1371,6 @@ internal class ScratchPadUI : Window, IReflected
                     foreach ( Word w in this._corrections )
                         w.Offset( this._replaceText.Length - word.WordLength );
                 }
-
-#if DEBUG
-                if ( this._replaceText == "CRASHTEST" )
-                    WordsmithUI.ShowErrorWindow( this.Dump(), $"ScratchPad{this.ID}CrashTestErrorWindow" );
-#endif
 
                 // Clear out replacement text.
                 this._replaceText = "";
@@ -1455,9 +1465,7 @@ internal class ScratchPadUI : Window, IReflected
                     while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
                     {
                         data->CursorPos++;
-#if DEBUG
-                        PluginLog.LogDebug( $"Moved cursor to the right." );
-#endif
+                        PluginLog.LogVerbose( $"Moved cursor to the right." );
                     }
                 }
                 if ( data->CursorPos > 0 )
@@ -1465,9 +1473,7 @@ internal class ScratchPadUI : Window, IReflected
                     while ( data->CursorPos > 0 && data->Buf[data->CursorPos - 1] == '\r' )
                     {
                         data->CursorPos--;
-#if DEBUG
-                        PluginLog.LogDebug( "Moved cursor to the left." );
-#endif
+                        PluginLog.LogVerbose( "Moved cursor to the left." );
                     }
                 }
             }
@@ -1525,6 +1531,10 @@ internal class ScratchPadUI : Window, IReflected
             // at which point the buffer will be cleared and BufTextLen will be set to 0, preventing any
             // memory damage or crashes.
             string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen) : "";
+
+            // There is no need to operate on an empty string.
+            if ( txt.Length == 0 )
+                return 0;
 
             int pos = data->CursorPos;
 
@@ -1598,9 +1608,7 @@ internal class ScratchPadUI : Window, IReflected
                 if ( !headerData.Valid )
                     return text;
 
-#if DEBUG
-                PluginLog.LogDebug( $"txt :: {text} | head :: {headerData.ChatType}" );
-#endif
+                PluginLog.LogVerbose( $"txt :: {text} | head :: {headerData.ChatType}" );
 
                 //If a chat header was found
                 if ( headerData.ChatType != ChatType.None && cursorPos >= headerData.Length )
@@ -1651,25 +1659,25 @@ internal class ScratchPadUI : Window, IReflected
 
             // Replace all wrap markers with spaces and adjust cursor offset. Do this before
             // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
-            while ( text.Contains( Constants.SPACED_WRAP_MARKER + '\n' ) )
+            while ( text.Contains( Global.SPACED_WRAP_MARKER + '\n' ) )
             {
-                int idx = text.IndexOf(Constants.SPACED_WRAP_MARKER + '\n');
-                text = text[0..idx] + " " + text[(idx + (Constants.SPACED_WRAP_MARKER + '\n').Length)..^0];
+                int idx = text.IndexOf(Global.SPACED_WRAP_MARKER + '\n');
+                text = text[0..idx] + " " + text[(idx + (Global.SPACED_WRAP_MARKER + '\n').Length)..^0];
 
                 // We adjust the cursor position by one less than the wrap marker
                 // length to account for the space that replaces it.
                 if ( cursorPos > idx )
-                    cursorPos -= Constants.SPACED_WRAP_MARKER.Length;
+                    cursorPos -= Global.SPACED_WRAP_MARKER.Length;
 
             }
 
-            while ( text.Contains( Constants.NOSPACE_WRAP_MARKER + '\n' ) )
+            while ( text.Contains( Global.NOSPACE_WRAP_MARKER + '\n' ) )
             {
-                int idx = text.IndexOf(Constants.NOSPACE_WRAP_MARKER + '\n');
-                text = text[0..idx] + text[(idx + (Constants.NOSPACE_WRAP_MARKER + '\n').Length)..^0];
+                int idx = text.IndexOf(Global.NOSPACE_WRAP_MARKER + '\n');
+                text = text[0..idx] + text[(idx + (Global.NOSPACE_WRAP_MARKER + '\n').Length)..^0];
 
                 if ( cursorPos > idx )
-                    cursorPos -= (Constants.NOSPACE_WRAP_MARKER + '\n').Length;
+                    cursorPos -= (Global.NOSPACE_WRAP_MARKER + '\n').Length;
             }
 
             // Replace double spaces if configured to do so.
@@ -1698,25 +1706,25 @@ internal class ScratchPadUI : Window, IReflected
                     if ( lastSpace > offset )
                     {
                         sb.Remove( lastSpace, 1 );
-                        sb.Insert( lastSpace, Constants.SPACED_WRAP_MARKER + '\n' );
-                        offset = lastSpace + Constants.SPACED_WRAP_MARKER.Length;
-                        i += Constants.SPACED_WRAP_MARKER.Length;
+                        sb.Insert( lastSpace, Global.SPACED_WRAP_MARKER + '\n' );
+                        offset = lastSpace + Global.SPACED_WRAP_MARKER.Length;
+                        i += Global.SPACED_WRAP_MARKER.Length;
 
                         // Adjust cursor position for the marker but not
                         // the new line as the new line is replacing the space.
                         if ( lastSpace < cursorPos )
-                            cursorPos += Constants.SPACED_WRAP_MARKER.Length;
+                            cursorPos += Global.SPACED_WRAP_MARKER.Length;
                     }
                     else
                     {
-                        sb.Insert( i, Constants.NOSPACE_WRAP_MARKER + '\n' );
-                        offset = i + Constants.NOSPACE_WRAP_MARKER.Length;
-                        i += Constants.NOSPACE_WRAP_MARKER.Length;
+                        sb.Insert( i, Global.NOSPACE_WRAP_MARKER + '\n' );
+                        offset = i + Global.NOSPACE_WRAP_MARKER.Length;
+                        i += Global.NOSPACE_WRAP_MARKER.Length;
 
                         // Adjust cursor position for the marker and the
                         // new line since both are inserted.
-                        if ( cursorPos > i - Constants.NOSPACE_WRAP_MARKER.Length )
-                            cursorPos += Constants.NOSPACE_WRAP_MARKER.Length + 1;
+                        if ( cursorPos > i - Global.NOSPACE_WRAP_MARKER.Length )
+                            cursorPos += Global.NOSPACE_WRAP_MARKER.Length + 1;
                     }
                     text = sb.ToString();
                 }
@@ -1771,21 +1779,5 @@ internal class ScratchPadUI : Window, IReflected
             };
             WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
         }
-    }
-    internal Dictionary<string, object> Dump()
-    {
-        // Get the list of results
-        IReadOnlyList<(int Type, string Name, string Value) > data = this.GetProperties();
-
-        Dictionary<string, object> result = new Dictionary<string, object>();
-        // Get Properties
-        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
-            result[Name] = Value;
-
-        // Get Fields
-        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
-            result[Name] = Value;
-
-        return result;
     }
 }

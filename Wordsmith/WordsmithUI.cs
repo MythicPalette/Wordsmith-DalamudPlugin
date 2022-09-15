@@ -1,24 +1,50 @@
-﻿using System.Collections.Generic;
-using Dalamud.Interface;
+﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Gui;
-//using XivCommon.Functions;
 using static Wordsmith.Gui.MessageBox;
 
 namespace Wordsmith;
 
-
 internal static class WordsmithUI
 {
-    internal static IReadOnlyList<Window> Windows => WindowSystem.Windows;
-    internal static WindowSystem WindowSystem { get; private set; } = new("Wordsmith");
+    internal static IReadOnlyList<Window> Windows => _windowSystem.Windows;
+    private static WindowSystem _windowSystem = new("Wordsmith");
 
-    internal static void ShowThesaurus() => Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
-    internal static void ShowScratchPad(int id) => Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
-    internal static void ShowScratchPad( string tellTarget ) => Show<ScratchPadUI>( new ScratchPadUI( tellTarget ) );
-    internal static void ShowScratchPadHelp() => Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
-    internal static void ShowSettings() => Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
+    /// <summary>
+    /// Shows and/or creates ThesaurusUI.
+    /// </summary>
+    internal static void ShowThesaurus() { if ( !ShowWindow( typeof(ThesaurusUI) ) ) AddWindow( new ThesaurusUI() { IsOpen = true } ); }//Show<ThesaurusUI>($"{Wordsmith.AppName} - Thesaurus");
+
+    /// <summary>
+    /// Shows a new ScratchPad.
+    /// </summary>
+    internal static void ShowScratchPad() => AddWindow( new ScratchPadUI() { IsOpen = true } );
+
+    /// <summary>
+    /// Shows a ScratchPad by ID or creates a new one.
+    /// </summary>
+    /// <param name="id">The id of the pad to be shown.</param>
+    internal static void ShowScratchPad( int id ) { if ( !ShowWindow( ScratchPadUI.CreateWindowName(id) ) ) ShowScratchPad(); }//Show<ScratchPadUI>($"{Wordsmith.AppName} - Scratch Pad #{id}");
+
+    ///// <summary>
+    ///// Creates a ScratchPad with a tell target.
+    ///// Note: This method is currently inoperable as context
+    ///// menues are no longer supported in Dalamud. When they
+    ///// are able to be utilized again this will be updated.
+    ///// </summary>
+    ///// <param name="tellTarget"></param>
+    //internal static void ShowScratchPad( string tellTarget ) => AddWindow( new ScratchPadUI( tellTarget ) { IsOpen = true } ); //Show<ScratchPadUI>( new ScratchPadUI( tellTarget ) );
+
+    /// <summary>
+    /// Creates or shows the ScratchPadHelpUI help <see cref="Window"/>
+    /// </summary>
+    internal static void ShowScratchPadHelp() { if ( !ShowWindow( typeof( ScratchPadHelpUI ) ) ) AddWindow( new ScratchPadHelpUI() { IsOpen = true } ); }//Show<ScratchPadHelpUI>($"{Wordsmith.AppName} - Scratch Pad Help");
+    
+    /// <summary>
+    /// Creates or shows the SettingsUI <see cref="Window"/>
+    /// </summary>
+    internal static void ShowSettings() { if ( !ShowWindow( typeof( SettingsUI ) ) ) AddWindow( new SettingsUI() { IsOpen = true } ); }//Show<SettingsUI>($"{Wordsmith.AppName} - Settings");
 
     #region Alerts and Messages
     internal static void ShowMessageBox(
@@ -28,7 +54,7 @@ internal static class WordsmithUI
         Vector2? size = null,
         ImGuiWindowFlags flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse,
         ButtonStyle buttonStyle = ButtonStyle.OkCancel
-        ) => WordsmithUI.AddWindow( new MessageBox(title, message, callback, size, flags, buttonStyle) );
+        ) => AddWindow( new MessageBox(title, message, callback, size, flags, buttonStyle) );
 
     internal static void ShowRestoreSettings() => WordsmithUI.AddWindow( new MessageBox(
         $"{Wordsmith.AppName} - Restore Default Settings",
@@ -39,82 +65,30 @@ internal static class WordsmithUI
                 Wordsmith.Configuration.ResetToDefault();
         },
         ImGuiHelpers.ScaledVector2( 300, 180 ),
-        buttonStyle: MessageBox.ButtonStyle.OkCancel
+        buttonStyle: ButtonStyle.OkCancel
         ) );
-    internal static void ShowResetDictionary() => WordsmithUI.AddWindow( new MessageBox( 
+    internal static void ShowResetDictionary() => AddWindow( new MessageBox( 
         $"{Wordsmith.AppName} - Reset Dictionary",
         "This will delete all entries that you added to the dictionary.This cannot be undone. Proceed?",
         (mb) => {
-            if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+            if ( (mb.Result & DialogResult.Ok) == DialogResult.Ok )
             {
                 Wordsmith.Configuration.CustomDictionaryEntries = new();
                 Wordsmith.Configuration.Save();
             }
         },
         ImGuiHelpers.ScaledVector2( 300, 160 ),
-        buttonStyle: MessageBox.ButtonStyle.OkCancel
+        buttonStyle: ButtonStyle.OkCancel
         ) );
     #endregion
 
-    internal static void ShowErrorWindow( Dictionary<string, object> d, string name ) => WindowSystem.AddWindow( new ErrorWindow( d ) { IsOpen = true } );
+    internal static void ShowErrorWindow( Dictionary<string, object> d, string name ) => AddWindow( new ErrorWindow( d ) { IsOpen = true } );
+    internal static void ShowDebugUI() { if ( Wordsmith.Configuration.EnableDebug ) AddWindow( new DebugUI() { IsOpen = true } ); } //Show<DebugUI>( $"{Wordsmith.AppName} - Debug" ); }
 
     // Window queue system.
     private static bool _window_lock = false;
     private static List<Window> _removal_queue = new();
     private static List<Window> _add_queue = new();
-
-#if DEBUG
-    internal static void ShowDebugUI() => Show<DebugUI>( $"{Wordsmith.AppName} - Debug" );
-#endif
-
-    /// <summary>
-    /// Shows the window with the specified name or creates a new one.
-    /// </summary>
-    /// <typeparam name="T"><see cref="Window"/> child class to show.</typeparam>
-    /// <param name="name"><see cref="string"/> name of the <see cref="Window"/></param>
-    private static void Show<T>(object obj)
-    {
-        // If the given type is not a subclass of Window leave the method
-        if (!typeof(T).IsSubclassOf(typeof(Window)))
-            return;
-
-        Window? w = null;
-        if ( obj is string name )
-        {
-            // Attempt to get the window by name.
-            w = WindowSystem.GetWindow( name );
-        }
-        else if ( obj is Window )
-            w = obj as Window;
-
-        // If the result is null, create a new window
-        if ( w is null )
-        {
-            // Create the Window object
-            w = (Activator.CreateInstance( typeof( T ) ) as Window)!;
-
-            // If the object was successfully created
-            if ( w != null )
-            {
-                // Open it
-                w.IsOpen = true;
-
-                // Add it to the WindowSystem.
-                WordsmithUI.AddWindow( w );
-                return;
-            }
-        }
-
-        // If the result wasn't null, open the window
-        else
-        {
-            if (!WindowSystem.Windows.Contains(w))
-                WordsmithUI.AddWindow( w );
-
-            w.IsOpen = true;
-            return;
-        }
-    }
 
     /// <summary>
     /// Removes the window from the <see cref="WindowSystem"/> and <see cref="List{T}"/>.
@@ -127,36 +101,50 @@ internal static class WordsmithUI
         {
             try
             {
-                // If the Window can be disposed do it.
-                if ( w is IDisposable disposable )
-                    disposable.Dispose();
+                try
+                {
+                    // If the Window can be disposed do it.
+                    if ( w is IDisposable disposable )
+                        disposable.Dispose();
+                }
+                // If the object is already disposed silently
+                // drop the exception
+                catch ( ObjectDisposedException ) { }
+
 
                 // Remove from the WindowSystem
-                WindowSystem.RemoveWindow( w );
+                _windowSystem.RemoveWindow( w );
             }
-            catch (Exception e)
-            {
-                PluginLog.LogFatal( $"FATAL ERROR: {e.Message}\n{e}" );
-            }
+            catch ( Exception e ) { PluginLog.LogFatal( $"FATAL ERROR: {e.Message}\n{e}" ); }
         }
         // If the windows are locked queue deletion for next cycle
         else
             _removal_queue.Add( w );
     }
 
-    internal static void AddWindow(Window w)
+    internal static void AddWindow(Window? w)
     {
+        if ( w is null )
+            return;
+
         if ( !_window_lock )
         {
             try
             {
-                if ( WindowSystem.GetWindow(w.WindowName) != null )
+                // Check if the Window already exists.
+                Window? w_test = _windowSystem.GetWindow(w.WindowName);
+
+                // If it exists, show the existing window and dispose
+                // of the passed in window.
+                if ( w_test != null )
                 {
-                    PluginLog.LogError( $"Unable to add window {w.WindowName}. Window already Exists." );
+                    w_test.IsOpen = true;
+                    if ( w is IDisposable idisp )
+                        idisp.Dispose();
                 }
                 else
                 {
-                    WindowSystem.AddWindow( w );
+                    _windowSystem.AddWindow( w );
                 }
             }
             catch ( Exception e )
@@ -168,6 +156,50 @@ internal static class WordsmithUI
             _add_queue.Add( w );
     }
 
+    /// <summary>
+    /// Shows a <see cref="Window"/> if it exists.
+    /// </summary>
+    /// <param name="str">The name of the <see cref="Window"/> to show.</param>
+    /// <returns><see langword="true"/> if a window was shown.</returns>
+    internal static bool ShowWindow(string str)
+    {
+        try
+        {
+            Window? w = Windows.FirstOrDefault(x => x.WindowName == str);
+            if ( w == null )
+                return false;
+
+            w.IsOpen = true;
+            return true;
+        }
+        catch (Exception e)
+        {
+            PluginLog.LogError(e.ToString() );
+        }
+        return false;
+    }
+    /// <summary>
+    /// Shows a <see cref="Window"/> if it exists
+    /// </summary>
+    /// <param name="t">The <see cref="Type"/> of the <see cref="Window"/> to show.</param>
+    /// <returns></returns>
+    internal static bool ShowWindow(Type t)
+    {
+        try
+        {
+            Window? w = Windows.FirstOrDefault(x => x.GetType() == t);
+            if ( w == null )
+                return false;
+
+            w.IsOpen = true;
+            return true;
+        }
+        catch (Exception e)
+        {
+            PluginLog.LogError( e.ToString() );
+        }
+        return false;
+    }
     /// <summary>
     /// Draw handler for interface call.
     /// </summary>
@@ -184,7 +216,7 @@ internal static class WordsmithUI
             bool resetConfigSaved = Wordsmith.Configuration.RecentlySaved;
 
             // Draw all windows.
-            WindowSystem.Draw();            
+            _windowSystem.Draw();
 
             // Set RecentlySaved to false if it has already had a full cycle.
             if (resetConfigSaved)
@@ -231,7 +263,7 @@ internal static class WordsmithUI
     /// </summary>
     internal static void Update()
     {
-        foreach ( Window w in WindowSystem.Windows )
+        foreach ( Window w in _windowSystem.Windows )
             w.Update();
     }
 
@@ -240,7 +272,7 @@ internal static class WordsmithUI
     /// </summary>
     internal static void Dispose()
     {
-        while ( WindowSystem.Windows.Count > 0 )
-            RemoveWindow( WindowSystem.Windows[0] );
+        while ( _windowSystem.Windows.Count > 0 )
+            RemoveWindow( _windowSystem.Windows[0] );
     }
 }

@@ -13,6 +13,7 @@ public class Configuration : IPluginConfiguration, IReflected
     public float JpFontSize { get; set; } = 17f;
     public float SymbolFontSize { get; set; } = 17f;
 
+    public bool EnableDebug { get; set; } = false;
     #region Thesaurus Settings
     //
     // Thesaurus Settings
