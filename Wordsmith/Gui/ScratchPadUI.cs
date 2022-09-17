@@ -515,19 +515,19 @@ internal class ScratchPadUI : Window, IReflected
             List<(string Message, int Level)> alerts = new();
 
             // Display errors
-            if ( this._errors.Count > 0)
+            if ( this._errors.Count > 0 )
                 alerts.AddRange( this._errors );
 
             // Display notices.
-            if (_notices.Count > 0)
+            if ( _notices.Count > 0 )
                 alerts.AddRange( this._notices );
 
             // Display spelling error message
-            if ((this._corrections?.Count ?? 0) > 0)
-                alerts.Add(new($"Found {this._corrections!.Count} spelling errors.", Global.CORRECTIONS_FOUND));
+            if ( (this._corrections?.Count ?? 0) > 0 )
+                alerts.Add( new( $"Found {this._corrections!.Count} spelling errors.", Global.CORRECTIONS_FOUND ) );
 
             // If there are no alerts, return.
-            if (alerts.Count == 0)
+            if ( alerts.Count == 0 )
                 return;
 
             // Draw the alerts.
@@ -540,10 +540,7 @@ internal class ScratchPadUI : Window, IReflected
             }
         }
 
-        catch (InvalidOperationException e)
-        {
-            PluginLog.LogDebug( $"InvalidOperationException in DrawAlerts(). This can be ignored." );
-        }
+        catch ( InvalidOperationException ) { }
     }
     #endregion
     #region Body
@@ -1129,7 +1126,8 @@ internal class ScratchPadUI : Window, IReflected
             }
 
             // If there are too many history states, remove the extra(s).
-            if ( this._text_history.Count > Wordsmith.Configuration.ScratchPadHistoryLimit )
+            int count = this._text_history.Count - Wordsmith.Configuration.ScratchPadHistoryLimit;
+            for ( int i = 0; i < count; i++ )
                 this._text_history.RemoveAt( 0 );
         }
         catch ( Exception e )

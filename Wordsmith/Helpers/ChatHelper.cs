@@ -5,6 +5,7 @@ namespace Wordsmith.Helpers;
 
 internal class ChatHelper: IReflected
 {
+    private const int _safety = 10;
     /// <summary>
     /// Takes inputs and returns it as a collection of strings that are ready to be sent, all under 500 bytes.
     /// </summary>
@@ -18,17 +19,23 @@ internal class ChatHelper: IReflected
             UTF8Encoding encoder = new();
 
             // Get the number of bytes taken by the header.
-            // Note that we remove 10 bytes right off of the top as a safety zone.
-            // We then cut the bytes out required for the header, continuation marker, and OOC tags.
-            int availableBytes = 490 - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
+            // We then cut the bytes out required for the safety zone, header, continuation marker, and OOC tags.
+            int availableBytes = 480 - _safety - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
 
-            // Cut the length of the OOC from the available bytes if OOC is on.
-            availableBytes -= (OOC ? encoder.GetByteCount( Wordsmith.Configuration.OocOpeningTag + Wordsmith.Configuration.OocClosingTag ) : 0);
+            // If the user has enabled OOC then subtract the byte length of the opening and closing tags
+            // from the available byte length.
+            if ( OOC )
+            {
+                int oLen = encoder.GetByteCount( Wordsmith.Configuration.OocOpeningTag );
+                int cLen = encoder.GetByteCount( Wordsmith.Configuration.OocClosingTag );
+                availableBytes -= oLen + cLen;
+            }
 
             // Create a list to hold all of our strings.
             List<TextChunk> results = new();
 
             // Break the string into smaller sizes.
+            // offset will be adjusted to the end of the previous string with each iteration.
             int offset = 0;
             while ( offset < text.Length )
             {
@@ -44,9 +51,11 @@ internal class ChatHelper: IReflected
                 // Add the string to the list with the header and, if offset is not at
                 // the end of the string yet, add the continuation marker for the player.
                 if ( str.Trim().Length > 0 )
-                    results.Add( new(
-                            str.Trim() )
+                    results.Add( new( str.Trim() )
                     {
+                        // The StartIndex is adjusted here because if there was white space
+                        // trimmed from the string, we want to eliminate it from the chunk
+                        // text.
                         StartIndex = offset + (str.Length - str.TrimStart().Length),
                         Header = header,
                         OutOfCharacterStartTag = OOC ? Wordsmith.Configuration.OocOpeningTag : "",
@@ -89,7 +98,7 @@ internal class ChatHelper: IReflected
     /// Gets a substring based on maximum number of bytes allowed.
     /// </summary>
     /// <param name="text">Text to get the substring from</param>
-    /// <param name="offset">The starting index of the substring.</param>
+    /// <param name="startIndex">The starting index of the substring.</param>
     /// <param name="byteLimit">The maximum byte length of the return.</param>
     /// <exception cref="IndexOutOfRangeException">Offset is out of range of text.</exception>
     /// <returns>A string that is under the byte limit.</returns>
