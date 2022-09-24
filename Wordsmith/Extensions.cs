@@ -147,7 +147,7 @@ internal static class Extensions
             while ( start < s.Length && " \r\n".Contains( s[start] ) )
                 ++start;
 
-            // If the start has gone all the way to tend, leave the loop.
+            // If the start has gone all the way to the end, leave the loop.
             if ( start == s.Length )
                 break;
 
@@ -162,9 +162,10 @@ internal static class Extensions
 
                 // Default to false hyphen termination.
                 bool hyphen = false;
+
                 // If the word ends with a punctuation character then we scoot the word offset left up to the point that
                 // the offset puts us at -1 word length. This will happen when the word has no letters.
-                while ( start + len - wordlenoffset - 1 > -1 && Wordsmith.Configuration.PunctuationCleaningList.Contains( s[start + len - wordlenoffset - 1] ) && wordoffset <= len )
+                while ( start + len - wordlenoffset - 1 > -1 && $"-{Wordsmith.Configuration.PunctuationCleaningList}".Contains( s[start + len - wordlenoffset - 1] ) && wordoffset <= len )
                 {
                     // If the character is a hyphen, flag it as true.
                     if ( s[start + len - wordlenoffset - 1] == '-' )
@@ -201,7 +202,6 @@ internal static class Extensions
         }
         return words.ToArray();
     }
-
 
     internal static string? GetTarget( this string s )
     {

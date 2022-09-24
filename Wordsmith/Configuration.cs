@@ -1,4 +1,5 @@
 ﻿using Dalamud.Configuration;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace Wordsmith;
 
@@ -9,10 +10,10 @@ public class Configuration : IPluginConfiguration, IReflected
     internal bool RecentlySaved = false;
 
     public int Version { get; set; } = 0;
-    public float FontSize { get; set; } = 17f;
-    public float JpFontSize { get; set; } = 17f;
-    public float SymbolFontSize { get; set; } = 17f;
 
+    /// <summary>
+    /// A setting that enables the hidden debug UI.
+    /// </summary>
     public bool EnableDebug { get; set; } = false;
     #region Thesaurus Settings
     //
@@ -50,10 +51,13 @@ public class Configuration : IPluginConfiguration, IReflected
     /// </summary>
     public bool EnableTextHighlighting { get; set; } = true;
 
+    private const string PUNCTUATION_CLEAN_LIST_DEFAULT = @",.:;'*""(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
+
     /// <summary>
     /// The spell checker will attempt to delete these punctuation marks from the beginning and end of every word
     /// </summary>
-    internal string PunctuationCleaningList { get; set; } = ",.'*\"-(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
+    public string PunctuationCleaningList { get; set; } = PUNCTUATION_CLEAN_LIST_DEFAULT;
+    internal char[] PuncCleanArray => PunctuationCleaningList.ToCharArray();
 
     /// <summary>
     /// Toggles displaying text in copy chunks.
@@ -164,6 +168,21 @@ public class Configuration : IPluginConfiguration, IReflected
     public float AutoSpellCheckDelay { get; set; } = 1f;
     #endregion
 
+    #region Advanced User Settings
+    // For spell checking
+    private const string NUMERIC_QUERY_DEFAULT = @"^[0-9\-\.\,]+(?:st|nd|rd|th)?$";
+    public string NumericQuery { get; set; } = NUMERIC_QUERY_DEFAULT;
+
+
+    private const string DATE_QUERY_DEFAULT = @"^\d{0,4}[\\\/\-\.]\d{0,4}[\\\/\-\.]\d{0,4}$";
+    public string DateQuery { get; set; } = DATE_QUERY_DEFAULT;
+
+
+    private const string WORD_QUERY_DEFAULT = @"\S*(?='(?:ll|m|em|d))|\S+";
+    public string WordQuery { get; set; } = WORD_QUERY_DEFAULT;
+
+    #endregion
+
     #region Linkshell Settings
     /// <summary>
     /// Contains the nicknames of all Cross-World Linkshells
@@ -227,6 +246,11 @@ public class Configuration : IPluginConfiguration, IReflected
             { (int)Enums.ChatType.Echo, new( 0.75f, 0.75f, 0.75f, 1f ) },
             { (int)Enums.ChatType.Linkshell, new( 0.8f, 1f, 0.6f, 1f ) }
         };
+
+        // Advanced settings
+        NumericQuery = NUMERIC_QUERY_DEFAULT;
+        DateQuery = DATE_QUERY_DEFAULT;
+        WordQuery = WORD_QUERY_DEFAULT;
 
         Save();
     }

@@ -3,10 +3,9 @@ using System.Threading.Tasks;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using Wordsmith.Data;
 using Wordsmith.Enums;
-using Wordsmith.Interfaces;
+using Wordsmith.Helpers;
 
 namespace Wordsmith.Gui;
 
@@ -132,6 +131,8 @@ internal class ScratchPadUI : Window, IReflected
     protected float _lastWidth = 0;
     protected bool _ignoreTextEdit = false;
 
+    protected Task<SpellCheckResult>? _spellCheckTask = null;
+
     /// <summary>
     /// The text used by the replacement inputtext.
     /// </summary>
@@ -205,7 +206,7 @@ internal class ScratchPadUI : Window, IReflected
         this.Flags |= ImGuiWindowFlags.NoScrollbar;
         this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
         this.Flags |= ImGuiWindowFlags.MenuBar;
-        this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this.DoSpellCheck(); this._spellchecktimer.Enabled = false; };
+        this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this._spellchecktimer.Stop(); this.DoSpellCheck(true); };
     }
     
     /// <summary>
@@ -235,7 +236,7 @@ internal class ScratchPadUI : Window, IReflected
         this.Flags |= ImGuiWindowFlags.NoScrollbar;
         this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
         this.Flags |= ImGuiWindowFlags.MenuBar;
-        this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this.DoSpellCheck(); this._spellchecktimer.Enabled = false; };
+        this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this._spellchecktimer.Stop(); this.DoSpellCheck(true); };
     }
     #endregion
     #region Overrides
@@ -317,6 +318,20 @@ internal class ScratchPadUI : Window, IReflected
         if ( Wordsmith.Configuration.ReplaceDoubleSpaces )
             _scratch = _scratch.FixSpacing();
 
+        // If the spellcheck task is completed
+        if ( _spellCheckTask?.IsCompleted ?? false )
+        {
+            // Clear the corrections
+            this._corrections.Clear();
+
+            // Set the new corrections
+            if ( this._spellCheckTask.Result.State == SpellCheckResultState.Success )
+                this._corrections.AddRange( _spellCheckTask.Result.Words );
+
+            // nullify the spell check task.
+            _spellCheckTask = null;
+        }    
+
         Refresh();
     }
     #endregion
@@ -360,7 +375,7 @@ internal class ScratchPadUI : Window, IReflected
 
                 // Spell Check
                 if (ImGui.MenuItem($"Spell Check##ScratchPad{this.ID}SpellCheckMenuItem", this._scratch.Length > 0))
-                    DoSpellCheck();
+                    DoSpellCheck(false);
 
                 // If there are chunks
                 if ( this._chunks.Count > 0)
@@ -644,7 +659,7 @@ internal class ScratchPadUI : Window, IReflected
 
             if ( Wordsmith.Configuration.EnableDebug )
                 if ( ImGui.IsItemHovered() )
-                    ImGui.SetTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}" );
+                    ImGui.SetTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}, HyphenTerminated: {word.HyphenTerminated}" );
         }
 
         // Draw OOC
@@ -712,7 +727,7 @@ internal class ScratchPadUI : Window, IReflected
         {
             // If the user hits enter, run the user-defined action.
             if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == EnterKeyAction.SpellCheck)
-                DoSpellCheck();
+                DoSpellCheck(false);
 
             else if (Wordsmith.Configuration.ScratchPadTextEnterBehavior == EnterKeyAction.CopyNextChunk)
                 DoCopyToClipboard();
@@ -837,7 +852,7 @@ internal class ScratchPadUI : Window, IReflected
 
                 if ( ImGui.Button( $"Spell Check##Scratch{this.ID}", ImGuiHelpers.ScaledVector2( -1, 25 ) ) )
                     if ( Lang.Enabled ) // If the dictionary is functional then do the spell check.
-                        DoSpellCheck();
+                        DoSpellCheck(false);
 
                 if ( this._scratch.Length == 0 )
                     ImGui.EndDisabled();
@@ -979,7 +994,7 @@ internal class ScratchPadUI : Window, IReflected
             ImGui.BeginGroup();
 
             // Get the text chunks.
-            List<TextChunk>? result =  Helpers.ChatHelper.FFXIVify(GetFullChatHeader(p.ChatType, p.TellTarget, p.CrossWorld, p.Linkshell), p.ScratchText, p.UseOOC);
+            List<TextChunk>? result = ChatHelper.FFXIVify(GetFullChatHeader(p.ChatType, p.TellTarget, p.CrossWorld, p.Linkshell), p.ScratchText, p.UseOOC);
             if ( result == null )
                 return;
 
@@ -1040,7 +1055,7 @@ internal class ScratchPadUI : Window, IReflected
                     PadState selected = this._text_history[this._selected_history];
 
                     // Get each chunk
-                    List<TextChunk>? results = Helpers.ChatHelper.FFXIVify(GetFullChatHeader(selected.ChatType, selected.TellTarget, selected.CrossWorld, selected.Linkshell), selected.ScratchText, selected.UseOOC);
+                    List<TextChunk>? results = ChatHelper.FFXIVify(GetFullChatHeader(selected.ChatType, selected.TellTarget, selected.CrossWorld, selected.Linkshell), selected.ScratchText, selected.UseOOC);
                     if ( results != null )
                     {
                         List<TextChunk> chunks = results;
@@ -1256,70 +1271,49 @@ internal class ScratchPadUI : Window, IReflected
     /// <summary>
     /// Clears out any error messages or notices and runs the spell checker.
     /// </summary>
-    protected void DoSpellCheck()
+    protected void DoSpellCheck(bool async)
     {
         try
         {
-            PluginLog.LogVerbose( "Running spell check." );
-
             // If there are any outstanding tokens, cancel them.
             _cancellationTokenSource?.Cancel();
 
-            // Clear any errors and notifications.
-            _notices.Clear();
+            // If there is a pending spell check, wait for the cancel to take effect.
+            _spellCheckTask?.Wait();
 
-            // Don't spell check an empty input.
-            if ( _scratch.Length == 0 )
-                return;
+            // Nullify the spell check task just in case.
+            _spellCheckTask = null;
 
-            // Notify the user that spelling is being checked.
-            _notices.Add( (Global.SPELL_CHECK_NOTICE, Global.CHECKING_SPELLING) );
-
-            // Create a new token source.
-            this._cancellationTokenSource = new();
-
-            // Create and start the spell check task.
-            Task t = new(() => DoSpellCheckAsync(this._cancellationTokenSource.Token));
-            t.Start();
-        }
-        catch ( Exception e )
-        {
-            Dictionary<string, object> dump = this.Dump();
-            dump["Exception"] = new Dictionary<string, string>()
+            // If async request then run asynchronously.
+            if ( async )
             {
-                { "Error", e.ToString() },
-                { "Message", e.Message }
-            };
-            WordsmithUI.ShowErrorWindow( dump, $"ScratchPad{this.ID}ErrorWindow" );
-        }
-    }
+                PluginLog.LogVerbose( "Running spell check." );
 
-    /// <summary>
-    /// The spell check task to run.
-    /// </summary>
-    protected unsafe void DoSpellCheckAsync(CancellationToken token)
-    {
-        try
-        {
-            if ( token.IsCancellationRequested )
-                return;
-            // Clear any old corrections to prevent them from stacking.
-            Word[]? results = Helpers.SpellChecker.CheckString( this._scratch, token );
-            if ( results == null )
-                return;
+                // Don't spell check an empty input.
+                if ( _scratch.Length == 0 )
+                    return;
 
-            PluginLog.LogVerbose( $"Found {results.Length} errors." );
+                // Create a new token source.
+                this._cancellationTokenSource = new();
 
-            this._notices.RemoveAll( x => x.Item2 == Global.CHECKING_SPELLING );
-
-            if ( token.IsCancellationRequested )
-            {
-                if ( Wordsmith.Configuration.EnableDebug )
-                    PluginLog.LogDebug( "Cancelling spell check." );
-                return;
+                // Create and start the spell check task.
+                _spellCheckTask = new( () => SpellChecker.CheckString( this._scratch, this._cancellationTokenSource.Token ) );
+                _spellCheckTask?.Start();
             }
-            this._corrections = new();
-            this._corrections.AddRange( results );
+
+            // Run synced.
+            else
+            {
+                // Get the result synced.
+                SpellCheckResult result = SpellChecker.CheckString( this._scratch, null);
+
+                // Clear the corrections
+                this._corrections.Clear();
+
+                // Set the new corrections
+                if ( result.State == SpellCheckResultState.Success )
+                    this._corrections.AddRange( result.Words );
+            }
         }
         catch ( Exception e )
         {
@@ -1346,6 +1340,9 @@ internal class ScratchPadUI : Window, IReflected
             // update the text.
             if ( this._replaceText.Length > 0 && index < this._corrections.Count )
             {
+                if ( Helpers.Console.ProcessCommand( _replaceText ) )
+                    return;
+
                 // Get the first object
                 Word word = this._corrections[index];
 
@@ -1762,10 +1759,16 @@ internal class ScratchPadUI : Window, IReflected
             this._lastState = newState;
 
             // Rebuild chunks and reset chunk position counter.
-            this._chunks = Helpers.ChatHelper.FFXIVify( GetFullChatHeader(), this.ScratchString, this._useOOC );
+            this._chunks =ChatHelper.FFXIVify( GetFullChatHeader(), this.ScratchString, this._useOOC ) ?? new();
             this._nextChunk = 0;
 
-            this._spellchecktimer.Interval = Wordsmith.Configuration.AutoSpellCheckDelay * 1000;
+            if ( this._spellchecktimer.Interval != Wordsmith.Configuration.AutoSpellCheckDelay * 1000 )
+            {
+                this._spellchecktimer.Stop();
+                this._spellchecktimer.Interval = Wordsmith.Configuration.AutoSpellCheckDelay * 1000;
+            }
+            if ( !Wordsmith.Configuration.AutoSpellCheck )
+                this._spellchecktimer?.Stop();
         }
         catch ( Exception e )
         {
