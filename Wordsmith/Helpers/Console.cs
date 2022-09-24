@@ -33,6 +33,11 @@ namespace Wordsmith.Helpers
                     Wordsmith.Configuration.Save();
                     break;
 
+                case "tquery":
+                    Wordsmith.Configuration.TimeQuery = m.Groups["value"].Value;
+                    Wordsmith.Configuration.Save();
+                    break;
+
                 case "config":
                     if ( m.Groups["value"].Value.ToLower() == "reset" )
                         Wordsmith.Configuration.ResetToDefault();

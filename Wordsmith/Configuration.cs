@@ -1,5 +1,4 @@
 ﻿using Dalamud.Configuration;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace Wordsmith;
 
@@ -181,6 +180,8 @@ public class Configuration : IPluginConfiguration, IReflected
     private const string WORD_QUERY_DEFAULT = @"\S*(?='(?:ll|m|em|d))|\S+";
     public string WordQuery { get; set; } = WORD_QUERY_DEFAULT;
 
+    private const string TIME_QUERY_DEFAULT = @"(?:\d{1,2}[:.]){1,3}\d{2}?\s*(?:[AaPp]\.?[Mm]\.?)*";
+    public string TimeQuery { get; set; } = TIME_QUERY_DEFAULT;
     #endregion
 
     #region Linkshell Settings
@@ -250,6 +251,7 @@ public class Configuration : IPluginConfiguration, IReflected
         // Advanced settings
         NumericQuery = NUMERIC_QUERY_DEFAULT;
         DateQuery = DATE_QUERY_DEFAULT;
+        TimeQuery = TIME_QUERY_DEFAULT;
         WordQuery = WORD_QUERY_DEFAULT;
 
         Save();

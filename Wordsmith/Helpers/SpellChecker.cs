@@ -51,6 +51,10 @@ internal class SpellChecker
                 if ( Regex.Match( text, Wordsmith.Configuration.DateQuery).Success )
                     continue;
 
+                // If it is a timestamp, skip it
+                if ( Regex.Match( text, Wordsmith.Configuration.TimeQuery ).Success )
+                    continue;
+
                 // Regex is used here to get the word without any contractions.
                 Match m = Regex.Match( text, Wordsmith.Configuration.WordQuery );
 
