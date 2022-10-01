@@ -24,7 +24,7 @@ internal class TextChunk
     /// <summary>
     /// Assembles the complete chunk with header, OOC tags, continuation markers, and user-defined text.
     /// </summary>
-    internal string CompleteText => $"{(Header.Length > 0 ? $"{Header} " : "")}{OutOfCharacterStartTag}{Text.Trim()}{OutOfCharacterEndTag}{(ContinuationMarker.Length > 0 ? $" {ContinuationMarker}" : "")}";
+    internal string CompleteText => $"{(Header.Length > 0 ? $"{Header} " : "")}{OutOfCharacterStartTag}{Text.Replace( Global.SPACED_WRAP_MARKER, " ").Replace(Global.NOSPACE_WRAP_MARKER, "").Replace("\n", "").Trim()}{OutOfCharacterEndTag}{(ContinuationMarker.Length > 0 ? $" {ContinuationMarker}" : "")}";
     
     /// <summary>
     /// The continuation marker to append to the end of the Complete Text value.
