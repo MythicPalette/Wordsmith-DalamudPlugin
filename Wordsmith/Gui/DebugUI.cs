@@ -77,7 +77,7 @@ internal sealed class DebugUI : Window
         {
             ImGui.Indent();
             foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
-                ImGui.Text( $"{Name}\t: {Value}" );
+                ImGui.TextWrapped( $"{Name}\t: {Value.Replace("\r", "\\r").Replace("\n", "\\n")}" );
             ImGui.Unindent();
         }
 
@@ -86,7 +86,7 @@ internal sealed class DebugUI : Window
         {
             ImGui.Indent();
             foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
-                ImGui.Text( $"{Name}\t: {Value}" );
+                ImGui.TextWrapped( $"{Name}\t: {Value.Replace( "\r", "\\r" ).Replace( "\n", "\\n" )}" );
             ImGui.Unindent();
         }
 

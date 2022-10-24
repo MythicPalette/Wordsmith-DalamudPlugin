@@ -1666,6 +1666,7 @@ internal class ScratchPadUI : Window, IReflected
 
             }
 
+            // Replace all non-spaced wrap markers with an empty zone.
             while ( text.Contains( Global.NOSPACE_WRAP_MARKER + '\n' ) )
             {
                 int idx = text.IndexOf(Global.NOSPACE_WRAP_MARKER + '\n');
@@ -1673,6 +1674,20 @@ internal class ScratchPadUI : Window, IReflected
 
                 if ( cursorPos > idx )
                     cursorPos -= (Global.NOSPACE_WRAP_MARKER + '\n').Length;
+            }
+
+            // Replace all remaining carriage return characters with nothing.
+            while ( text.Contains('\r') )
+            {
+                // Get the index of the character
+                int idx = text.IndexOf('\r');
+
+                // Splice the string around the character.
+                text = text[0..idx] + text[(idx + 1)..^0];
+
+                // If the cursor is behind the edit, move the cursor with the edited text.
+                if ( cursorPos > idx )
+                    cursorPos -= 1;
             }
 
             // Replace double spaces if configured to do so.
