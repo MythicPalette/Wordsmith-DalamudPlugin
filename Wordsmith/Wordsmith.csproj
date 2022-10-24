@@ -17,21 +17,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\dictionaries\**">
-      <Link>%(RecursiveDir)\Dictionaries\%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Remove="fonts\**" />
     <EmbeddedResource Remove="fonts\**" />
     <None Remove="fonts\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Remove="..\dictionaries\lang_de" />
-    <Content Remove="..\dictionaries\lang_en_complete" />
   </ItemGroup>
 
   <ItemGroup>
@@ -85,12 +73,6 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Update="..\dictionaries\lang_en">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>

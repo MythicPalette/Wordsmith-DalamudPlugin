@@ -15,6 +15,9 @@ internal static class Global
     internal const string SPACED_WRAP_MARKER = "\r\r";
     internal const string NOSPACE_WRAP_MARKER = "\r";
     internal const string SPELL_CHECK_NOTICE = "Checking your spelling...";
+
+    internal const string MANIFEST_JSON_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/manifest.json";
+    internal const string LIBRARY_FILE_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/library";
     #endregion
 
     #region Keys
