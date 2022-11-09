@@ -159,5 +159,4 @@ internal struct Rect2
     }
 
     internal bool Contains( Vector2 v ) => v.X > this.Position.X && v.X < this.Position.X + this.Size.X && v.Y > this.Position.Y && v.Y < this.Position.Y + this.Size.Y;
-
 }
