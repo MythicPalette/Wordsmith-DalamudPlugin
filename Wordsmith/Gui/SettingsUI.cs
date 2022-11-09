@@ -3,6 +3,7 @@ using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Data;
 using Wordsmith.Enums;
+using Wordsmith.Helpers;
 
 namespace Wordsmith.Gui;
 
@@ -571,47 +572,74 @@ public sealed class SettingsUI : Window, IReflected
                     ImGui.SetTooltip("When enabled, Scratch Pads will programmatically remove extra\nspaces from your text for you.");
                 ImGui.Separator();
 
+                // Get half the width
+                float bar_width = ImGui.GetWindowContentRegionMax().X / 2.0f;
+                ImGui.SetNextItemWidth( bar_width - 170 * ImGuiHelpers.GlobalScale );
                 ImGui.DragInt( "Maximum Suggestions", ref this._maxSuggestions, 0.1f, 0, 100 );
                 if ( ImGui.IsItemHovered() )
                     ImGui.SetTooltip( "The number of spelling suggestions to return with spell checking. 0 is unlimited results." );
-                ImGui.Separator();
+                ImGui.SameLine();
 
+                ImGui.SetNextItemWidth( bar_width - 160 * ImGuiHelpers.GlobalScale );
                 ImGui.DragFloat( "Auto-Spellcheck Delay (Seconds)", ref this._autospellcheckdelay, 0.1f, 0.1f, 100f );
                 if ( ImGui.IsItemHovered() )
                     ImGui.SetTooltip( "The time in seconds to wait after typing stops to spell check." );
                 ImGui.Separator();
 
-                // Dictionary File
-                // Start by getting all of the available dictionary files.
-                string[] files = Directory.GetFiles(Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries"))
-                    .Select(f => Path.GetFileName(f)).ToArray();
+                // Dictionaries
+
+                List<string> dictionaries = new List<string>();
+
+                // Add the dictionaries from the web manifest.
+                foreach ( string s in Lang.Manifest.Dictionaries )
+                    dictionaries.Add( $"web: {s}" );
+
+                // Add all local dictionaries.
+                if ( Directory.Exists( Path.Combine( Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries" ) ) )
+                    foreach ( string s in Directory.GetFiles( Path.Combine( Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries" ) ) )
+                        dictionaries.Add( $"local: {Path.GetFileName( s )}" );
+
+                if ( ImGui.Button( "Reload Dictionary##ReinitLangButton" ) )
+                    Lang.Reinit();
+
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( $"Reload the dictionary file and custom dictionary, including any changes." );
 
                 // If no files are returned
-                if (files.Length == 0)
+                if (dictionaries.Count == 0)
                 {
                     // Alert the user to the missing dictionaries.
                     ImGui.TextColored(new(255, 0, 0, 255), "ERROR.");
-                    ImGui.TextWrapped($"There are no dictionary files in the dictionary folder {{{Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries")}}}.");
+                    ImGui.TextWrapped($"There are no dictionary files in the manifest or {{{Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries")}}}.");
                 }
                 else
                 {
+                    ImGui.SameLine();
                     // Get the index of the current dictionary file if it exists.
-                    int selection = files.IndexOf(this._dictionaryFilename);
+                    int selection = dictionaries.IndexOf(this._dictionaryFilename);
 
                     // If the file isn't found, default to option 0.
                     if (selection < 0)
                         selection = 0;
 
-                    ImGui.SetNextItemWidth(ImGui.GetWindowWidth() - 160*ImGuiHelpers.GlobalScale);
+                    if ( ImGui.Button( $"Refresh List##RefreshDictionaryManifestButton" ) )
+                        Lang.Manifest = Git.GetManifest();
+                    if ( ImGui.IsItemHovered() )
+                        ImGui.SetTooltip( $"Refresh the list of available dictionaries." );
+                    ImGui.SameLine();
+
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionMax().X - 380*ImGuiHelpers.GlobalScale);
+
                     // Display a combo with all of the available dictionaries.
-                    ImGui.Combo("Dictionary Selection", ref selection, files, files.Length);
-                    if (ImGui.IsItemHovered())
-                        ImGui.SetTooltip($"This is the file to be used for the dictionary. To use a custom spell check\ndictionary it must be inside the plug-in's Dictionary folder.");
+                    ImGui.Combo("Dictionary Selection", ref selection, dictionaries.ToArray(), dictionaries.Count);
+                    if ( ImGui.IsItemHovered() )
+                        ImGui.SetTooltip( $"This is the file to be used for the dictionary. To use a custom spell check\ndictionary it must be inside the plug-in's Dictionary folder." );
+                    
 
                     // If the selection is different from the previous dictionary then
                     // update the filename.
-                    if (selection != files.IndexOf(this._dictionaryFilename))
-                        this._dictionaryFilename = files[selection];
+                    if (selection != dictionaries.IndexOf(this._dictionaryFilename))
+                        this._dictionaryFilename = dictionaries[selection];
                 }
                 ImGui.Separator();
 

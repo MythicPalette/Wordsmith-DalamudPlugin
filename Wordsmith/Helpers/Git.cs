@@ -21,7 +21,7 @@ namespace Wordsmith.Helpers
                 try
                 {
                     // Force refresh
-                    client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.Now;
+                    client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.UtcNow;
 
                     // Get data
                     string raw = client.GetStringAsync( Global.MANIFEST_JSON_URL ).Result;

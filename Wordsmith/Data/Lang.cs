@@ -1,4 +1,7 @@
 ﻿
+using System.Net.Http;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Wordsmith.Helpers;
 
 namespace Wordsmith.Data;
@@ -6,11 +9,32 @@ namespace Wordsmith.Data;
 public static class Lang
 {
     private static HashSet<string> _dictionary = new();
+    internal static WebManifest Manifest = new();
 
+    private static bool _enabled = false;
     /// <summary>
     /// Active becomes true after Init() has successfully loaded a language file.
     /// </summary>
-    public static bool Enabled { get; private set; } = false;
+    public static bool Enabled
+    {
+        get { return _enabled; }
+        set
+        {
+            _enabled = value;
+            try
+            {
+                PluginLog.LogVerbose( $"Lang {(value ? "enabled" : "disabled")}." );
+            }
+            catch ( Exception ) { } // Silently fail to log.
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the string exists in the hash table
+    /// </summary>
+    /// <param name="key">String to search for.</param>
+    /// <returns><see langword="true""/> if the word is in the dictionary</returns>
+    public static bool isWord( string key ) => isWord( key, true );
 
     /// <summary>
     /// Verifies that the string exists in the hash table
@@ -18,7 +42,7 @@ public static class Lang
     /// <param name="key">String to search for.</param>
     /// <param name="lowercase">If <see langword="true"/> then the string is made lowercase.</param>
     /// <returns><see langword="true""/> if the word is in the dictionary</returns>
-    public static bool isWord(string key, bool lowercase = true) => _dictionary.Contains( lowercase ? key.ToLower() : key );
+    public static bool isWord(string key, bool lowercase) => _dictionary.Contains( lowercase ? key.ToLower() : key );
 
     private static void ValidateAndAddWord(string candidate)
     {
@@ -32,60 +56,79 @@ public static class Lang
     /// <summary>
     /// Load the language file and enable spell checks.
     /// </summary>
-    public static void Init()
+    public static void Init() => Init( false );
+
+    private static void Init( bool notify )
     {
-        _dictionary = new();
+        _dictionary.Clear();
 
-        // Load the dictionary
-        bool web_loaded = LoadWebLanguage();
-
-        // If web loading failed, load the file
-        bool file_loaded = web_loaded ? false : LoadLanguageFile();
-
-        // If both failed to load then present the failure notification
-        if ( !(web_loaded || file_loaded) )
-            Wordsmith.PluginInterface.UiBuilder.AddNotification( $"Failed to load the dictionary file {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning );
-        else
+        Task t = new(()=>
         {
-            // Add all of the custom dictionary entries to the dictionary
-            foreach ( string word in Wordsmith.Configuration.CustomDictionaryEntries )
-                ValidateAndAddWord( word );//_dictionary.Add( word.Trim().ToLower() );
+            // Load the dictionary
+            bool web_loaded = LoadWebLanguage();
 
-            Enabled = true;
-        }
+            // If web loading failed, load the file
+            bool file_loaded = web_loaded ? false : LoadLanguageFile();
+
+            // If both failed to load then present the failure notification
+            if ( !(web_loaded || file_loaded) )
+                Wordsmith.PluginInterface.UiBuilder.AddNotification( $"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning );
+            else
+            {
+                // Add all of the custom dictionary entries to the dictionary
+                foreach ( string word in Wordsmith.Configuration.CustomDictionaryEntries )
+                    ValidateAndAddWord( word );//_dictionary.Add( word.Trim().ToLower() );
+
+                Enabled = true;
+                if ( notify )
+                    Wordsmith.PluginInterface.UiBuilder.AddNotification( $"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+            }
+        });
+        t.Start();
     }
 
     /// <summary>
     /// Reinitialize the dictionary.
     /// </summary>
     /// <returns><see langword="true"/> if succesfully reinitialized.</returns>
-    public static void Reinit()
-    {
-        Init();
-    }
+    public static void Reinit() => Init(true);
 
     private static bool LoadWebLanguage()
     {
         // Get the manifest
-        WebManifest manifest = Git.GetManifest();
+        Manifest = Git.GetManifest();
+
+        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^(?:web: )*(.+)" );
+        if ( !m.Success )
+            return false;
+
+        string title = m.Groups[1].Value;
 
         // If the dictionary isn't in the manifest the user may have a custom dictionary
         // file that they prefer to use. Check for its existence here.
-        if ( !manifest.IsLoaded || !manifest.Dictionaries.Contains( Wordsmith.Configuration.DictionaryFile ) )
+        if ( !Manifest.IsLoaded || !Manifest.Dictionaries.Contains( title ) )// Wordsmith.Configuration.DictionaryFile ) )
             return false;
 
         try
         {
             // Load the dictionary array
-            string[] lines = Git.LoadDictionary( Wordsmith.Configuration.DictionaryFile );
+            string[] lines = Git.LoadDictionary( title );
             foreach ( string l in lines )
                 if ( !l.StartsWith( "#" ) && l.Trim().Length > 0 )
                     ValidateAndAddWord( l ); //_dictionary.Add( l.Trim().ToLower() );
             return true;
         }
+        catch ( HttpRequestException e )
+        {
+            if ( e.StatusCode != System.Net.HttpStatusCode.OK )
+                PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}" );
+            else
+                PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}" );
+            return false;
+        }
         catch ( Exception e )
         {
-            PluginLog.LogError( $"Unable to load language file {Wordsmith.Configuration.DictionaryFile}.\n{e}" );
+            PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}" );
             return false;
         }
     }
@@ -95,8 +138,14 @@ public static class Lang
     /// </summary>
     private static bool LoadLanguageFile()
     {
+        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^(?:local: )*(.+)" );
+        if ( !m.Success )
+            return false;
+
+        string title = m.Groups[1].Value;
+
         // Get the filepath of the dictionary file
-        string filepath = Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, $"Dictionaries\\{Wordsmith.Configuration.DictionaryFile}");
+        string filepath = Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, $"Dictionaries\\{title}"); // Wordsmith.Configuration.DictionaryFile.Replace($"local: ", "")}");
 
         // If the file doesn't exist then abort
         if ( !File.Exists( filepath ) )
@@ -116,7 +165,7 @@ public static class Lang
         }
         catch ( Exception e )
         {
-            PluginLog.LogError( $"Unable to load language file {Wordsmith.Configuration.DictionaryFile}. {e}" );
+            PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}" );
         }
         return false;
     }
