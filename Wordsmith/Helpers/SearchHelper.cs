@@ -1,5 +1,7 @@
 ﻿using System.Net.Http;
 using HtmlAgilityPack;
+using System.ComponentModel;
+
 using Wordsmith;
 
 namespace Wordsmith.Helpers;
@@ -10,16 +12,14 @@ public class SearchHelper : IDisposable
     protected float _progress = 0.0f;
     public float Progress => _progress;
 
-    public Exception? Error { get; private set; } = null;
-
-    protected List<Wordsmith.WordSearchResult> _history = new List<Wordsmith.WordSearchResult>();
-    public Wordsmith.WordSearchResult[] History => _history.ToArray();
+    protected List<WordSearchResult> _history = new List<WordSearchResult>();
+    public WordSearchResult[] History => _history.ToArray();
 
     /// <summary>
     /// Adds a searched item to the history.
     /// </summary>
     /// <param name="entry">The entry to add to the history.</param>
-    protected void AddHistoryEntry(Wordsmith.WordSearchResult entry)
+    protected void AddHistoryEntry(WordSearchResult entry)
     {
         // Add the latest to the history
         _history.Insert(0, entry);
@@ -34,7 +34,7 @@ public class SearchHelper : IDisposable
     /// Deletes an item from the search history.
     /// </summary>
     /// <param name="entry">Entry to be removed from history</param>
-    public void DeleteResult(Wordsmith.WordSearchResult? entry)
+    public void DeleteResult(WordSearchResult? entry)
     {
         if (entry == null)
             return;
@@ -56,18 +56,48 @@ public class SearchHelper : IDisposable
         _client = new HttpClient();
     }
 
-    public void SearchThesaurus(string query)
+    public void SearchThesaurus( string query )
     {
-        // Lowercase and trim the query string.
-        query = query.ToLower().Trim();
+        //Create a new worker
+        // Run the worker
+        BackgroundWorker worker = new BackgroundWorker();
+        worker.DoWork += SearchWorkerDoWork;
+        worker.RunWorkerCompleted += SearchWorkerCompleted;
+        worker.RunWorkerAsync(argument: query);
 
-        // Nullify the previous error.
-        Error = null;
+        //// Lowercase and trim the query string.
+        //query = query.ToLower().Trim();
 
-        // Check history first and if we don't find anything there
-        // Trying web scraping for the information.
-        if (!SearchHistory(query))
-            ScrapeWeb(query);
+        //// Nullify the previous error.
+        //Error = null;
+
+        //// Check history first and if we don't find anything there
+        //// Trying web scraping for the information.
+        //if (!SearchHistory(query))
+        //    ScrapeWeb(query);
+
+    }
+
+    internal void SearchWorkerDoWork(object? sender, DoWorkEventArgs e)
+    {
+        if ( sender is BackgroundWorker worker )
+        {
+            if ( e.Argument == null )
+                return;
+
+            // Get the search data
+            string query = (string) e.Argument;
+
+            // Check if the search already exists
+            if ( !SearchHistory( query ) )
+                ScrapeWeb( query.ToLower().Trim() );
+        }
+    }
+
+    internal void SearchWorkerCompleted(object? sender, RunWorkerCompletedEventArgs e)
+    {
+        // Get the result
+        // Add the result to the history
 
     }
 
@@ -92,7 +122,7 @@ public class SearchHelper : IDisposable
                 return true;
 
             // Check if current query is in the history
-            Wordsmith.WordSearchResult? result = History.FirstOrDefault(r => r.Query == query);
+            WordSearchResult? result = History.FirstOrDefault(r => r.Query == query);
 
             // If a match is found
             if (result != null)
@@ -147,19 +177,19 @@ public class SearchHelper : IDisposable
                 .ForEach(node => node.Remove());
 
             // Empty out any previous results.
-            Wordsmith.WordSearchResult result = new Data.WordSearchResult(query);
+            WordSearchResult result = new WordSearchResult(query);
 
             // Get the Word variants;
-            List<HtmlNode> variants = doc.DocumentNode.SelectNodes("//div[@class='row entry-header thesaurus']").ToList();
+            List<HtmlNode> variants = doc.DocumentNode.SelectNodes("//div[@class='row entry-header']").ToList();
 
             // Get the thesaurus entries
-            List<HtmlNode> entrynodes = doc.DocumentNode.SelectNodes("//div[@class='thesaurus-entry']").ToList();
+            List<HtmlNode> entrynodes = doc.DocumentNode.SelectNodes("//div[starts-with(@id, 'thesaurus-entry')]").ToList();
 
             for (int i = 0; i < variants.Count; ++i)
             {
                 _progress += (0.91f / (float)variants.Count);
 
-                Wordsmith.ThesaurusEntry tEntry = new Data.ThesaurusEntry();
+                ThesaurusEntry tEntry = new ThesaurusEntry();
 
                 tEntry.Word = query;
 
@@ -218,11 +248,11 @@ public class SearchHelper : IDisposable
         }
         catch (HttpRequestException)
         {
-            Error = new Exception($"{query} was not found in the thesaurus.");
+            PluginLog.LogError($"{query} was not found in the thesaurus.");
         }
         catch (Exception ex)
         {
-            Error = ex;
+            PluginLog.LogError( ex.ToString() );
         }
     }
 

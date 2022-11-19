@@ -376,8 +376,10 @@ internal class ScratchPadUI : Window, IReflected
             }
 
             // Thesaurus menu item
-            if (ImGui.MenuItem($"Thesaurus##ScratchPad{this.ID}ThesaurusMenu"))
-                WordsmithUI.ShowThesaurus();
+            // For the time being, the thesaurus is disabled.
+            // TODO Find a way to rebuild the thesaurus.
+            //if (ImGui.MenuItem($"Thesaurus##ScratchPad{this.ID}ThesaurusMenu"))
+            //    WordsmithUI.ShowThesaurus();
 
             // Settings menu item
             if (ImGui.MenuItem($"Settings##ScratchPad{this.ID}SettingsMenu"))

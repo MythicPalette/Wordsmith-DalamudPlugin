@@ -95,7 +95,7 @@ public sealed class Wordsmith : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi += WordsmithUI.ShowSettings;
 
         // Initialize the dictionary.
-        Wordsmith.Helpers.Lang.Init();
+        Helpers.Lang.Init();
     }
 
     /// <summary>
