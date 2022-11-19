@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
+using System.Text.RegularExpressions;
 using Dalamud.Interface.Windowing;
-using Wordsmith.Data;
 
 namespace Wordsmith;
 
@@ -205,24 +205,16 @@ internal static class Extensions
 
     internal static string? GetTarget( this string s )
     {
-        // Split the string up.
-        string[] splits = s.Split(" ", StringSplitOptions.RemoveEmptyEntries);
+        // Check for a placeholder
+        Match match = Regex.Match( s, @"^(?:/tell|/t) (?<target><\w+>)" );
+        if ( match.Success )
+            return match.Groups["target"].Value;
 
-        if ( splits.Length >= 2 )
-        {
-            // Check for a placeholder
-            if ( splits[1].StartsWith( "<" ) && splits[1].EndsWith( ">" ) )
-                return splits[1];
-
-            // Check for user name@world
-            else if ( splits.Length >= 3 )
-            {
-
-                // If the third element contains a @
-                if ( splits[2].Contains( "@" ) && s.StartsWith( $"{splits[0]} {splits[1]} {splits[2]}" ) )
-                    return $"{splits[1]} {splits[2]}";
-            }
-        }
+        // Check for user name@world
+        match = Regex.Match( s, @"^(?:/tell|/t) ((?<target><\w+>)|(?<target>[\w']+ [\w']+@\w+))$" );
+        if ( match.Success )
+                return match.Groups["target"].Value;
+        
         return null;
     }
 

@@ -1,6 +1,5 @@
 ﻿using System.Text.RegularExpressions;
 using System.Threading;
-using Wordsmith.Data;
 
 namespace Wordsmith.Helpers;
 
@@ -68,9 +67,11 @@ internal class SpellChecker
                 // If the match data is not a known word
                 else
                 {
-                    foreach ( Match sub in Regex.Matches( m.Value, @"[^\s\-]+" ) )
+                    // Try to segment the word into subwords and match those. This is for cases where
+                    // words are slashed/hyphened (i.e.: heavy/large)
+                    foreach ( Match sub in Regex.Matches( m.Value, @"[^\s\-\\/]+" ) )
                     {
-                        if ( !Lang.isWord( m.Value, true ) )
+                        if ( !Lang.isWord( sub.Value, true ) )
                         {
                             // If we reached this code, we were not able to locate a proper match for the word.
                             // Add the index to the list.

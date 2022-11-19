@@ -2,6 +2,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Helpers;
+using Wordsmith;
 
 namespace Wordsmith.Gui;
 
@@ -33,57 +34,27 @@ public class ThesaurusUI : Window, IReflected
         //Flags |= ImGuiWindowFlags.MenuBar;
     }
 
+    #region Drawing
     /// <summary>
     /// The Draw entry point for Dalamud.Interface.Windowing
     /// </summary>
     public override void Draw()
     {
-        DrawWordSearch();
-    }
-
-    /// <summary>
-    /// Draws main UI.
-    /// </summary>
-    protected void DrawWordSearch()
-    {
-        try
+        // Create a child element for the word search.
+        if ( ImGui.BeginChild( "Word Search Window" ) )
         {
-            // Create a child element for the word search.
-            if (ImGui.BeginChild("Word Search Window"))
+            DrawSearchBar();
+            if ( ImGui.BeginChild( "SearchResultWindow" ) )
             {
-                DrawSearchBar();
-                if (ImGui.BeginChild("SearchResultWindow"))
-                {
-                    DrawSearchErrors();
-                    foreach (Data.WordSearchResult result in SearchHelper.History)
-                        DrawSearchResult(result);
+                DrawSearchErrors();
+                foreach ( WordSearchResult result in SearchHelper.History )
+                    DrawSearchResult( result );
 
-                    // End the child element.
-                    ImGui.EndChild();
-                }
+                // End the child element.
                 ImGui.EndChild();
             }
+            ImGui.EndChild();
         }
-        catch (Exception)
-        {
-            //Plugin.PluginUi.RaiseAlert(e.Message);
-        }
-    }
-
-    /// <summary>
-    /// Moves the search string into the query to search for it.
-    /// </summary>
-    /// <returns>Returns true if the search string passes the minimum length.</returns>
-    protected bool ScheduleSearch()
-    {
-        if (_search.Length >= _searchMinLength)
-        {
-            //SearchHelper.SearchThesaurus(_search.Trim());
-            _query = _search;
-            _search = "";
-            return true;
-        }
-        return false;
     }
 
     /// <summary>
@@ -91,28 +62,19 @@ public class ThesaurusUI : Window, IReflected
     /// </summary>
     protected void DrawSearchBar()
     {
-        if (ImGui.BeginTable("SearchZoneTable", 2))
-        {
-            ImGui.TableSetupColumn("SearchTextBarColumn");
-            ImGui.TableSetupColumn("SearchTextButtonColumn", ImGuiTableColumnFlags.WidthFixed, 50 * ImGuiHelpers.GlobalScale);
+        float btnWidth = 100*ImGuiHelpers.GlobalScale;
+        string searchQuery = "";
+        ImGui.SetNextItemWidth(ImGui.GetWindowContentRegionMax().X - btnWidth - ImGui.GetStyle().FramePadding.X*2);
+        if ( ImGui.InputTextWithHint( "###ThesaurusSearchBar", "Search...", ref searchQuery, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
+            _searchFailed = !ScheduleSearch( searchQuery );
 
-            ImGui.TableNextColumn();
-            ImGui.SetNextItemWidth(-1);
+        ImGui.SameLine();
+        if ( ImGui.Button("Search##ThesaurusSearchButton", new(btnWidth, 0)))
 
-            if (ImGui.InputTextWithHint("###ThesaurusSearchBar", "Enter a word and hit enter to search...", ref _search, 128, ImGuiInputTextFlags.EnterReturnsTrue))
-                _searchFailed = !ScheduleSearch();
+        if (_searchFailed)
+            ImGui.TextColored(new(255, 0, 0, 255), $"Minimum of {_searchMinLength} letters required.");
 
-            ImGui.TableNextColumn();
-            if (ImGui.Button("Search", ImGuiHelpers.ScaledVector2(50, 20)))
-                _searchFailed = !ScheduleSearch();
-
-            ImGui.EndTable();
-
-            if (_searchFailed)
-                ImGui.TextColored(new(255, 0, 0, 255), $"Minimum of {_searchMinLength} letters required.");
-
-            ImGui.Separator();
-        }            
+        ImGui.Separator();
     }
 
     /// <summary>
@@ -120,19 +82,19 @@ public class ThesaurusUI : Window, IReflected
     /// </summary>
     protected void DrawSearchErrors()
     {
-        if (SearchHelper.Error != null)
-        {
-            ImGui.TextColored(new Vector4(255, 0, 0, 255), $"Search Error:\n{SearchHelper.Error.Message}");
-            ImGui.Separator();
-            ImGui.Spacing();
-        }
+        //if (SearchHelper.Error != null)
+        //{
+        //    ImGui.TextColored(new Vector4(255, 0, 0, 255), $"Search Error:\n{SearchHelper.Error.Message}");
+        //    ImGui.Separator();
+        //    ImGui.Spacing();
+        //}
     }
 
     /// <summary>
     /// Draws one search result item to the UI.
     /// </summary>
     /// <param name="result">The search result to be drawn</param>
-    protected void DrawSearchResult(Data.WordSearchResult result)
+    protected void DrawSearchResult(WordSearchResult result)
     {
         if (result != null)
         {
@@ -140,7 +102,7 @@ public class ThesaurusUI : Window, IReflected
             if (ImGui.CollapsingHeader($"{result.Query.Trim().CaplitalizeFirst()}##{result.ID}", ref vis, ImGuiTreeNodeFlags.DefaultOpen))
             {
                 ImGui.Indent();
-                foreach (Data.ThesaurusEntry entry in result?.Entries ?? Array.Empty<Data.ThesaurusEntry>())
+                foreach (ThesaurusEntry entry in result?.Entries ?? Array.Empty<ThesaurusEntry>())
                     DrawEntry(entry);
 
                 if(!vis)
@@ -155,7 +117,7 @@ public class ThesaurusUI : Window, IReflected
     /// Draws a search result's entry data. One search result can have multiple data entries.
     /// </summary>
     /// <param name="entry">The data to draw.</param>
-    protected void DrawEntry(Data.ThesaurusEntry entry)
+    protected void DrawEntry(ThesaurusEntry entry)
     {
         if (ImGui.CollapsingHeader(
                     char.ToUpper((entry.Type.Trim())[0]).ToString() + entry.Type.Substring(1) + $"##{entry.ID}"))
@@ -197,6 +159,21 @@ public class ThesaurusUI : Window, IReflected
             }
             ImGui.Unindent();
         }
+    }
+    #endregion
+
+    /// <summary>
+    /// Moves the search string into the query to search for it.
+    /// </summary>
+    /// <returns>Returns true if the search string passes the minimum length.</returns>
+    protected bool ScheduleSearch(string query)
+    {
+        if ( query.Length >= _searchMinLength )
+        { 
+            SearchHelper.SearchThesaurus( query );
+            return true;
+        }
+        return false;
     }
 
     /// <summary>

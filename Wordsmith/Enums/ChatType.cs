@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 
 namespace Wordsmith.Enums
 {
@@ -85,5 +86,22 @@ namespace Wordsmith.Enums
                     return "";
             }
         }
+
+        internal static string GetPattern(this ChatType c)
+        {
+            // If the chat type is none, return nothing.
+            if ( c == ChatType.None )
+                return "";
+
+            // Get the default pattern
+            string pattern = $"^\\s*(?<header>{c.GetShortHeader()}|{c.GetLongHeader()})\\s+";
+
+            // Tell pattern also requires user name@world
+            if ( c == ChatType.Tell )
+                pattern += "(?<target>[\\w']+ [\\w']+@[a-zA-Z]+)\\s+";
+
+            return pattern;
+        }
+        //=> c == ChatType.None ? "" : $"^\\s*({c.GetShortHeader()}|{c.GetLongHeader()}){(c == ChatType.Tell ? " " : "")}";
     }
 }

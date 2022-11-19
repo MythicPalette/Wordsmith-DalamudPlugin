@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Wordsmith.Data;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
 
@@ -16,28 +15,21 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     protected class PadState
     {
-        internal ChatType ChatType;
         internal string ScratchText;
         internal bool UseOOC;
-        internal string TellTarget;
-        internal bool CrossWorld;
-        internal int Linkshell;
+        internal HeaderData Header;
+
         public PadState()
         {
-            this.ChatType = 0;
             this.ScratchText = "";
             this.UseOOC = false;
-            this.TellTarget = "";
         }
 
         public PadState(ScratchPadUI ui)
         {
-            this.ChatType = ui._chatType;
             this.ScratchText = ui._scratch;
-            this.TellTarget = ui._telltarget;
-            this.Linkshell = ui._linkshell;
             this.UseOOC = ui._useOOC;
-            this.CrossWorld = ui._crossWorld;
+            this.Header = ui._header;
         }
 
         public static bool operator ==(PadState state, object other) => state.Equals(other);
@@ -54,18 +46,14 @@ internal class ScratchPadUI : Window, IReflected
 
 
             PadState o = (PadState)obj;
-            if (o.ChatType != this.ChatType) return false;
             if (o.ScratchText != this.ScratchText) return false;
             if (o.UseOOC != this.UseOOC) return false;
-            if (o.TellTarget != this.TellTarget) return false;
-            if (o.CrossWorld != this.CrossWorld) return false;
-            if (o.Linkshell != this.Linkshell) return false;
             return true;
         }
 
-        public override int GetHashCode() => HashCode.Combine( this.ChatType, this.ScratchText, this.UseOOC, this.TellTarget );
+        public override int GetHashCode() => HashCode.Combine( this.Header.ChatType, this.ScratchText, this.UseOOC, this.Header.TellTarget );
 
-        public override string ToString() => $"{{ ChatType: {this.ChatType}, ScratchText: \"{this.ScratchText}\", UseOOC: {this.UseOOC}, TellTarget: \"{this.TellTarget}\", CrossWorld: {this.CrossWorld}, Linkshell: {this.Linkshell} }}";
+        public override string ToString() => $"{{ ChatType: {this.Header.ChatType}, ScratchText: \"{this.ScratchText}\", UseOOC: {this.UseOOC}, TellTarget: \"{this.Header.TellTarget}\", CrossWorld: {this.Header.CrossWorld}, Linkshell: {this.Header.Linkshell} }}";
     }
 
     /// <summary>
@@ -98,11 +86,9 @@ internal class ScratchPadUI : Window, IReflected
     /// Contains all of the variables related to the chat header
     /// </summary>
     #region Chat Header
-    internal ChatType _chatType = 0;
     protected bool _header_parse = Wordsmith.Configuration.ParseHeaderInput;
-    protected string _telltarget = "";
-    protected int _linkshell = 0;
-    protected bool _crossWorld = false;
+    protected HeaderData _header = new(true);
+    public HeaderData Header => this._header;
     #endregion
 
     /// <summary>
@@ -146,28 +132,6 @@ internal class ScratchPadUI : Window, IReflected
     // TODO Refactor
     protected internal System.Timers.Timer _spellchecktimer = new(Wordsmith.Configuration.AutoSpellCheckDelay * 1000) { AutoReset = false, Enabled = false };
 
-    /// <summary>
-    /// Gets the slash command (if one exists) and the tell target if one is needed.
-    /// </summary>
-    internal string GetFullChatHeader() => GetFullChatHeader(this._chatType, this._telltarget, this._crossWorld, this._linkshell);
-    internal string GetFullChatHeader(ChatType c, string t, bool cw, int l )
-    {
-        if ( c == ChatType.None )
-            return c.GetShortHeader();
-
-        // Get the slash command.
-        string result = c.GetShortHeader();
-
-        // If /tell get the target or placeholder.
-        if ( c == ChatType.Tell )
-            result += $" {t} ";
-
-        // Grab the linkshell command.
-        if ( c == ChatType.Linkshell )
-            result = $"/{(cw ? "cw" : "")}linkshell{l + 1}";
-
-        return result;
-    }
 
     /// <summary>
     /// Gets the height of the footer.
@@ -207,6 +171,7 @@ internal class ScratchPadUI : Window, IReflected
         this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
         this.Flags |= ImGuiWindowFlags.MenuBar;
         this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this._spellchecktimer.Stop(); this.DoSpellCheck(true); };
+        this.Header.DataChanged += this.OnDataChanged;
     }
     
     /// <summary>
@@ -216,8 +181,8 @@ internal class ScratchPadUI : Window, IReflected
     /// <param name="tellTarget">The target to append to the header.</param>
     public ScratchPadUI(string tellTarget) : this()
     {
-        this._chatType = ChatType.Tell;
-        this._telltarget = tellTarget;
+        this._header.ChatType = ChatType.Tell;
+        this._header.TellTarget = tellTarget;
     }
 
     /// <summary>
@@ -237,6 +202,7 @@ internal class ScratchPadUI : Window, IReflected
         this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
         this.Flags |= ImGuiWindowFlags.MenuBar;
         this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this._spellchecktimer.Stop(); this.DoSpellCheck(true); };
+        this.Header.DataChanged += this.OnDataChanged;
     }
     #endregion
     #region Overrides
@@ -410,8 +376,10 @@ internal class ScratchPadUI : Window, IReflected
             }
 
             // Thesaurus menu item
-            if (ImGui.MenuItem($"Thesaurus##ScratchPad{this.ID}ThesaurusMenu"))
-                WordsmithUI.ShowThesaurus();
+            // For the time being, the thesaurus is disabled.
+            // TODO Find a way to rebuild the thesaurus.
+            //if (ImGui.MenuItem($"Thesaurus##ScratchPad{this.ID}ThesaurusMenu"))
+            //    WordsmithUI.ShowThesaurus();
 
             // Settings menu item
             if (ImGui.MenuItem($"Settings##ScratchPad{this.ID}SettingsMenu"))
@@ -440,7 +408,7 @@ internal class ScratchPadUI : Window, IReflected
         int columns = default_columns;
 
         // If using Tell or Linkshells, we need 3 columns
-        if ( this._chatType == ChatType.Tell || this._chatType == ChatType.Linkshell)
+        if ( this._header.ChatType == ChatType.Tell || this._header.ChatType == ChatType.Linkshell)
             ++columns;
 
         if (ImGui.BeginTable($"##ScratchPad{this.ID}HeaderTable", columns))
@@ -476,7 +444,7 @@ internal class ScratchPadUI : Window, IReflected
             string[] options = Enum.GetNames(typeof(ChatType));
 
             // Convert the chat type into a usable int.
-            int ctype = (int)this._chatType;
+            int ctype = (int)this._header.ChatType;
 
             // Display a combo box and reference ctype. Do not show the last option because it is handled
             // in a different way.
@@ -485,30 +453,37 @@ internal class ScratchPadUI : Window, IReflected
                 ImGui.SetTooltip("Select the chat header.");
 
             // Convert ctype back to ChatType and set _chatType
-            this._chatType = (ChatType)ctype;
+            this._header.ChatType = (ChatType)ctype;
 
             // Chat target bar is only shown if the mode is tell
-            if ( this._chatType == ChatType.Tell)
+            if ( this._header.ChatType == ChatType.Tell)
             {
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
-                ImGui.InputTextWithHint($"##TellTargetText{this.ID}", "User Name@World", ref _telltarget, 128);
+
+                string str = this._header.TellTarget;
+                ImGui.InputTextWithHint($"##TellTargetText{this.ID}", "User Name@World", ref str, 128);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("Enter the user and world or a placeholder here.");
+                this._header.TellTarget = str;
             }
 
             // Linkshell selection
-            else if ( this._chatType == ChatType.Linkshell)
+            else if ( this._header.ChatType == ChatType.Linkshell)
             {
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(-1);
-                ImGui.Checkbox("Cross-World", ref this._crossWorld );
+                bool b = this._header.CrossWorld;
+                ImGui.Checkbox("Cross-World", ref b );
+                this._header.CrossWorld = b;
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth(-1);
-                ImGui.Combo($"##ScratchPad{this.ID}LinkshellCombo", ref this._linkshell, (this._crossWorld ? Wordsmith.Configuration.CrossWorldLinkshellNames : Wordsmith.Configuration.LinkshellNames), 8);
+                int l = this._header.Linkshell;
+                ImGui.Combo($"##ScratchPad{this.ID}LinkshellCombo", ref l, (this._header.CrossWorld ? Wordsmith.Configuration.CrossWorldLinkshellNames : Wordsmith.Configuration.LinkshellNames), 8);
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("Enter a custom targer here such as /cwls1.");
+                this._header.Linkshell = l;
             }
 
             ImGui.TableNextColumn();
@@ -582,7 +557,7 @@ internal class ScratchPadUI : Window, IReflected
                     ImGui.Separator();
 
                     if (Wordsmith.Configuration.EnableTextHighlighting)
-                        DrawChunkItem( this._chunks[i], this._chatType );
+                        DrawChunkItem( this._chunks[i], this._header.ChatType );
                     else
                     {
                         // Set width and display the chunk.
@@ -595,7 +570,7 @@ internal class ScratchPadUI : Window, IReflected
             else
             {
                 ImGui.SetNextItemWidth(-1);
-                ImGui.TextWrapped($"{GetFullChatHeader()}{(this._useOOC ? "(( " : "")}{this.ScratchString}{(this._useOOC ? " ))" : "")}");
+                ImGui.TextWrapped($"{this._header}{(this._useOOC ? "(( " : "")}{this.ScratchString}{(this._useOOC ? " ))" : "")}");
             }
 
             if ( this._textchanged )
@@ -994,7 +969,7 @@ internal class ScratchPadUI : Window, IReflected
             ImGui.BeginGroup();
 
             // Get the text chunks.
-            List<TextChunk>? result = ChatHelper.FFXIVify(GetFullChatHeader(p.ChatType, p.TellTarget, p.CrossWorld, p.Linkshell), p.ScratchText, p.UseOOC);
+            List<TextChunk>? result = ChatHelper.FFXIVify(p.Header, p.ScratchText, p.UseOOC);
             if ( result == null )
                 return;
 
@@ -1006,7 +981,7 @@ internal class ScratchPadUI : Window, IReflected
                 if ( i > 0 )
                     ImGui.Spacing();
 
-                DrawChunkItem( tlist[i], p.ChatType );
+                DrawChunkItem( tlist[i], p.Header.ChatType );
             }
 
             // End the group.
@@ -1031,10 +1006,7 @@ internal class ScratchPadUI : Window, IReflected
                     PadState selected = this._text_history[this._selected_history];
 
                     // Revert to given padstate
-                    this._chatType = selected.ChatType;
-                    this._telltarget = selected.TellTarget;
-                    this._crossWorld = selected.CrossWorld;
-                    this._linkshell = selected.Linkshell;
+                    this._header = selected.Header;
                     this._scratch = selected.ScratchText;
 
                     // Exit history.
@@ -1055,7 +1027,7 @@ internal class ScratchPadUI : Window, IReflected
                     PadState selected = this._text_history[this._selected_history];
 
                     // Get each chunk
-                    List<TextChunk>? results = ChatHelper.FFXIVify(GetFullChatHeader(selected.ChatType, selected.TellTarget, selected.CrossWorld, selected.Linkshell), selected.ScratchText, selected.UseOOC);
+                    List<TextChunk>? results = ChatHelper.FFXIVify(selected.Header, selected.ScratchText, selected.UseOOC);
                     if ( results != null )
                     {
                         List<TextChunk> chunks = results;
@@ -1441,6 +1413,13 @@ internal class ScratchPadUI : Window, IReflected
         }
     }
 
+    internal void OnDataChanged(object? sender, EventArgs e)
+    {
+        if ( sender == this.Header )
+            foreach ( TextChunk tc in this._chunks )
+                tc.Header = this.Header.ToString();
+    }
+
     /// <summary>
     /// Identifies the callback type and routes it accordingly
     /// </summary>
@@ -1596,7 +1575,8 @@ internal class ScratchPadUI : Window, IReflected
             if ( text.Length > 1 )
             {
                 // Default to ChatType None
-                HeaderData headerData = new(text);
+                int len;
+                HeaderData headerData = new(text, out len);
 
                 // If the header data was not validated return to avoid
                 // the rest of the checks.
@@ -1608,13 +1588,10 @@ internal class ScratchPadUI : Window, IReflected
                 //If a chat header was found
                 if ( headerData.ChatType != ChatType.None && cursorPos >= headerData.Length )
                 {
-                    this._chatType = headerData.ChatType;
-                    this._linkshell = headerData.Linkshell;
-                    this._crossWorld = headerData.CrossWorld;
-                    this._telltarget = headerData.TellTarget;
+                    this._header = headerData;
 
-                    text = text.Remove( 0, headerData.Length );
-                    cursorPos -= headerData.Length;
+                    text = text.Remove( 0, len );
+                    cursorPos -= len;
                 }
 
                 // If the header hasn't been detected, check for a corresponding alias
@@ -1774,7 +1751,7 @@ internal class ScratchPadUI : Window, IReflected
             this._lastState = newState;
 
             // Rebuild chunks and reset chunk position counter.
-            this._chunks =ChatHelper.FFXIVify( GetFullChatHeader(), this.ScratchString, this._useOOC ) ?? new();
+            this._chunks =ChatHelper.FFXIVify( this._header, this.ScratchString, this._useOOC ) ?? new();
             this._nextChunk = 0;
 
             if ( this._spellchecktimer.Interval != Wordsmith.Configuration.AutoSpellCheckDelay * 1000 )
