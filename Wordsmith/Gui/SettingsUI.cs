@@ -1,7 +1,6 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-using Wordsmith.Data;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
 
@@ -301,7 +300,7 @@ public sealed class SettingsUI : Window, IReflected
                             ImGui.Text( pad.ID.ToString() );
 
                             ImGui.TableNextColumn();
-                            ImGui.Text( pad.GetFullChatHeader().Length > 0 ? pad.GetFullChatHeader() : "None" );
+                            ImGui.Text( pad.Header.Length > 0 ? pad.Header.ToString() : "None" );
 
                             ImGui.TableNextColumn();
                             if ( !pad.IsOpen )

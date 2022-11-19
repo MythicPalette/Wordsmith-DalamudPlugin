@@ -1,7 +1,4 @@
-﻿
-using Wordsmith.Data;
-
-namespace Wordsmith.Helpers;
+﻿namespace Wordsmith.Helpers;
 
 internal class ChatHelper: IReflected
 {
@@ -12,7 +9,7 @@ internal class ChatHelper: IReflected
     /// <param name="header">The header to place at the front of each string (i.e. /tell Player Name@World)</param>
     /// <param name="text">The text to be conferted into strings.</param>
     /// <returns>Returns an array of strings, all under 500 bytes to prepare for sending.</returns>
-    internal static List<TextChunk>? FFXIVify(string header, string text, bool OOC)
+    internal static List<TextChunk>? FFXIVify(HeaderData header, string text, bool OOC)
     {
         try
         {
@@ -57,7 +54,7 @@ internal class ChatHelper: IReflected
                         // trimmed from the string, we want to eliminate it from the chunk
                         // text.
                         StartIndex = offset + (str.Length - str.TrimStart().Length),
-                        Header = header,
+                        Header = header.ToString(),
                         OutOfCharacterStartTag = OOC ? Wordsmith.Configuration.OocOpeningTag : "",
                         OutOfCharacterEndTag = OOC ? Wordsmith.Configuration.OocClosingTag : ""
                     } );

@@ -1,5 +1,6 @@
 ﻿using System.Net.Http;
 using HtmlAgilityPack;
+using Wordsmith;
 
 namespace Wordsmith.Helpers;
 
@@ -11,14 +12,14 @@ public class SearchHelper : IDisposable
 
     public Exception? Error { get; private set; } = null;
 
-    protected List<Data.WordSearchResult> _history = new List<Data.WordSearchResult>();
-    public Data.WordSearchResult[] History => _history.ToArray();
+    protected List<Wordsmith.WordSearchResult> _history = new List<Wordsmith.WordSearchResult>();
+    public Wordsmith.WordSearchResult[] History => _history.ToArray();
 
     /// <summary>
     /// Adds a searched item to the history.
     /// </summary>
     /// <param name="entry">The entry to add to the history.</param>
-    protected void AddHistoryEntry(Data.WordSearchResult entry)
+    protected void AddHistoryEntry(Wordsmith.WordSearchResult entry)
     {
         // Add the latest to the history
         _history.Insert(0, entry);
@@ -33,7 +34,7 @@ public class SearchHelper : IDisposable
     /// Deletes an item from the search history.
     /// </summary>
     /// <param name="entry">Entry to be removed from history</param>
-    public void DeleteResult(Data.WordSearchResult? entry)
+    public void DeleteResult(Wordsmith.WordSearchResult? entry)
     {
         if (entry == null)
             return;
@@ -91,7 +92,7 @@ public class SearchHelper : IDisposable
                 return true;
 
             // Check if current query is in the history
-            Data.WordSearchResult? result = History.FirstOrDefault(r => r.Query == query);
+            Wordsmith.WordSearchResult? result = History.FirstOrDefault(r => r.Query == query);
 
             // If a match is found
             if (result != null)
@@ -146,7 +147,7 @@ public class SearchHelper : IDisposable
                 .ForEach(node => node.Remove());
 
             // Empty out any previous results.
-            Data.WordSearchResult result = new Data.WordSearchResult(query);
+            Wordsmith.WordSearchResult result = new Data.WordSearchResult(query);
 
             // Get the Word variants;
             List<HtmlNode> variants = doc.DocumentNode.SelectNodes("//div[@class='row entry-header thesaurus']").ToList();
@@ -158,7 +159,7 @@ public class SearchHelper : IDisposable
             {
                 _progress += (0.91f / (float)variants.Count);
 
-                Data.ThesaurusEntry tEntry = new Data.ThesaurusEntry();
+                Wordsmith.ThesaurusEntry tEntry = new Data.ThesaurusEntry();
 
                 tEntry.Word = query;
 

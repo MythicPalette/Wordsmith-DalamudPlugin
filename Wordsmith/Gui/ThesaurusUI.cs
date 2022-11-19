@@ -2,6 +2,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Helpers;
+using Wordsmith;
 
 namespace Wordsmith.Gui;
 
@@ -55,7 +56,7 @@ public class ThesaurusUI : Window, IReflected
                 if (ImGui.BeginChild("SearchResultWindow"))
                 {
                     DrawSearchErrors();
-                    foreach (Data.WordSearchResult result in SearchHelper.History)
+                    foreach (Wordsmith.WordSearchResult result in SearchHelper.History)
                         DrawSearchResult(result);
 
                     // End the child element.
@@ -132,7 +133,7 @@ public class ThesaurusUI : Window, IReflected
     /// Draws one search result item to the UI.
     /// </summary>
     /// <param name="result">The search result to be drawn</param>
-    protected void DrawSearchResult(Data.WordSearchResult result)
+    protected void DrawSearchResult(Wordsmith.WordSearchResult result)
     {
         if (result != null)
         {
@@ -140,7 +141,7 @@ public class ThesaurusUI : Window, IReflected
             if (ImGui.CollapsingHeader($"{result.Query.Trim().CaplitalizeFirst()}##{result.ID}", ref vis, ImGuiTreeNodeFlags.DefaultOpen))
             {
                 ImGui.Indent();
-                foreach (Data.ThesaurusEntry entry in result?.Entries ?? Array.Empty<Data.ThesaurusEntry>())
+                foreach (Wordsmith.ThesaurusEntry entry in result?.Entries ?? Array.Empty<Wordsmith.ThesaurusEntry>())
                     DrawEntry(entry);
 
                 if(!vis)
@@ -155,7 +156,7 @@ public class ThesaurusUI : Window, IReflected
     /// Draws a search result's entry data. One search result can have multiple data entries.
     /// </summary>
     /// <param name="entry">The data to draw.</param>
-    protected void DrawEntry(Data.ThesaurusEntry entry)
+    protected void DrawEntry(Wordsmith.ThesaurusEntry entry)
     {
         if (ImGui.CollapsingHeader(
                     char.ToUpper((entry.Type.Trim())[0]).ToString() + entry.Type.Substring(1) + $"##{entry.ID}"))

@@ -1,6 +1,5 @@
 ﻿using System.Net.Http;
 using Newtonsoft.Json;
-using Wordsmith.Data;
 
 namespace Wordsmith.Helpers
 {

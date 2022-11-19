@@ -2,9 +2,8 @@
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Wordsmith.Helpers;
 
-namespace Wordsmith.Data;
+namespace Wordsmith.Helpers;
 
 public static class Lang
 {
@@ -23,9 +22,9 @@ public static class Lang
             _enabled = value;
             try
             {
-                PluginLog.LogVerbose( $"Lang {(value ? "enabled" : "disabled")}." );
+                PluginLog.LogVerbose($"Lang {(value ? "enabled" : "disabled")}.");
             }
-            catch ( Exception ) { } // Silently fail to log.
+            catch (Exception) { } // Silently fail to log.
         }
     }
 
@@ -34,7 +33,7 @@ public static class Lang
     /// </summary>
     /// <param name="key">String to search for.</param>
     /// <returns><see langword="true""/> if the word is in the dictionary</returns>
-    public static bool isWord( string key ) => isWord( key, true );
+    public static bool isWord(string key) => isWord(key, true);
 
     /// <summary>
     /// Verifies that the string exists in the hash table
@@ -42,27 +41,27 @@ public static class Lang
     /// <param name="key">String to search for.</param>
     /// <param name="lowercase">If <see langword="true"/> then the string is made lowercase.</param>
     /// <returns><see langword="true""/> if the word is in the dictionary</returns>
-    public static bool isWord(string key, bool lowercase) => _dictionary.Contains( lowercase ? key.ToLower() : key );
+    public static bool isWord(string key, bool lowercase) => _dictionary.Contains(lowercase ? key.ToLower() : key);
 
     private static void ValidateAndAddWord(string candidate)
     {
         // Split and trim the candidate into all possible words. This should break entries with multiple words into single entries.
         string[] splits = candidate.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-        foreach ( string s in splits )
-            _dictionary.Add( s.ToLower() );
+        foreach (string s in splits)
+            _dictionary.Add(s.ToLower());
     }
 
     /// <summary>
     /// Load the language file and enable spell checks.
     /// </summary>
-    public static void Init() => Init( false );
+    public static void Init() => Init(false);
 
-    private static void Init( bool notify )
+    private static void Init(bool notify)
     {
         _dictionary.Clear();
 
-        Task t = new(()=>
+        Task t = new(() =>
         {
             // Load the dictionary
             bool web_loaded = LoadWebLanguage();
@@ -71,17 +70,17 @@ public static class Lang
             bool file_loaded = web_loaded ? false : LoadLanguageFile();
 
             // If both failed to load then present the failure notification
-            if ( !(web_loaded || file_loaded) )
-                Wordsmith.PluginInterface.UiBuilder.AddNotification( $"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning );
+            if (!(web_loaded || file_loaded))
+                Wordsmith.PluginInterface.UiBuilder.AddNotification($"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning);
             else
             {
                 // Add all of the custom dictionary entries to the dictionary
-                foreach ( string word in Wordsmith.Configuration.CustomDictionaryEntries )
-                    ValidateAndAddWord( word );//_dictionary.Add( word.Trim().ToLower() );
+                foreach (string word in Wordsmith.Configuration.CustomDictionaryEntries)
+                    ValidateAndAddWord(word);//_dictionary.Add( word.Trim().ToLower() );
 
                 Enabled = true;
-                if ( notify )
-                    Wordsmith.PluginInterface.UiBuilder.AddNotification( $"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+                if (notify)
+                    Wordsmith.PluginInterface.UiBuilder.AddNotification($"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
             }
         });
         t.Start();
@@ -98,37 +97,37 @@ public static class Lang
         // Get the manifest
         Manifest = Git.GetManifest();
 
-        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^(?:web: )*(.+)" );
-        if ( !m.Success )
+        Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:web: )*(.+)");
+        if (!m.Success)
             return false;
 
         string title = m.Groups[1].Value;
 
         // If the dictionary isn't in the manifest the user may have a custom dictionary
         // file that they prefer to use. Check for its existence here.
-        if ( !Manifest.IsLoaded || !Manifest.Dictionaries.Contains( title ) )// Wordsmith.Configuration.DictionaryFile ) )
+        if (!Manifest.IsLoaded || !Manifest.Dictionaries.Contains(title))// Wordsmith.Configuration.DictionaryFile ) )
             return false;
 
         try
         {
             // Load the dictionary array
-            string[] lines = Git.LoadDictionary( title );
-            foreach ( string l in lines )
-                if ( !l.StartsWith( "#" ) && l.Trim().Length > 0 )
-                    ValidateAndAddWord( l ); //_dictionary.Add( l.Trim().ToLower() );
+            string[] lines = Git.LoadDictionary(title);
+            foreach (string l in lines)
+                if (!l.StartsWith("#") && l.Trim().Length > 0)
+                    ValidateAndAddWord(l); //_dictionary.Add( l.Trim().ToLower() );
             return true;
         }
-        catch ( HttpRequestException e )
+        catch (HttpRequestException e)
         {
-            if ( e.StatusCode != System.Net.HttpStatusCode.OK )
-                PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}" );
+            if (e.StatusCode != System.Net.HttpStatusCode.OK)
+                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}");
             else
-                PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}" );
+                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
-        catch ( Exception e )
+        catch (Exception e)
         {
-            PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}" );
+            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
     }
@@ -138,8 +137,8 @@ public static class Lang
     /// </summary>
     private static bool LoadLanguageFile()
     {
-        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^(?:local: )*(.+)" );
-        if ( !m.Success )
+        Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:local: )*(.+)");
+        if (!m.Success)
             return false;
 
         string title = m.Groups[1].Value;
@@ -148,7 +147,7 @@ public static class Lang
         string filepath = Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, $"Dictionaries\\{title}"); // Wordsmith.Configuration.DictionaryFile.Replace($"local: ", "")}");
 
         // If the file doesn't exist then abort
-        if ( !File.Exists( filepath ) )
+        if (!File.Exists(filepath))
             return false;
 
         try
@@ -157,15 +156,15 @@ public static class Lang
             string[] lines = File.ReadAllLines(filepath);
 
             // Iterate over each word and add it to the dictionary
-            foreach ( string l in lines )
-                if ( !l.StartsWith( "#" ) && l.Trim().Length > 0 )
-                    ValidateAndAddWord( l ); //_dictionary.Add( l.Trim().ToLower() );
+            foreach (string l in lines)
+                if (!l.StartsWith("#") && l.Trim().Length > 0)
+                    ValidateAndAddWord(l); //_dictionary.Add( l.Trim().ToLower() );
 
             return true;
         }
-        catch ( Exception e )
+        catch (Exception e)
         {
-            PluginLog.LogError( $"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}" );
+            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
         }
         return false;
     }
@@ -198,14 +197,14 @@ public static class Lang
     /// <param name="word">String to remove</param>
     public static void RemoveDictionaryEntry(string word)
     {
-        _dictionary.Remove( word.Trim().ToLower() );
-        Wordsmith.Configuration.CustomDictionaryEntries.Remove( word.Trim().ToLower() );
+        _dictionary.Remove(word.Trim().ToLower());
+        Wordsmith.Configuration.CustomDictionaryEntries.Remove(word.Trim().ToLower());
         Wordsmith.Configuration.Save();
     }
 
     internal static void GetSuggestions(ref List<string> list, string word)
     {
-        if ( word.Length == 0)
+        if (word.Length == 0)
             return;
 
         // Check if the first character is capitalized.
@@ -213,52 +212,52 @@ public static class Lang
 
         // Get the lowercase version of the word for the remaining tests.
         word = word.ToLower();
-        
+
         List<string> results = GenerateTranspose(word, isCapped, true);
 
         // Splits
-        if ( results.Count < Wordsmith.Configuration.MaximumSuggestions )
+        if (results.Count < Wordsmith.Configuration.MaximumSuggestions)
         {
             List<string> splits = GenerateSplits(word);
-            foreach ( string s in splits )
+            foreach (string s in splits)
             {
-                if ( results.Count == Wordsmith.Configuration.MaximumSuggestions )
+                if (results.Count == Wordsmith.Configuration.MaximumSuggestions)
                     break;
 
-                if ( !results.Contains( s ) )
-                    results.Add( s );
+                if (!results.Contains(s))
+                    results.Add(s);
             }
         }
 
         // Letter deletes
-        if ( results.Count < Wordsmith.Configuration.MaximumSuggestions )
+        if (results.Count < Wordsmith.Configuration.MaximumSuggestions)
         {
             List<string> deletes = GenerateDeletes(word, isCapped, true);
-            foreach ( string s in deletes )
+            foreach (string s in deletes)
             {
-                if ( results.Count >= Wordsmith.Configuration.MaximumSuggestions )
+                if (results.Count >= Wordsmith.Configuration.MaximumSuggestions)
                     break;
 
-                if ( isWord( s ) )
-                    results.Add( s );
+                if (isWord(s))
+                    results.Add(s);
             }
         }
 
         // One away and two away.
-        if ( results.Count < Wordsmith.Configuration.MaximumSuggestions )
+        if (results.Count < Wordsmith.Configuration.MaximumSuggestions)
         {
             List<string> aways = GenerateAway(word, 2, isCapped, false);
 
-            foreach ( string s in aways )
+            foreach (string s in aways)
             {
-                if ( results.Count >= Wordsmith.Configuration.MaximumSuggestions )
+                if (results.Count >= Wordsmith.Configuration.MaximumSuggestions)
                     break;
 
-                if ( isWord( s ) && !results.Contains(s) )
-                    results.Add( s );
+                if (isWord(s) && !results.Contains(s))
+                    results.Add(s);
             }
         }
-        list = new( results );
+        list = new(results);
     }
 
     private static List<string> GenerateTranspose(string word, bool isCapped, bool filter)
@@ -266,7 +265,7 @@ public static class Lang
         List<string> results = new();
 
         // Letter swaps
-        for ( int x = 0; x < word.Length - 1; ++x )
+        for (int x = 0; x < word.Length - 1; ++x)
         {
             // Get the chars.
             char[] chars = word.ToCharArray();
@@ -280,22 +279,22 @@ public static class Lang
             // Overwite char at x+1 with x.
             chars[x + 1] = y;
 
-            if ( !filter || isWord( new string( chars ) ) )
-                results.Add( isCapped ? new string( chars ).CaplitalizeFirst() : new string( chars ) );
+            if (!filter || isWord(new string(chars)))
+                results.Add(isCapped ? new string(chars).CaplitalizeFirst() : new string(chars));
         }
         return results;
     }
 
     private static List<string> GenerateDeletes(string word, bool isCapped, bool filter)
     {
-        if ( word.Length == 0 )
+        if (word.Length == 0)
             return new();
 
         List<string> results = new();
-        for (int i = 0; i < word.Length; ++i )
+        for (int i = 0; i < word.Length; ++i)
         {
-            if ( !filter || isWord( word.Remove( i, 1 ) ) )
-                    results.Add( isCapped ? word.Remove( i, 1 ).CaplitalizeFirst() : word.Remove( i, 1 ) );
+            if (!filter || isWord(word.Remove(i, 1)))
+                results.Add(isCapped ? word.Remove(i, 1).CaplitalizeFirst() : word.Remove(i, 1));
         }
 
         return results;
@@ -311,11 +310,11 @@ public static class Lang
         // add word one + word two
         // return results
         List<string> results = new();
-        for (int i = 1; i < word.Length -1; ++i)
+        for (int i = 1; i < word.Length - 1; ++i)
         {
             string[] splits = new string[] { word[0..i], word[i..^0] };
-            if ( isWord( splits[0] ) && isWord( splits[1] ) )
-                results.Add( $"{splits[0]} {splits[1]}" );
+            if (isWord(splits[0]) && isWord(splits[1]))
+                results.Add($"{splits[0]} {splits[1]}");
         }
         return results;
     }
@@ -325,53 +324,53 @@ public static class Lang
         string letters = "abcdefghijklmnopqrstuvwxyz";
         List<string> results = new();
 
-        for ( int z = 0; z < 2; ++z )
+        for (int z = 0; z < 2; ++z)
         {
-            for ( int x = -1; x <= word.Length; ++x )
+            for (int x = -1; x <= word.Length; ++x)
             {
                 // Insert letter at the start of the word
-                if ( x == -1 )
+                if (x == -1)
                 {
                     // If z == 0 we skip this iteration.
-                    if ( z == 0 )
+                    if (z == 0)
                         continue;
 
-                    for ( int y = 0; y < letters.Length; ++y )
+                    for (int y = 0; y < letters.Length; ++y)
                     {
                         string test = $"{letters[y]}{word}";
-                        if ( !filter || isWord( test ) && !results.Contains( test ) )
-                            results.Add( test );
+                        if (!filter || isWord(test) && !results.Contains(test))
+                            results.Add(test);
                     }
                 }
                 // Append letter to the end.
-                else if ( x == word.Length )
+                else if (x == word.Length)
                 {
                     // If z == 0 we skip this iteration.
-                    if ( z == 0 )
+                    if (z == 0)
                         continue;
-                    for ( int y = 0; y < letters.Length; ++y )
+                    for (int y = 0; y < letters.Length; ++y)
                     {
                         string test = $"{word}{letters[y]}";
-                        if ( !filter || isWord( test ) && !results.Contains( test ) )
-                            results.Add( test );
+                        if (!filter || isWord(test) && !results.Contains(test))
+                            results.Add(test);
                     }
                 }
                 // x will make the code switch between overwritting vowels and consenants.
                 else
                 {
-                    for ( int y = 0; y < letters.Length; ++y )
+                    for (int y = 0; y < letters.Length; ++y)
                     {
                         char[] chars = word.ToCharArray();
 
                         // Start with vowel replacements, these are more common than
                         // consonant mistakes.
-                        if ( "aAeEiIoOuUyY".Contains( chars[x] ) == (z == 0) )
+                        if ("aAeEiIoOuUyY".Contains(chars[x]) == (z == 0))
                         {
                             chars[x] = letters[y];
-                            string test = new string( chars );
+                            string test = new string(chars);
 
-                            if ( (!filter || isWord( test )) && !results.Contains( test ) )
-                                results.Add( isCapped ? test.CaplitalizeFirst() : test );
+                            if ((!filter || isWord(test)) && !results.Contains(test))
+                                results.Add(isCapped ? test.CaplitalizeFirst() : test);
                         }
 
                         // For optimization break out of the y loop to avoid checking this
@@ -388,7 +387,7 @@ public static class Lang
         {
             List<string> parents = new List<string>(results);
             foreach (string s in parents)
-                results.AddRange(GenerateAway(s, depth-1, isCapped, depth>2));
+                results.AddRange(GenerateAway(s, depth - 1, isCapped, depth > 2));
         }
         return results;
     }
