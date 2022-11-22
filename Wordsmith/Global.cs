@@ -11,7 +11,7 @@ namespace Wordsmith;
 
 internal static class Global
 {
-    internal static ImGuiScene.TextureWrap MW_LOGO;
+    internal static ImGuiScene.TextureWrap? MW_LOGO = null;
     internal const int BUTTON_Y = 25;
     #region Strings
     internal const string SPACED_WRAP_MARKER = "\r\r";
