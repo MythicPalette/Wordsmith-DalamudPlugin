@@ -1,4 +1,4 @@
-﻿using System.Data;
+﻿using System.ComponentModel;
 using System.Text.RegularExpressions;
 using Wordsmith.Enums;
 
@@ -6,7 +6,9 @@ namespace Wordsmith;
 
 internal class HeaderData
 {
-    internal event EventHandler? DataChanged;
+    // Event for when header data is changed.
+    internal delegate void DataChangedHandler( HeaderData data );
+    internal event DataChangedHandler? DataChanged;
 
     private ChatType _chatType;
     public ChatType ChatType
@@ -20,7 +22,7 @@ internal class HeaderData
                 return;
 
             _chatType = value;
-            DataChanged?.Invoke(this, EventArgs.Empty);
+            DataChanged?.Invoke(this);
         }
     }
 
@@ -36,7 +38,7 @@ internal class HeaderData
                 return;
 
             _linkshell = value;
-            DataChanged?.Invoke(this, EventArgs.Empty);
+            DataChanged?.Invoke(this);
         }
     }
 
@@ -52,7 +54,7 @@ internal class HeaderData
                 return;
 
             _crossWorld = value;
-            DataChanged?.Invoke(this, EventArgs.Empty);
+            DataChanged?.Invoke(this);
         }
     }
 
@@ -68,7 +70,7 @@ internal class HeaderData
                 return;
 
             _tellTarget = value;
-            DataChanged?.Invoke(this, EventArgs.Empty);
+            DataChanged?.Invoke(this);
         }
     }
 
@@ -377,15 +379,23 @@ internal sealed class Word
 
     public Word() { }
 
-    public string GetString(string s) => GetString(s, 0);
-    public string GetString(string s, int offset) => StartIndex + offset >= 0 && StartIndex < EndIndex && EndIndex + offset <= s.Unwrap().Length ? s.Unwrap()[(StartIndex + offset)..(EndIndex + offset)] : "";
-    public string GetWordString(string s) => GetWordString(s, 0);
-    public string GetWordString(string s, int offset) => WordIndex + offset >= 0 && WordLength > 0 && WordIndex + WordLength + offset <= s.Unwrap().Length ? s.Unwrap()[(WordIndex + offset)..(WordIndex + WordLength + offset)] : "";
-    public void Offset(int value)
+    internal string GetString(string s) => GetString(s, 0);
+    internal string GetString(string s, int offset) => StartIndex + offset >= 0 && StartIndex < EndIndex && EndIndex + offset <= s.Unwrap().Length ? s.Unwrap()[(StartIndex + offset)..(EndIndex + offset)] : "";
+    internal string GetWordString(string s) => GetWordString(s, 0);
+    internal string GetWordString(string s, int offset) => WordIndex + offset >= 0 && WordLength > 0 && WordIndex + WordLength + offset <= s.Unwrap().Length ? s.Unwrap()[(WordIndex + offset)..(WordIndex + WordLength + offset)] : "";
+    internal void Offset(int value)
     {
         StartIndex += value;
         WordIndex += value;
         EndIndex += value;
+    }
+    internal void GenerateSuggestions(string wordText)
+    {
+        this.Suggestions = new();
+        BackgroundWorker bw = new();
+        bw.DoWork += ( s, e ) => { e.Result = Helpers.Lang.GetSuggestions( wordText ); };
+        bw.RunWorkerCompleted += ( s, e ) => { if ( e.Result is not null ) this.Suggestions = (List<string>)e.Result; };
+        bw.RunWorkerAsync();
     }
 }
 
@@ -418,6 +428,11 @@ public class WordEntry
     /// One word can have multiple variants
     /// </summary>
     public string Definition { get; set; } = "";
+    
+    /// <summary>
+    /// A textual description of the word usage.
+    /// </summary>
+    public string Visualization { get; set; } = "";
 
     /// <summary>
     /// Default constructor that just assigns an ID.

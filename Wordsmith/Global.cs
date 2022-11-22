@@ -11,6 +11,8 @@ namespace Wordsmith;
 
 internal static class Global
 {
+    internal static ImGuiScene.TextureWrap MW_LOGO;
+    internal const int BUTTON_Y = 25;
     #region Strings
     internal const string SPACED_WRAP_MARKER = "\r\r";
     internal const string NOSPACE_WRAP_MARKER = "\r";
@@ -31,8 +33,9 @@ internal static class Global
     internal const int CORRECTIONS_NOT_FOUND = 2;
     #endregion
 
-    #region Scratch Pad Editor State
+    #region ScratchPad
     internal const int EDITING_TEXT = 0;
     internal const int VIEWING_HISTORY = 1;
+    internal const int TEXTINPUT_LINES = 5;
     #endregion
 }

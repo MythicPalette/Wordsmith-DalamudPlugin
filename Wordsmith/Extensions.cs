@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
-using Dalamud.Interface.Windowing;
+using Dalamud.Interface;
+using ImGuiNET;
 
 namespace Wordsmith;
 
@@ -125,6 +126,116 @@ internal static class Extensions
     /// <param name="s">The <see cref="string"/> to be unwrapped.</param>
     /// <returns><see cref="string"/> with all wrap markers replaced.</returns>
     internal static string Unwrap( this string s ) => s.Trim().Replace( Global.SPACED_WRAP_MARKER + "\n", " " ).Replace( Global.NOSPACE_WRAP_MARKER + "\n", "" );
+
+    internal static string Wrap( this string text, float width )
+    {
+        int _ = 0;
+        return text.Wrap( width, ref _ );
+    }
+    /// <summary>
+    /// Wraps the text string based on the current width of the window.
+    /// </summary>
+    /// <param name="text">The string to be wrapped.</param>
+    /// <returns></returns>
+    internal static string Wrap( this string text, float width, ref int cursorPos )
+    {
+        // If the string is empty then just return it.
+        if ( text.Length == 0 )
+            return text;
+
+        // Trim any return carriages off the end. This can happen if the user
+        // backspaces a new line character off of the end.
+        text = text.TrimEnd( '\r' );
+
+        // Replace all wrap markers with spaces and adjust cursor offset. Do this before
+        // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
+        while ( text.Contains( Global.SPACED_WRAP_MARKER + '\n' ) )
+        {
+            int idx = text.IndexOf(Global.SPACED_WRAP_MARKER + '\n');
+            text = text[0..idx] + " " + text[(idx + (Global.SPACED_WRAP_MARKER + '\n').Length)..^0];
+
+            // We adjust the cursor position by one less than the wrap marker
+            // length to account for the space that replaces it.
+            if ( cursorPos > idx )
+                cursorPos -= Global.SPACED_WRAP_MARKER.Length;
+
+        }
+
+        // Replace all non-spaced wrap markers with an empty zone.
+        while ( text.Contains( Global.NOSPACE_WRAP_MARKER + '\n' ) )
+        {
+            int idx = text.IndexOf(Global.NOSPACE_WRAP_MARKER + '\n');
+            text = text[0..idx] + text[(idx + (Global.NOSPACE_WRAP_MARKER + '\n').Length)..^0];
+
+            if ( cursorPos > idx )
+                cursorPos -= (Global.NOSPACE_WRAP_MARKER + '\n').Length;
+        }
+
+        // Replace all remaining carriage return characters with nothing.
+        while ( text.Contains( '\r' ) )
+        {
+            // Get the index of the character
+            int idx = text.IndexOf('\r');
+
+            // Splice the string around the character.
+            text = text[0..idx] + text[(idx + 1)..^0];
+
+            // If the cursor is behind the edit, move the cursor with the edited text.
+            if ( cursorPos > idx )
+                cursorPos -= 1;
+        }
+
+        // Replace double spaces if configured to do so.
+        if ( Wordsmith.Configuration.ReplaceDoubleSpaces )
+            text = text.FixSpacing( ref cursorPos );
+
+        // Get the maximum allowed character width.
+        //float width = this._lastWidth - (35 * ImGuiHelpers.GlobalScale);
+
+        // Iterate through each character.
+        int lastSpace = 0;
+        int offset = 0;
+        for ( int i = 1; i < text.Length; ++i )
+        {
+            // If the current character is a space, mark it as a wrap point.
+            if ( text[i] == ' ' )
+                lastSpace = i;
+
+            // If the size of the text is wider than the available size
+            float txtWidth = ImGui.CalcTextSize(text[offset..i ]).X;
+            if ( txtWidth + 10 * ImGuiHelpers.GlobalScale > width )
+            {
+                // Replace the last previous space with a new line
+                StringBuilder sb = new(text);
+
+                if ( lastSpace > offset )
+                {
+                    sb.Remove( lastSpace, 1 );
+                    sb.Insert( lastSpace, Global.SPACED_WRAP_MARKER + '\n' );
+                    offset = lastSpace + Global.SPACED_WRAP_MARKER.Length;
+                    i += Global.SPACED_WRAP_MARKER.Length;
+
+                    // Adjust cursor position for the marker but not
+                    // the new line as the new line is replacing the space.
+                    if ( lastSpace < cursorPos )
+                        cursorPos += Global.SPACED_WRAP_MARKER.Length;
+                }
+                else
+                {
+                    sb.Insert( i, Global.NOSPACE_WRAP_MARKER + '\n' );
+                    offset = i + Global.NOSPACE_WRAP_MARKER.Length;
+                    i += Global.NOSPACE_WRAP_MARKER.Length;
+
+                    // Adjust cursor position for the marker and the
+                    // new line since both are inserted.
+                    if ( cursorPos > i - Global.NOSPACE_WRAP_MARKER.Length )
+                        cursorPos += Global.NOSPACE_WRAP_MARKER.Length + 1;
+                }
+                text = sb.ToString();
+            }
+        }
+        return text;
+    }
 
     /// <summary>
     /// Takes a string and attempts to collect all of the words inside of it.

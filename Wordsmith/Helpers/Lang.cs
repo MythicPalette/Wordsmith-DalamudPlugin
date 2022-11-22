@@ -202,62 +202,60 @@ public static class Lang
         Wordsmith.Configuration.Save();
     }
 
-    internal static void GetSuggestions(ref List<string> list, string word)
+    internal static IReadOnlyList<string> GetSuggestions(string word)
     {
-        if (word.Length == 0)
-            return;
+        if ( word.Length == 0 )
+            throw new Exception( $"GetSuggestions({word}) failed. Word must have length." );
 
         // Check if the first character is capitalized.
-        bool isCapped = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".Contains(word[0]);
+        bool isCapped = Regex.Match(word, @"^\s*[A-Z].*").Success; //"ABCDEFGHIJKLMNOPQRSTUVWXYZ".Contains(word[0]);
 
         // Get the lowercase version of the word for the remaining tests.
         word = word.ToLower();
 
-        List<string> results = GenerateTranspose(word, isCapped, true);
+        // Generate all of the possible suggestions. We start the GenerateAway thread first as it
+        // is by far the longest process.
+        Task<List<string>> aways = new(() => { return GenerateAway(word, 2, isCapped, false); });
+        aways.Start();
 
-        // Splits
-        if (results.Count < Wordsmith.Configuration.MaximumSuggestions)
-        {
-            List<string> splits = GenerateSplits(word);
-            foreach (string s in splits)
-            {
-                if (results.Count == Wordsmith.Configuration.MaximumSuggestions)
-                    break;
+        Task<List<string>> transpose = new(() => { return GenerateTranspose(word, isCapped, true); } );
+        transpose.Start();
 
-                if (!results.Contains(s))
-                    results.Add(s);
-            }
-        }
+        Task<List<string>> splits = new(() => { return GenerateSplits(word); });
+        splits.Start();
 
-        // Letter deletes
-        if (results.Count < Wordsmith.Configuration.MaximumSuggestions)
-        {
-            List<string> deletes = GenerateDeletes(word, isCapped, true);
-            foreach (string s in deletes)
-            {
-                if (results.Count >= Wordsmith.Configuration.MaximumSuggestions)
-                    break;
+        Task<List<string>> deletes = new(() => { return GenerateDeletes(word, isCapped, true); });
+        deletes.Start();
 
-                if (isWord(s))
-                    results.Add(s);
-            }
-        }
+        // TODO implement a word frequency selection.
 
-        // One away and two away.
-        if (results.Count < Wordsmith.Configuration.MaximumSuggestions)
-        {
-            List<string> aways = GenerateAway(word, 2, isCapped, false);
+        List<string> results = new();
+        int index = 0;
 
-            foreach (string s in aways)
-            {
-                if (results.Count >= Wordsmith.Configuration.MaximumSuggestions)
-                    break;
+        // Collect the transpose suggestions
+        transpose.Wait();
+        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < transpose.Result.Count() && isWord( transpose.Result[index]) )
+            results.Add( transpose.Result[index++] );
 
-                if (isWord(s) && !results.Contains(s))
-                    results.Add(s);
-            }
-        }
-        list = new(results);
+        // Collect the splits suggestions.
+        index = 0;
+        splits.Wait();
+        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < splits.Result.Count() && isWord( splits.Result[index] ) )
+            results.Add( splits.Result[index++] );
+
+        // Collect the deleted character suggestions
+        index = 0;
+        deletes.Wait();
+        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < deletes.Result.Count() && isWord( deletes.Result[index] ) )
+            results.Add( deletes.Result[index++] );
+
+        // Collect the aways. Collect this last to allow it the most time to process.
+        index = 0;
+        aways.Wait();
+        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < aways.Result.Count() && isWord( aways.Result[index] ) )
+            results.Add( aways.Result[index++] );
+
+        return results;
     }
 
     private static List<string> GenerateTranspose(string word, bool isCapped, bool filter)
