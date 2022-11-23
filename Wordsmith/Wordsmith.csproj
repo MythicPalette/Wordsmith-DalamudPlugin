@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <Content Include="..\images\icon.png" Link="images\icon.png" CopyToOutputDirectory="Always" />
-    <Content Include="..\images\mwlogo.png" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\images\mwlogo.png" Link="mwlogo.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <PropertyGroup>

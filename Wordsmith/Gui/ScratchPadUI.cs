@@ -16,7 +16,7 @@ internal class ScratchPadUI : Window, IReflected
     {
         internal string ScratchText;
         internal bool UseOOC;
-        internal HeaderData Header;
+        internal HeaderData? Header = null;
 
         public PadState()
         {
@@ -50,9 +50,9 @@ internal class ScratchPadUI : Window, IReflected
             return true;
         }
 
-        public override int GetHashCode() => HashCode.Combine( this.Header.ChatType, this.ScratchText, this.UseOOC, this.Header.TellTarget );
+        public override int GetHashCode() => HashCode.Combine( this.Header?.ChatType, this.ScratchText, this.UseOOC, this.Header?.TellTarget );
 
-        public override string ToString() => $"{{ ChatType: {this.Header.ChatType}, ScratchText: \"{this.ScratchText}\", UseOOC: {this.UseOOC}, TellTarget: \"{this.Header.TellTarget}\", CrossWorld: {this.Header.CrossWorld}, Linkshell: {this.Header.Linkshell} }}";
+        public override string ToString() => $"{{ ChatType: {this.Header?.ChatType}, ScratchText: \"{this.ScratchText}\", UseOOC: {this.UseOOC}, TellTarget: \"{this.Header?.TellTarget ?? ""}\", CrossWorld: {this.Header?.CrossWorld}, Linkshell: {this.Header?.Linkshell} }}";
     }
 
     /// <summary>
@@ -909,7 +909,7 @@ internal class ScratchPadUI : Window, IReflected
             ImGui.BeginGroup();
 
             // Get the text chunks.
-            List<TextChunk>? result = ChatHelper.FFXIVify(p.Header, p.ScratchText, p.UseOOC);
+            List<TextChunk>? result = ChatHelper.FFXIVify(p.Header!, p.ScratchText, p.UseOOC);
             if ( result == null )
                 return;
 
@@ -921,7 +921,7 @@ internal class ScratchPadUI : Window, IReflected
                 if ( i > 0 )
                     ImGui.Spacing();
 
-                DrawChunkItem( tlist[i], p.Header.ChatType );
+                DrawChunkItem( tlist[i], p.Header!.ChatType );
             }
 
             // End the group.
@@ -946,7 +946,7 @@ internal class ScratchPadUI : Window, IReflected
                     PadState selected = this._text_history[this._selected_history];
 
                     // Revert to given padstate
-                    this._header = selected.Header;
+                    this._header = selected.Header!;
                     this.ScratchString = selected.ScratchText;
 
                     // Exit history.
@@ -967,7 +967,7 @@ internal class ScratchPadUI : Window, IReflected
                     PadState selected = this._text_history[this._selected_history];
 
                     // Get each chunk
-                    List<TextChunk>? results = ChatHelper.FFXIVify(selected.Header, selected.ScratchText, selected.UseOOC);
+                    List<TextChunk>? results = ChatHelper.FFXIVify(selected.Header!, selected.ScratchText, selected.UseOOC);
                     if ( results != null )
                     {
                         List<TextChunk> chunks = results;

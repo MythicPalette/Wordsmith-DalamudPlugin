@@ -18,7 +18,8 @@ internal class SpellChecker
     /// <returns><see cref="SpellCheckResult"/> with result data.</returns>
     internal static void CheckString( string str, BackgroundWorker? worker, DoWorkEventArgs? e )
     {
-        e.Result = new SpellCheckResult() { State = SpellCheckResultState.Cancelled };
+        if ( e != null)
+            e.Result = new SpellCheckResult() { State = SpellCheckResultState.Cancelled };
 
         List<Word> results = new();
 
