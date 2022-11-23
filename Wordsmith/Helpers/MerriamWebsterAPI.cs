@@ -97,8 +97,31 @@ public class MerriamWebsterAPI : IDisposable
 
                         List<XElement> entries = new(root.Elements("entry"));
                         // Only deal with entries that match correctly.
-                        foreach ( XElement entry in entries.Where( e => e.Element( "meta" )?.Element( "id" )?.Value.ToLower() == query ) )
+                        foreach ( XElement entry in entries )
                         {
+                            // .Where( e => e.Element( "meta" )?.Element( "id" )?.Value.ToLower() == query )
+                            if ( entry.Element( "meta" ) is XElement meta )
+                            {
+                                if ( meta.Element( "id" ) is XElement id )
+                                {
+                                    if ( id.Value != query )
+                                    {
+                                        PluginLog.LogDebug( $"Element ID did not match query: {id}" );
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    PluginLog.LogDebug( $"Failed to get ID element: {meta}" );
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                PluginLog.LogDebug( $"Failed to get meta: {entry}" );
+                                continue;
+                            }
+
                             // Get all of the senses
                             List<XElement> subentries = entry.Element("def")?.Elements("sseq")?.ToList() ?? new();
                             foreach ( XElement x in subentries )
@@ -154,8 +177,11 @@ public class MerriamWebsterAPI : IDisposable
 
                                     tEntry.AddSynonyms( GetNestedWordData( "syn_list" ) );
                                     tEntry.AddSynonyms( GetNestedWordData( "sim_list" ) );
+
                                     tEntry.AddRelatedWords( GetNestedWordData( "rel_list" ) );
+
                                     tEntry.AddNearAntonyms( GetNestedWordData( "near_list" ) );
+
                                     tEntry.AddAntonyms( GetNestedWordData( "ant_list" ) );
                                     tEntry.AddAntonyms( GetNestedWordData( "opp_list" ) );
 
