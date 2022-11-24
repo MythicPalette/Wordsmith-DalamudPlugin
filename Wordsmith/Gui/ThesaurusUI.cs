@@ -13,14 +13,14 @@ public class ThesaurusUI : Window, IReflected
     protected bool _searchFailed = false;
     protected int _searchMinLength = 3;
 
-    protected SearchHelper SearchHelper;
+    protected MerriamWebsterAPI SearchHelper;
 
     /// <summary>
     /// Instantiates a new ThesaurusUI object.
     /// </summary>
     public ThesaurusUI() : base($"{Wordsmith.AppName} - Thesaurus")
     {
-        SearchHelper = new SearchHelper();
+        SearchHelper = new MerriamWebsterAPI();
         _search = "";
 
         SizeConstraints = new WindowSizeConstraints()
@@ -63,16 +63,20 @@ public class ThesaurusUI : Window, IReflected
     protected void DrawSearchBar()
     {
         float btnWidth = 100*ImGuiHelpers.GlobalScale;
-        string searchQuery = "";
-        ImGui.SetNextItemWidth(ImGui.GetWindowContentRegionMax().X - btnWidth - ImGui.GetStyle().FramePadding.X*2);
-        if ( ImGui.InputTextWithHint( "###ThesaurusSearchBar", "Search...", ref searchQuery, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
-            _searchFailed = !ScheduleSearch( searchQuery );
+        ImGui.SetNextItemWidth( ImGui.GetWindowContentRegionMax().X - btnWidth - ImGui.GetStyle().FramePadding.X * 2 );
+
+        if ( ImGui.InputTextWithHint( "###ThesaurusSearchBar", "Search...", ref _query, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
+        {
+            SearchHelper.SearchThesaurus( this._query );
+            this._query = "";
+        }
 
         ImGui.SameLine();
-        if ( ImGui.Button("Search##ThesaurusSearchButton", new(btnWidth, 0)))
-
-        if (_searchFailed)
-            ImGui.TextColored(new(255, 0, 0, 255), $"Minimum of {_searchMinLength} letters required.");
+        if ( ImGui.Button( "Search##ThesaurusSearchButton", new( btnWidth, 0 ) ) )
+        {
+            SearchHelper.SearchThesaurus( this._query );
+            this._query = "";
+        }
 
         ImGui.Separator();
     }
@@ -82,12 +86,16 @@ public class ThesaurusUI : Window, IReflected
     /// </summary>
     protected void DrawSearchErrors()
     {
-        //if (SearchHelper.Error != null)
-        //{
-        //    ImGui.TextColored(new Vector4(255, 0, 0, 255), $"Search Error:\n{SearchHelper.Error.Message}");
-        //    ImGui.Separator();
-        //    ImGui.Spacing();
-        //}
+        if ( SearchHelper.State == ApiState.Failed )
+        {
+            ImGui.TextColored( new Vector4( 255, 0, 0, 255 ), $"Search failed. Try again or use a different word." );
+            ImGui.Separator();
+        }
+        else if ( SearchHelper.State == ApiState.Searching )
+        {
+            ImGui.Text( "Searching..." );
+            ImGui.Separator();
+        }
     }
 
     /// <summary>
@@ -119,17 +127,14 @@ public class ThesaurusUI : Window, IReflected
     /// <param name="entry">The data to draw.</param>
     protected void DrawEntry(ThesaurusEntry entry)
     {
-        if (ImGui.CollapsingHeader(
-                    char.ToUpper((entry.Type.Trim())[0]).ToString() + entry.Type.Substring(1) + $"##{entry.ID}"))
+        if ( ImGui.CollapsingHeader($"{entry.Type.Trim().CaplitalizeFirst()} - {entry.Definition.Replace("{it}", "").Replace("{/it}", "")}##{entry.ID}"))
         {
             ImGui.Indent();
-            if (entry.Definition.Length > 0)
-                ImGui.TextWrapped("Definition: " + entry.Definition);                
 
             if (entry.Synonyms.Length > 0)
             {
                 ImGui.Separator();
-                ImGui.Spacing();                    
+                ImGui.Spacing();
                 ImGui.TextWrapped("Synonyms");
                 ImGui.TextWrapped(entry.SynonymString);
             }
@@ -174,19 +179,6 @@ public class ThesaurusUI : Window, IReflected
             return true;
         }
         return false;
-    }
-
-    /// <summary>
-    /// Framework update.
-    /// </summary>
-    public override void Update()
-    {
-        base.Update();
-
-        // If not querying return.
-        if (_query == "" || _query == "##done##") return;
-        SearchHelper.SearchThesaurus(_query.Trim());
-        _query = "##done##";
     }
 
     /// <summary>

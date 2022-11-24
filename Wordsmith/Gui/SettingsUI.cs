@@ -562,7 +562,7 @@ public sealed class SettingsUI : Window, IReflected
                 // Ignore Hyphen terminated words.
                 ImGui.Checkbox("Ignore Hyphen-Terminated Words##SettingsUICheckbox", ref this._ignoreHypen);
                 if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("This is useful in roleplay for emulating cut speech.\ni.e. \"How dare yo-,\" she was cut off but the rude man.");
+                    ImGui.SetTooltip("This is useful in roleplay for emulating cut speech.\ni.e. \"How dare yo-,\" she was cut off by the rude man.");
                 ImGui.SameLine();
 
                 // Auto-Fix Spaces
@@ -775,7 +775,7 @@ public sealed class SettingsUI : Window, IReflected
                     ImGui.TableSetupColumn( "RightColorOuterColorColumn", ImGuiTableColumnFlags.WidthFixed, 30 * ImGuiHelpers.GlobalScale );
                     ImGui.TableSetupColumn( "RightColorOuterChatColumn" );
 
-                    string[] options = Enum.GetNames(typeof(Enums.ChatType));
+                    string[] options = Enum.GetNames(typeof(ChatType));
                     for ( int i = 0; i < options.Length-1; ++i )
                     {
                         if ( !this._headerColors.ContainsKey( i ) )

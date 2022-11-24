@@ -10,6 +10,8 @@ public class Configuration : IPluginConfiguration, IReflected
 
     public int Version { get; set; } = 0;
 
+    public string MwApiKey { get; set; } = "690d3d0f-785a-4403-8075-001258483181";
+
     /// <summary>
     /// A setting that enables the hidden debug UI.
     /// </summary>

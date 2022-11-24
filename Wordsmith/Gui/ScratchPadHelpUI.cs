@@ -21,6 +21,13 @@ public class ScratchPadHelpUI : Window
             // General tab.
             if (ImGui.BeginTabItem($"General##HelpTabBarItem"))
             {
+                if ( Global.MW_LOGO != null )
+                {
+                    ImGui.Image( Global.MW_LOGO.ImGuiHandle, ImGuiHelpers.ScaledVector2( 64, 64 ) );
+                    ImGui.SameLine();
+                }
+                ImGui.TextWrapped( "Thesaurus functionality provided through Merriam-Webster's API. Thank you to Merriam-Webster for providing a free API-Key to Wordsmith to allow for integrated thesaurus functionality.\n\nNote: This support is experimental and Merriam-Webster only provides 1,000 free queries a day. If 1,000 queries a day is not enough I will look into more options." );
+                ImGui.Separator();
                 // Create multiple subsections of text for the user to read over.
                 ImGui.TextWrapped("Scratch Pads are fairly easy to use. First, on the top left, there is a drop down menu where you get to select what chat channel prefix you want to use. If you use choose /tell, a texbox will appear where you can type the user name and world or placeholders.");
                 ImGui.Separator();

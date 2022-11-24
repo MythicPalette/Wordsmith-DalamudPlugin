@@ -85,8 +85,11 @@ public sealed class Wordsmith : IDalamudPlugin
         // Get the configuration.
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
+        if ( File.Exists( Path.Combine( PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ) ) )
+            Global.MW_LOGO = PluginInterface.UiBuilder.LoadImage( Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ));
+
         // Add commands
-        CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo(this.OnMainCommand) { HelpMessage = "Display the thesaurus window." });
+        CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo(this.OnThesaurusCommand) { HelpMessage = "Display the thesaurus window." });
         CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo(this.OnSettingsCommand) { HelpMessage = "Display the configuration window." });
         CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo(this.OnScratchCommand) { HelpMessage = "Opens a new scratch pad or a specific pad if number given i.e. /scratchpad 5" });
 
@@ -117,7 +120,7 @@ public sealed class Wordsmith : IDalamudPlugin
     }
     #endregion
     #region Event Callbacks
-    private void OnMainCommand(string command, string args) => WordsmithUI.ShowThesaurus();
+    private void OnThesaurusCommand(string command, string args) => WordsmithUI.ShowThesaurus();
     private void OnSettingsCommand(string command, string args) => WordsmithUI.ShowSettings();
     private void OnScratchCommand(string command, string args)
     {

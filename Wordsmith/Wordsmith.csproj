@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.6.0</Version>
+    <Version>1.7.0</Version>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
     <LangVersion>preview</LangVersion>
     <TargetFramework>net6.0-windows</TargetFramework>
@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Content Include="..\images\icon.png" Link="images\icon.png" CopyToOutputDirectory="Always" />
+    <Content Include="..\images\mwlogo.png" Link="mwlogo.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <PropertyGroup>
