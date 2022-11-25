@@ -52,6 +52,20 @@ public static class Lang
             _dictionary.Add(s.ToLower());
     }
 
+    private static void ValidateConfiguration()
+    {
+        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^web: .+" );
+        if ( !m.Success )
+        {
+            m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^local: .+" );
+            if ( !m.Success )
+            {
+                Wordsmith.Configuration.DictionaryFile = "web: lang_en";
+                Wordsmith.Configuration.Save();
+            }
+        }
+    }
+
     /// <summary>
     /// Load the language file and enable spell checks.
     /// </summary>
@@ -59,19 +73,24 @@ public static class Lang
 
     private static void Init(bool notify)
     {
+        ValidateConfiguration();
         _dictionary.Clear();
+
+        // Validate the entry in the configuration
 
         Task t = new(() =>
         {
             // Load the dictionary
-            bool web_loaded = LoadWebLanguage();
+            bool loaded = LoadWebLanguage();
 
             // If web loading failed, load the file
-            bool file_loaded = web_loaded ? false : LoadLanguageFile();
+            if ( !loaded )
+                loaded = LoadLanguageFile();
 
             // If both failed to load then present the failure notification
-            if (!(web_loaded || file_loaded))
+            if (!loaded)
                 Wordsmith.PluginInterface.UiBuilder.AddNotification($"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning);
+
             else
             {
                 // Add all of the custom dictionary entries to the dictionary
@@ -112,9 +131,13 @@ public static class Lang
         {
             // Load the dictionary array
             string[] lines = Git.LoadDictionary(title);
+            if ( lines.Length == 0 )
+                throw new Exception();
+
             foreach (string l in lines)
                 if (!l.StartsWith("#") && l.Trim().Length > 0)
-                    ValidateAndAddWord(l); //_dictionary.Add( l.Trim().ToLower() );
+                    ValidateAndAddWord(l);
+
             return true;
         }
         catch (HttpRequestException e)

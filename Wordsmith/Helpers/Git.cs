@@ -46,14 +46,21 @@ namespace Wordsmith.Helpers
         internal static string[] LoadDictionary(string name)
         {
             // Load the dictionary file as a string
-            string result;
+            string result = "";
             using ( HttpClient client = new HttpClient() )
             {
-                // Force refresh
-                client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.Now;
+                try
+                {
+                    // Force refresh
+                    client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.Now;
 
-                // Get data
-                result = client.GetStringAsync( $"{Global.LIBRARY_FILE_URL}/{name}" ).Result;
+                    // Get data
+                    result = client.GetStringAsync( $"{Global.LIBRARY_FILE_URL}/{name}" ).Result;
+                }
+                catch (Exception e)
+                {
+                    PluginLog.LogError( e.Message );
+                }
             }
             return result.Split( '\n' );
         }

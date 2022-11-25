@@ -224,7 +224,6 @@ internal class ScratchPadUI : Window, IReflected
         else if ( this._editorstate == Global.VIEWING_HISTORY )
         {
             DrawHistory();
-            //TODO Create a footer for the history page.
         }
     }
 
@@ -287,7 +286,7 @@ internal class ScratchPadUI : Window, IReflected
                     DoSpellCheck();
 
                 // If there are chunks
-                if ( this._chunks.Count > 0)
+                if ( this._chunks.Count > 0 )
                 {
                     // Create a chunk menu.
                     if (ImGui.BeginMenu($"Chunks##ScratchPad{this.ID}ChunksMenu"))
@@ -472,7 +471,7 @@ internal class ScratchPadUI : Window, IReflected
             }
         }
 
-        catch ( InvalidOperationException ) { }
+        catch ( Exception ) { }
     }
     #endregion
     #region Body
@@ -1190,8 +1189,8 @@ internal class ScratchPadUI : Window, IReflected
     /// </summary>
     protected void DoSpellCheck()
     {
+        this._restartWorker = true;
         this._spellWorker?.CancelAsync();
-        InitWorker();
 
         PluginLog.LogVerbose( "Running spell check." );
         this._spellWorker!.DoWork += ( o, e ) => SpellChecker.CheckString( this.ScratchString, (BackgroundWorker?)o, e );

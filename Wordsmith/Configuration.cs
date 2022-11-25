@@ -158,7 +158,7 @@ public class Configuration : IPluginConfiguration, IReflected
     /// <summary>
     /// The file to be loaded into Lang dictionary.
     /// </summary>
-    public string DictionaryFile { get; set; } = "lang_en";
+    public string DictionaryFile { get; set; } = "web: lang_en";
 
     public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
 
@@ -226,7 +226,7 @@ public class Configuration : IPluginConfiguration, IReflected
         // Spellcheck
         IgnoreWordsEndingInHyphen = true;
         MaximumSuggestions = 5;
-        DictionaryFile = "lang_en";
+        DictionaryFile = "web: lang_en";
         AutoSpellCheck = true;
         AutoSpellCheckDelay = 1f;
 
