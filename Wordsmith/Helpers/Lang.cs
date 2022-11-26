@@ -95,7 +95,7 @@ public static class Lang
             {
                 // Add all of the custom dictionary entries to the dictionary
                 foreach (string word in Wordsmith.Configuration.CustomDictionaryEntries)
-                    ValidateAndAddWord(word);//_dictionary.Add( word.Trim().ToLower() );
+                    ValidateAndAddWord(word);
 
                 Enabled = true;
                 if (notify)
@@ -124,7 +124,7 @@ public static class Lang
 
         // If the dictionary isn't in the manifest the user may have a custom dictionary
         // file that they prefer to use. Check for its existence here.
-        if (!Manifest.IsLoaded || !Manifest.Dictionaries.Contains(title))// Wordsmith.Configuration.DictionaryFile ) )
+        if ( !Manifest.IsLoaded || !Manifest.Dictionaries.Contains(title) )
             return false;
 
         try

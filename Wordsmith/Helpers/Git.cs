@@ -17,27 +17,31 @@ namespace Wordsmith.Helpers
             WebManifest result = new();
             using ( HttpClient client = new HttpClient() )
             {
-                try
+                int tries = 3;
+                while ( tries-- > 0 )
                 {
-                    // Force refresh
-                    client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.UtcNow;
+                    try
+                    {
+                        // Force refresh
+                        client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.UtcNow;
+                        string raw = client.GetStringAsync( Global.MANIFEST_JSON_URL ).Result;
 
-                    // Get data
-                    string raw = client.GetStringAsync( Global.MANIFEST_JSON_URL ).Result;
+                        // Deserialize the manifest.
+                        WebManifest? json = JsonConvert.DeserializeObject<WebManifest>(raw);
 
-                    // Deserialize the manifest.
-                    WebManifest? json = JsonConvert.DeserializeObject<WebManifest>(raw);
+                        // If a valid manifest was received then make it the result.
+                        if ( json != null )
+                            result = json;
 
-                    // If a valid manifest was received then make it the result.
-                    if ( json != null )
-                        result = json;
-
-                    result.IsLoaded = true;
+                        result.IsLoaded = true;
+                        break;
+                    }
+                    catch ( Exception e )
+                    {
+                        client.DefaultRequestHeaders.IfModifiedSince = null;
+                        PluginLog.LogError( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}" );
+                    }
                 }
-
-                // Silently fail any exceptions and simply return an empty manifest.
-                catch ( Exception )
-                { }
             }
 
             return result;
@@ -63,19 +67,6 @@ namespace Wordsmith.Helpers
                 }
             }
             return result.Split( '\n' );
-        }
-
-        internal static string[] GetDictionaries()
-        {
-            // Get the manifest
-            WebManifest manifest = GetManifest();
-
-            // If the dictionary file doesn't exist, return an empty array
-            if ( !manifest.Dictionaries.Contains( Wordsmith.Configuration.DictionaryFile ) )
-                throw new DictionaryDoesNotExistException();
-
-            // Load the dictionary file
-            return manifest.Dictionaries;
         }
     }
 }

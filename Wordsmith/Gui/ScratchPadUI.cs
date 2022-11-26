@@ -762,12 +762,12 @@ internal class ScratchPadUI : Window, IReflected
             ImGui.TableNextColumn();
             DrawClearButton();
 
-            // If spell check is disabled, make the button dark so it appears as though it is disabled.
-            if (!Lang.Enabled)
-                ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.5f);
-
             if ( !Wordsmith.Configuration.AutoSpellCheck )
             {
+                // If spell check is disabled, make the button dark so it appears as though it is disabled.
+                if ( !Lang.Enabled )
+                    ImGui.PushStyleVar( ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.5f );
+
                 // Draw the spell check button.
                 ImGui.TableNextColumn();
                 if ( this.ScratchString.Length == 0 )
