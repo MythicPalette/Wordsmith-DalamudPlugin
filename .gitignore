@@ -1,5 +1,6 @@
 .vs/
 obj/
 bin/
+patchnotes/
 *.user
 checklist.txt

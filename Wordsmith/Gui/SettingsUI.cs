@@ -1,4 +1,5 @@
-﻿using Dalamud.Interface;
+﻿using System.Text.RegularExpressions;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Enums;
@@ -277,7 +278,7 @@ public sealed class SettingsUI : Window, IReflected
                 ImGui.Text( "Open Scratch Pads." );
                 if ( ImGui.BeginTable( $"SettingsPadListTable", 4 ) )
                 {
-                    ImGui.TableSetupColumn( "SettingsUIPadListIDColumn", ImGuiTableColumnFlags.WidthFixed, 25 * ImGuiHelpers.GlobalScale );
+                    ImGui.TableSetupColumn( "SettingsUIPadListIDColumn", ImGuiTableColumnFlags.WidthFixed, Global.BUTTON_Y * ImGuiHelpers.GlobalScale );
                     ImGui.TableSetupColumn( "SettingsUIPadListDescColumn", ImGuiTableColumnFlags.WidthStretch, 1 );
                     ImGui.TableSetupColumn( "SettingsUIPadListShowColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale );
                     ImGui.TableSetupColumn( "SettingsUIPadListCloseColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale );
@@ -305,12 +306,12 @@ public sealed class SettingsUI : Window, IReflected
                             ImGui.TableNextColumn();
                             if ( !pad.IsOpen )
                             {
-                                if ( ImGui.Button( $"Show##SettingsUIPadListOpen{pad.ID}", new Vector2( -1, 25 * ImGuiHelpers.GlobalScale ) ) )
+                                if ( ImGui.Button( $"Show##SettingsUIPadListOpen{pad.ID}", new Vector2( -1, Global.BUTTON_Y * ImGuiHelpers.GlobalScale ) ) )
                                     pad.IsOpen = true;
                             }    
                             ImGui.TableNextColumn();
 
-                            if ( ImGui.Button( $"Close##SettingsUIPadListClose{pad.ID}", new( -1, 25 * ImGuiHelpers.GlobalScale ) ) )
+                            if ( ImGui.Button( $"Close##SettingsUIPadListClose{pad.ID}", new( -1, Global.BUTTON_Y * ImGuiHelpers.GlobalScale ) ) )
                             {
                                 try
                                 {
@@ -389,7 +390,7 @@ public sealed class SettingsUI : Window, IReflected
                     ImGui.TableSetupColumn( "AliasAddDeleteColumn", ImGuiTableColumnFlags.WidthFixed | ImGuiTableColumnFlags.NoResize, 30*ImGuiHelpers.GlobalScale );
 
                     // Get the chat type options.
-                    List<string> options = new(Enum.GetNames(typeof(Enums.ChatType)));
+                    List<string> options = new(Enum.GetNames(typeof(ChatType)));
 
                     options[0] = "Please Choose";
                     options.Remove( "Linkshell" );
@@ -402,8 +403,21 @@ public sealed class SettingsUI : Window, IReflected
                     for (int i = 0; i < this._headerAliases.Count; ++i)
                     {
                         (int ChatType, string Alias, object? Data) alias = this._headerAliases[i];
+                        string chatTypeName;
 
-                        string chatTypeName = options[alias.ChatType];
+                        if ( alias.ChatType < (int)ChatType.Linkshell )
+                            chatTypeName = options[alias.ChatType];
+                        else
+                        {
+                            // Get the linkshell type.
+                            chatTypeName = alias.ChatType == (int)ChatType.Linkshell ? "Linkshell" : "CW-Linkshell";
+
+                            // Get the linkshell channel.
+                            if ( alias.Data is int idata )
+                                chatTypeName += $"{idata + 1}";
+                            else if ( alias.Data is long ldata )
+                                chatTypeName += $"{ldata + 1}";
+                        }
 
                         // Draw the chat type.
                         ImGui.TableNextColumn();
@@ -453,7 +467,7 @@ public sealed class SettingsUI : Window, IReflected
                             this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
 
                         ImGui.TableNextColumn();
-                        if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( 25, 25 ) ))
+                        if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( Global.BUTTON_Y, Global.BUTTON_Y ) ))
                             this._headerAliases.RemoveAt( i-- );
                     }
 
@@ -487,6 +501,7 @@ public sealed class SettingsUI : Window, IReflected
                         float size = ImGui.GetColumnWidth();
                         ImGui.SetNextItemWidth( size );
                     }
+
                     else
                         ImGui.SetNextItemWidth( -1 );
 
@@ -497,7 +512,7 @@ public sealed class SettingsUI : Window, IReflected
                     // Put the + button.
                     ImGui.TableNextColumn();
                     ImGui.Spacing();
-                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( 25, 25 ) );
+                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( Global.BUTTON_Y, Global.BUTTON_Y ) );
 
                     if ( add && this._newAliasSelection > 0 )
                     {
@@ -530,12 +545,24 @@ public sealed class SettingsUI : Window, IReflected
                         if ( options[this._newAliasSelection] == "Tell" && !this._newAliasTarget.isTarget() )
                             valid = false;
 
-                        // If the alias doesn't exist then add it.
+                        // If the alias doesn't exist and the data is valid then add it.
                         if ( valid )
                         {
-                            this._headerAliases.Add( new( this._newAliasSelection, this._newAlias.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), this._newAliasTarget.Length > 0 ? this._newAliasTarget : null ) );
+                            int cType = this._newAliasSelection;
+                            string sAlias = this._newAlias.ToLower().Trim( '\'', '/', ' ', '\r', '\n' );
+                            object? oData = this._newAliasTarget.Length > 0 ? this._newAliasTarget : null;
+
+                            // Try to match the data with linkshell data.
+                            Match m = Regex.Match(options[this._newAliasSelection], "(CW-)?[Ll]inkshell(\\d)");
+                            if ( m.Success )
+                            {
+                                cType = m.Groups[1].Success ? (int)ChatType.CrossWorldLinkshell : (int)ChatType.Linkshell;
+                                oData = int.Parse( m.Groups[2].Value )-1;
+                            }
+                            this._headerAliases.Add( new( cType, sAlias, oData ) );
                             this._newAliasSelection = 0;
                             this._newAlias = "";
+                            this._newAliasTarget = "";
                         }
                     }
                     ImGui.Spacing();
@@ -653,7 +680,7 @@ public sealed class SettingsUI : Window, IReflected
 
                     // Delete all
                     ImGui.TableNextColumn();
-                    if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, 25)))
+                    if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
                         WordsmithUI.ShowResetDictionary();
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip($"Deletes all dictionary entries. This action cannot be undone.");
@@ -665,7 +692,7 @@ public sealed class SettingsUI : Window, IReflected
                         ImGui.Text(Wordsmith.Configuration.CustomDictionaryEntries[i]);
 
                         ImGui.TableNextColumn();
-                        if ( ImGui.Button( $"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2( -1, 25 ) ) )
+                        if ( ImGui.Button( $"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2( -1, Global.BUTTON_Y ) ) )
                             Lang.RemoveDictionaryEntry( Wordsmith.Configuration.CustomDictionaryEntries[i--] );
 
                         else if (ImGui.IsItemHovered())
@@ -835,7 +862,7 @@ public sealed class SettingsUI : Window, IReflected
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.5f, 0, 0, 1f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.5f, 0.3f, 0.3f, 1f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.3f, 0.1f, 0.1f, 1f));
-            if (ImGui.Button("Buy Me A Ko-Fi##SettingsUIBuyAKoFiButton", ImGuiHelpers.ScaledVector2(-1, 25)))
+            if (ImGui.Button("Buy Me A Ko-Fi##SettingsUIBuyAKoFiButton", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://ko-fi.com/ladydefile") { UseShellExecute = true });
             
             ImGui.PopStyleColor(3);
@@ -844,12 +871,12 @@ public sealed class SettingsUI : Window, IReflected
             ImGui.TableNextColumn();
             ImGui.TableNextColumn();
             // Save and close buttons
-            if (ImGui.Button("Apply", ImGuiHelpers.ScaledVector2(-1, 25)))
+            if (ImGui.Button("Apply", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
                 Save();
 
             ImGui.TableNextColumn();
             // Reset settings to default.
-            if (ImGui.Button("Defaults", ImGuiHelpers.ScaledVector2(-1, 25)))
+            if (ImGui.Button("Defaults", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
             {
                 WordsmithUI.ShowRestoreSettings();
                 this.IsOpen = false;
@@ -857,7 +884,7 @@ public sealed class SettingsUI : Window, IReflected
 
             ImGui.TableNextColumn();
             // Cancel button
-            if (ImGui.Button("Close", ImGuiHelpers.ScaledVector2(-1, 25)))
+            if (ImGui.Button("Close", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
                 this.IsOpen = false;
 
             ImGui.EndTable();

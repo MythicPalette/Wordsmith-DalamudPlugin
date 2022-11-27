@@ -80,7 +80,7 @@ public class MerriamWebsterAPI : IDisposable
             if ( !SearchHistory( query ) )
             {
                 //TODO Actually make reqeusts.
-                string request = $"https://dictionaryapi.com/api/v3/references/thesaurus/json/{query}?key={Wordsmith.Configuration.MwApiKey}";
+                string request = $"https://dictionaryapi.com/api/v3/references/thesaurus/json/{query.ToLower().Trim()}?key={Wordsmith.Configuration.MwApiKey}";
                 string html = _client.GetStringAsync( request ).Result;
 
                 try
@@ -104,7 +104,7 @@ public class MerriamWebsterAPI : IDisposable
                             {
                                 if ( meta.Element( "id" ) is XElement id )
                                 {
-                                    if ( id.Value != query )
+                                    if ( id.Value.ToLower() != query.ToLower() )
                                     {
                                         PluginLog.LogDebug( $"Element ID did not match query: {id}" );
                                         continue;

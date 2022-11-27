@@ -149,7 +149,8 @@ internal static class WordsmithUI
 
 
                 // Remove from the WindowSystem
-                _windowSystem.RemoveWindow( w );
+                if ( _windowSystem.Windows.Contains(w) )
+                    _windowSystem.RemoveWindow( w );
             }
             catch ( Exception e ) { PluginLog.LogFatal( $"FATAL ERROR: {e.Message}\n{e}" ); }
         }

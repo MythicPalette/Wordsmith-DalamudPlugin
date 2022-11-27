@@ -1,72 +1,75 @@
 ﻿using System.Net.Http;
 using Newtonsoft.Json;
 
-namespace Wordsmith.Helpers
+namespace Wordsmith.Helpers;
+
+internal class Git
 {
-    internal class Git
+    private const string MANIFEST_JSON_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/manifest.json";
+    private const string LIBRARY_FILE_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/library";
+    internal class DictionaryDoesNotExistException : Exception
+    { }
+
+    internal static WebManifest GetManifest()
     {
-        internal class DictionaryDoesNotExistException : Exception
-        { }
-
-        // Read the manifest
-        // Get language list
-        // Get language file
-        internal static WebManifest GetManifest()
+        // Download the manifest to a string.
+        WebManifest result = new();
+        using ( HttpClient client = new HttpClient() )
         {
-            // Download the manifest to a string.
-            WebManifest result = new();
-            using ( HttpClient client = new HttpClient() )
-            {
-                int tries = 3;
-                while ( tries-- > 0 )
-                {
-                    try
-                    {
-                        // Force refresh
-                        client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.UtcNow;
-                        string raw = client.GetStringAsync( Global.MANIFEST_JSON_URL ).Result;
-
-                        // Deserialize the manifest.
-                        WebManifest? json = JsonConvert.DeserializeObject<WebManifest>(raw);
-
-                        // If a valid manifest was received then make it the result.
-                        if ( json != null )
-                            result = json;
-
-                        result.IsLoaded = true;
-                        break;
-                    }
-                    catch ( Exception e )
-                    {
-                        client.DefaultRequestHeaders.IfModifiedSince = null;
-                        PluginLog.LogError( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}" );
-                    }
-                }
-            }
-
-            return result;
-        }
-
-        internal static string[] LoadDictionary(string name)
-        {
-            // Load the dictionary file as a string
-            string result = "";
-            using ( HttpClient client = new HttpClient() )
+            int tries = 3;
+            // Force refresh
+            client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.UtcNow;
+            while ( tries-- > 0 )
             {
                 try
                 {
-                    // Force refresh
-                    client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.Now;
+                    string raw = client.GetStringAsync( MANIFEST_JSON_URL ).Result;
 
-                    // Get data
-                    result = client.GetStringAsync( $"{Global.LIBRARY_FILE_URL}/{name}" ).Result;
+                    // Deserialize the manifest.
+                    WebManifest? manifest = JsonConvert.DeserializeObject<WebManifest>(raw);
+
+                    // If a valid manifest was received then make it the result.
+                    if ( manifest != null )
+                        result = manifest;
+
+                    result.IsLoaded = true;
                 }
-                catch (Exception e)
+                catch ( Exception e )
                 {
-                    PluginLog.LogError( e.Message );
+                    // Disable the IfModifiedSince header to avoid a 304 response error.
+                    client.DefaultRequestHeaders.IfModifiedSince = null;
+                    PluginLog.LogError( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}" );
                 }
             }
-            return result.Split( '\n' );
         }
+
+        return result;
+    }
+
+    internal static string[] LoadDictionary(string name)
+    {
+        // Load the dictionary file as a string
+        string result = "";
+        using ( HttpClient client = new HttpClient() )
+        {
+            // Force refresh
+            client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.Now;
+            int tries = 3;
+            while ( tries-- > 0 )
+            {
+                try
+                {
+                    // Get data
+                    result = client.GetStringAsync( $"{LIBRARY_FILE_URL}/{name}" ).Result;
+                }
+                catch ( Exception e )
+                {
+                    // Disable refresh request.
+                    client.DefaultRequestHeaders.IfModifiedSince = null;
+                    PluginLog.LogError( $"Error loading dictionary from web: {e.Message}" );
+                }
+            }            
+        }
+        return result.Split( '\n' );
     }
 }

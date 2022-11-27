@@ -74,43 +74,44 @@ internal class HeaderData
         }
     }
 
+    private string _alias = string.Empty;
+    private bool _useLongName = false;
+
     public string Headstring
     {
         get
         {
             string rtn;
 
+            // If there is no chat type, just return the empty string
             if (ChatType == ChatType.None)
                 rtn = ChatType.GetShortHeader();
 
+            // If the chat type is linkshell, return the specific linkshell.
+            else if ( ChatType == ChatType.Linkshell )
+                rtn = $"/{(CrossWorld ? "cw" : "")}linkshell{Linkshell + 1}";
+
+            // Get the long or short header based on the bool.
             else
-            {
-                // Get the slash command.
-                rtn = ChatType.GetShortHeader();
+                rtn = this._useLongName ? ChatType.GetLongHeader() : ChatType.GetShortHeader();
 
-                // If /tell get the target or placeholder.
-                if (ChatType == ChatType.Tell)
-                    rtn += $" {TellTarget} ";
+            // If ChatType is Tell append the target name
+            if ( ChatType == ChatType.Tell )
+                rtn += $" {TellTarget}";
 
-                // Grab the linkshell command.
-                else if (ChatType == ChatType.Linkshell)
-                    rtn = $"/{(CrossWorld ? "cw" : "")}linkshell{Linkshell + 1}";
-            }
             return rtn;
         }
     }
-    public int Length { get => Headstring.Length; }
+
+    public int Length => Headstring.Length;
+    public int AliasLength => this._alias.Length+1;
+
     public bool Valid { get; private set; }
 
-    public HeaderData(bool valid)
-    {
-        Valid = valid;
-    }
+    public HeaderData(bool valid) { Valid = valid; }
 
-    public HeaderData(string headstring, out int len)
+    public HeaderData(string headstring)
     {
-        len = -1;
-
         // If it doesn't start with a slash, we don't even try.
         Match re = Regex.Match(headstring, @"^\s*(/(\w+))\s+");
         if (!re.Success)
@@ -119,111 +120,84 @@ internal class HeaderData
         // Find a matching header by default.
         for (int i = 1; i < Enum.GetValues(typeof(ChatType)).Length; ++i)
         {
-            Match m = Regex.Match(headstring, ((ChatType)i).GetPattern());
+            // Pattern will match long and short values.
+            string pattern = ((ChatType)i).GetPattern();
+            Match m = Regex.Match(headstring, pattern +"\\s+");
+
             // If the string starts with the header for the chat type then mark it
-            if (m.Success)
+           if ( !m.Success )
+                continue;
+
+            // Get the chat type
+            this.ChatType = (ChatType)i;
+
+            // Groups = [match, short, long] so check if long matched for
+            // whether or not to use the long name.
+            this._useLongName = m.Groups["long"].Success;
+
+            // Get the target if there is one.
+            if ( this.ChatType == ChatType.Tell )
+                this.TellTarget = m.Groups["target"].Value;
+
+            // Get the linkshell channel if there is one.
+            else if ( this.ChatType >= ChatType.Linkshell )
             {
-                ChatType = (ChatType)i;
-                if (ChatType == ChatType.Tell)
-                    TellTarget = m.Groups["target"].Value;
-
-                len = m.Groups[0].Value.Length;
+                // Get the Linkshell channel but subtract 1 to account for 0 indexing.
+                this.Linkshell = int.Parse( m.Groups["channel"].Value )-1;
+                this.CrossWorld = this.ChatType > ChatType.Linkshell;
+                this.ChatType = ChatType.Linkshell;
             }
-            // if the header type is linkshell or CrossWorldLinkshell
-            else if ((ChatType)i == ChatType.Linkshell || (ChatType)i == ChatType.CrossWorldLinkshell)
-            {
-                // Linkshells must be checked with numbers appended to them.
-                for (int x = 1; x <= 8; ++x)
-                {
-                    // If the number was found, mark the header type and the number.
-                    if (headstring.StartsWith($"{((ChatType)i).GetShortHeader()}{x} "))
-                    {
-                        ChatType = ChatType.Linkshell;
-                        Linkshell = x - 1;
-                        return;
-                    }
-                }
 
-                // This continue prevents code from running after failing to identify the linkshell.
-                continue;
-            }
-            // No matches and not checking linkshells, skip the following code and loop again
-            else
-                continue;
-
-            Valid = true;
-
-            // Neither of these two types should be allowed passed this point.
-            if (i == (int)ChatType.Linkshell)
-                continue;
-            if (i == (int)ChatType.CrossWorldLinkshell)
-                continue;
-
-            // If there is a header to fit with the chat type.
-            if (((ChatType)i).GetShortHeader().Length > 0)
-            {
-                // Set the chat type
-                ChatType = (ChatType)i;
-
-                // Break from the loop
-                break;
-            }
+            this.Valid = true;
+            break;
         }
 
         // No match was found.
-        if (ChatType == ChatType.None)
+        if ( this.ChatType == ChatType.None)
         {
             // For each alias
             foreach ((int id, string alias, object? data) in Wordsmith.Configuration.HeaderAliases)
             {
                 // If a matching alias is found
-                if (headstring.StartsWith($"/{alias} ") || headstring.StartsWith($"/{alias}\n"))
+                Match m = Regex.Match(headstring, $"^/{alias}\\s+");
+                if (m.Success)
                 {
-                    // If the ID for the alias is Tell
-                    if (id == (int)ChatType.Tell && data == null)
-                    {
-                        ChatType = ChatType.Tell;
-                    }
-                    else if (id == (int)ChatType.Tell && data is string dataString)
-                    {
-                        ChatType = ChatType.Tell;
-                        TellTarget = dataString;
-                        return;
-                    }
+                    this.ChatType = (ChatType)id;
+                    if ( this.ChatType == ChatType.None )
+                        break;
 
-                    // If it isn't /Tell and the ChatType is within normal range
-                    // simply assign the chat type.
-                    else if (id < (int)ChatType.Linkshell)
+                    else if (this.ChatType == ChatType.Tell && data is string dataString)
+                        this.TellTarget = dataString;
+
+                    else if ( this.ChatType >= ChatType.Linkshell && data is int iData )
+                        this.Linkshell = iData;
+
+                    else if ( this.ChatType >= ChatType.Linkshell && data is long lData )
+                        this.Linkshell = (int)(long)lData;
+
+                    if ( this.ChatType == ChatType.CrossWorldLinkshell )
                     {
-                        // Assign the chat type and break from the loop.
-                        ChatType = (ChatType)id;
-                        return;
+                        this.ChatType = ChatType.Linkshell;
+                        this.CrossWorld = true;
                     }
 
-                    else
-                    {
-                        // Set the chat type to Linkshell
-                        ChatType = ChatType.Linkshell;
-
-                        // Get the linkshell number.
-                        Linkshell = (id - (int)ChatType.Linkshell) % 8;
-
-                        // Determine if the linkshell is crossworld
-                        CrossWorld = id - (int)ChatType.Linkshell >= 8;
-                    }
+                    this._alias = alias;
+                    this.Valid = true;
                     break;
                 }
             }
         }
     }
+
     public HeaderData(ChatType type, int shell = 0, bool xworld = false, string target = "")
     {
-        ChatType = type;
-        Linkshell = shell;
-        CrossWorld = xworld;
-        TellTarget = target;
-
+        this.ChatType = type;
+        this.Linkshell = shell;
+        this.CrossWorld = xworld;
+        this.TellTarget = target;
+        this.Valid = true;
     }
+
     public override string ToString() => Headstring;
 }
 
@@ -252,7 +226,7 @@ internal class TextChunk
     /// <summary>
     /// Assembles the complete chunk with header, OOC tags, continuation markers, and user-defined text.
     /// </summary>
-    internal string CompleteText => $"{(Header.Length > 0 ? $"{Header} " : "")}{OutOfCharacterStartTag}{Text.Replace(Global.SPACED_WRAP_MARKER, " ").Replace(Global.NOSPACE_WRAP_MARKER, "").Replace("\n", "").Trim()}{OutOfCharacterEndTag}{(ContinuationMarker.Length > 0 ? $" {ContinuationMarker}" : "")}";
+    internal string CompleteText => $"{(Header.Length > 0 ? $"{Header} " : "")}{OutOfCharacterStartTag}{Text.CleanMarkers().Replace("\n", "").Trim()}{OutOfCharacterEndTag}{(ContinuationMarker.Length > 0 ? $" {ContinuationMarker}" : "")}";
 
     /// <summary>
     /// The continuation marker to append to the end of the Complete Text value.

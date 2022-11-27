@@ -4,9 +4,11 @@ using ImGuiNET;
 
 namespace Wordsmith.Gui;
 
-public class ScratchPadHelpUI : Window
+internal class ScratchPadHelpUI : Window
 {
-    public ScratchPadHelpUI() : base($"{Wordsmith.AppName} - Help")
+    internal static ImGuiScene.TextureWrap? MerriamWebsterLogo = null;
+
+    internal ScratchPadHelpUI() : base($"{Wordsmith.AppName} - Help")
     {
         SizeConstraints = new()
         {
@@ -21,9 +23,9 @@ public class ScratchPadHelpUI : Window
             // General tab.
             if (ImGui.BeginTabItem($"General##HelpTabBarItem"))
             {
-                if ( Global.MW_LOGO != null )
+                if ( MerriamWebsterLogo != null )
                 {
-                    ImGui.Image( Global.MW_LOGO.ImGuiHandle, ImGuiHelpers.ScaledVector2( 64, 64 ) );
+                    ImGui.Image( MerriamWebsterLogo.ImGuiHandle, ImGuiHelpers.ScaledVector2( 64, 64 ) );
                     ImGui.SameLine();
                 }
                 ImGui.TextWrapped( "Thesaurus functionality provided through Merriam-Webster's API. Thank you to Merriam-Webster for providing a free API-Key to Wordsmith to allow for integrated thesaurus functionality.\n\nNote: This support is experimental and Merriam-Webster only provides 1,000 free queries a day. If 1,000 queries a day is not enough I will look into more options." );

@@ -7,6 +7,9 @@ namespace Wordsmith;
 
 internal static class Extensions
 {
+    private const string SPACED_WRAP_MARKER = "\r\r";
+    private const string NOSPACE_WRAP_MARKER = "\r";
+
     /// <summary>
     /// Capitalizes the first letter in a string.
     /// </summary>
@@ -120,12 +123,14 @@ internal static class Extensions
         return s;
     }
 
+    internal static string CleanMarkers( this string s ) => s.Replace( SPACED_WRAP_MARKER, " " ).Replace( NOSPACE_WRAP_MARKER, "" );
+
     /// <summary>
     /// Unwraps the text string using the spaced and no space markers.
     /// </summary>
     /// <param name="s">The <see cref="string"/> to be unwrapped.</param>
     /// <returns><see cref="string"/> with all wrap markers replaced.</returns>
-    internal static string Unwrap( this string s ) => s.Trim().Replace( Global.SPACED_WRAP_MARKER + "\n", " " ).Replace( Global.NOSPACE_WRAP_MARKER + "\n", "" );
+    internal static string Unwrap( this string s ) => s.Trim().Replace( SPACED_WRAP_MARKER + "\n", " " ).Replace( NOSPACE_WRAP_MARKER + "\n", "" );
 
     internal static string Wrap( this string text, float width )
     {
@@ -149,26 +154,26 @@ internal static class Extensions
 
         // Replace all wrap markers with spaces and adjust cursor offset. Do this before
         // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
-        while ( text.Contains( Global.SPACED_WRAP_MARKER + '\n' ) )
+        while ( text.Contains( SPACED_WRAP_MARKER + '\n' ) )
         {
-            int idx = text.IndexOf(Global.SPACED_WRAP_MARKER + '\n');
-            text = text[0..idx] + " " + text[(idx + (Global.SPACED_WRAP_MARKER + '\n').Length)..^0];
+            int idx = text.IndexOf(SPACED_WRAP_MARKER + '\n');
+            text = text[0..idx] + " " + text[(idx + (SPACED_WRAP_MARKER + '\n').Length)..^0];
 
             // We adjust the cursor position by one less than the wrap marker
             // length to account for the space that replaces it.
             if ( cursorPos > idx )
-                cursorPos -= Global.SPACED_WRAP_MARKER.Length;
+                cursorPos -= SPACED_WRAP_MARKER.Length;
 
         }
 
         // Replace all non-spaced wrap markers with an empty zone.
-        while ( text.Contains( Global.NOSPACE_WRAP_MARKER + '\n' ) )
+        while ( text.Contains( NOSPACE_WRAP_MARKER + '\n' ) )
         {
-            int idx = text.IndexOf(Global.NOSPACE_WRAP_MARKER + '\n');
-            text = text[0..idx] + text[(idx + (Global.NOSPACE_WRAP_MARKER + '\n').Length)..^0];
+            int idx = text.IndexOf(NOSPACE_WRAP_MARKER + '\n');
+            text = text[0..idx] + text[(idx + (NOSPACE_WRAP_MARKER + '\n').Length)..^0];
 
             if ( cursorPos > idx )
-                cursorPos -= (Global.NOSPACE_WRAP_MARKER + '\n').Length;
+                cursorPos -= (NOSPACE_WRAP_MARKER + '\n').Length;
         }
 
         // Replace all remaining carriage return characters with nothing.
@@ -211,25 +216,25 @@ internal static class Extensions
                 if ( lastSpace > offset )
                 {
                     sb.Remove( lastSpace, 1 );
-                    sb.Insert( lastSpace, Global.SPACED_WRAP_MARKER + '\n' );
-                    offset = lastSpace + Global.SPACED_WRAP_MARKER.Length;
-                    i += Global.SPACED_WRAP_MARKER.Length;
+                    sb.Insert( lastSpace, SPACED_WRAP_MARKER + '\n' );
+                    offset = lastSpace + SPACED_WRAP_MARKER.Length;
+                    i += SPACED_WRAP_MARKER.Length;
 
                     // Adjust cursor position for the marker but not
                     // the new line as the new line is replacing the space.
                     if ( lastSpace < cursorPos )
-                        cursorPos += Global.SPACED_WRAP_MARKER.Length;
+                        cursorPos += SPACED_WRAP_MARKER.Length;
                 }
                 else
                 {
-                    sb.Insert( i, Global.NOSPACE_WRAP_MARKER + '\n' );
-                    offset = i + Global.NOSPACE_WRAP_MARKER.Length;
-                    i += Global.NOSPACE_WRAP_MARKER.Length;
+                    sb.Insert( i, NOSPACE_WRAP_MARKER + '\n' );
+                    offset = i + NOSPACE_WRAP_MARKER.Length;
+                    i += NOSPACE_WRAP_MARKER.Length;
 
                     // Adjust cursor position for the marker and the
                     // new line since both are inserted.
-                    if ( cursorPos > i - Global.NOSPACE_WRAP_MARKER.Length )
-                        cursorPos += Global.NOSPACE_WRAP_MARKER.Length + 1;
+                    if ( cursorPos > i - NOSPACE_WRAP_MARKER.Length )
+                        cursorPos += NOSPACE_WRAP_MARKER.Length + 1;
                 }
                 text = sb.ToString();
             }

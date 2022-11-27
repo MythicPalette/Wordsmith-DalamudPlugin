@@ -40,7 +40,7 @@ namespace Wordsmith.Gui
 
             if ( (this._buttonStyle & ButtonStyle.Ok) == ButtonStyle.Ok )
             {
-                if ( ImGui.Button( $"Ok##MessageBoxButton", new( btn_width, 25 * ImGuiHelpers.GlobalScale ) ) )
+                if ( ImGui.Button( $"Ok##MessageBoxButton", new( btn_width, Global.BUTTON_Y * ImGuiHelpers.GlobalScale ) ) )
                 {
                     this.Result = DialogResult.Ok;
                     if ( this._callback != null ) this._callback( this );
@@ -52,7 +52,7 @@ namespace Wordsmith.Gui
 
             if ( (this._buttonStyle & ButtonStyle.Cancel) == ButtonStyle.Cancel )
             {
-                if ( ImGui.Button( $"Cancel##MessageBoxButton", new( btn_width, 25 * ImGuiHelpers.GlobalScale ) ) )
+                if ( ImGui.Button( $"Cancel##MessageBoxButton", new( btn_width, Global.BUTTON_Y * ImGuiHelpers.GlobalScale ) ) )
                 {
                     this.Result = DialogResult.Canceled;
                     if ( this._callback != null )
@@ -66,7 +66,7 @@ namespace Wordsmith.Gui
 
             else if ( (this._buttonStyle & ButtonStyle.Abort) == ButtonStyle.Abort )
             {
-                if ( ImGui.Button( $"Abort##MessageBoxButton", new( btn_width, 25 * ImGuiHelpers.GlobalScale ) ) )
+                if ( ImGui.Button( $"Abort##MessageBoxButton", new( btn_width, Global.BUTTON_Y * ImGuiHelpers.GlobalScale ) ) )
                 {
                     this.Result = DialogResult.Aborted;
                     if ( this._callback != null )
@@ -77,7 +77,7 @@ namespace Wordsmith.Gui
 
             if ( this._buttonStyle == ButtonStyle.YesNo )
             {
-                if ( ImGui.Button( $"Yes##MessageBoxButton", new( btn_width, 25 * ImGuiHelpers.GlobalScale ) ) )
+                if ( ImGui.Button( $"Yes##MessageBoxButton", new( btn_width, Global.BUTTON_Y * ImGuiHelpers.GlobalScale ) ) )
                 {
                     this.Result = DialogResult.Yes;
                     if ( this._callback != null )
@@ -87,7 +87,7 @@ namespace Wordsmith.Gui
 
                 ImGui.SameLine();
 
-                if ( ImGui.Button( $"No##MessageBoxButton", new( btn_width, 25 * ImGuiHelpers.GlobalScale ) ) )
+                if ( ImGui.Button( $"No##MessageBoxButton", new( btn_width, Global.BUTTON_Y * ImGuiHelpers.GlobalScale ) ) )
                 {
                     this.Result = DialogResult.No;
                     if ( this._callback != null )

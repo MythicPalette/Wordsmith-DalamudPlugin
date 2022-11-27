@@ -93,15 +93,18 @@ namespace Wordsmith.Enums
             if ( c == ChatType.None )
                 return "";
 
-            // Get the default pattern
-            string pattern = $"^\\s*(?<header>{c.GetShortHeader()}|{c.GetLongHeader()})\\s+";
+            // Create the pattern.
+            string pattern = $"^\\s*(?:(?<short>{c.GetShortHeader()})|(?<long>{c.GetLongHeader()}))";
 
             // Tell pattern also requires user name@world
             if ( c == ChatType.Tell )
-                pattern += "(?<target>[\\w']+ [\\w']+@[a-zA-Z]+)\\s+";
+                pattern += "\\s+(?<target>[\\w']+ [\\w']+@[a-zA-Z]+)";
+
+            // If the chat type is linkshell, also check for a number.
+            if ( c >= ChatType.Linkshell )
+                pattern += "(?<channel>\\d)";
 
             return pattern;
         }
-        //=> c == ChatType.None ? "" : $"^\\s*({c.GetShortHeader()}|{c.GetLongHeader()}){(c == ChatType.Tell ? " " : "")}";
     }
 }

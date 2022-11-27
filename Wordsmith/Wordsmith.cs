@@ -26,8 +26,7 @@ using Dalamud.Game.Command;
 using Dalamud.Data;
 using Dalamud.IoC;
 using Dalamud.Plugin;
-
-using Lumina.Excel.GeneratedSheets;
+using Wordsmith.Gui;
 
 namespace Wordsmith;
 
@@ -86,7 +85,7 @@ public sealed class Wordsmith : IDalamudPlugin
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
         if ( File.Exists( Path.Combine( PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ) ) )
-            Global.MW_LOGO = PluginInterface.UiBuilder.LoadImage( Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ));
+            ScratchPadHelpUI.MerriamWebsterLogo = PluginInterface.UiBuilder.LoadImage( Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ));
 
         // Add commands
         CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo(this.OnThesaurusCommand) { HelpMessage = "Display the thesaurus window." });
