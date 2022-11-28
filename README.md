@@ -37,9 +37,9 @@ With togglable OOC brackets just a click away, it's super easy to switch in and 
 [To Top](#wordsmith)
 
 ## Spell Check
-The Spell Check feature will compare your text to a dictionary of known words. If it finds any spelling errors, you'll get a red notification at the top saying how many it found and a new text entry space at the bottom where you can enter a replacement word or click "Add To Dictionary" if you want it to remember your word! 
+The Spell Check feature will compare your text to a dictionary of known words. If it finds any spelling errors, you'll get a red notification at the top saying how many it found and a new text entry space at the bottom where you can enter a replacement word or right-click and choose "Add To Dictionary" if you want it to remember your word! Of course, right-clicking also brings up a few suggestions for similar words.
 
-Once you type in your replacement word, you can just hit the enter key or click "Replace" and it will automatically replace the word for you.
+Once you type in your replacement word, you can just hit the enter key and it will automatically replace the mispelled word for you.
 
 [To Top](#wordsmith)
 
