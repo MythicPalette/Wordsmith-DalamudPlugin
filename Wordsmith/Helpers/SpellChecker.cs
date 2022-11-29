@@ -9,7 +9,7 @@ internal struct SpellCheckResult
     internal SpellCheckResultState State;
     internal Word[] Words;
 }
-internal class SpellChecker
+internal sealed class SpellChecker
 {   
     /// Checks a string against the currently loaded dictionary.
     /// </summary>

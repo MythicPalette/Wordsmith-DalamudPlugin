@@ -6,14 +6,14 @@ using Wordsmith;
 
 namespace Wordsmith.Gui;
 
-public class ThesaurusUI : Window, IReflected
+internal sealed class ThesaurusUI : Window, IReflected, IDisposable
 {
-    protected string _search = "";
-    protected string _query = "";
-    protected bool _searchFailed = false;
-    protected int _searchMinLength = 3;
+    private string _search = "";
+    private string _query = "";
+    private bool _searchFailed = false;
+    private int _searchMinLength = 3;
 
-    protected MerriamWebsterAPI SearchHelper;
+    private MerriamWebsterAPI SearchHelper;
 
     /// <summary>
     /// Instantiates a new ThesaurusUI object.
@@ -60,7 +60,7 @@ public class ThesaurusUI : Window, IReflected
     /// <summary>
     /// Draws the search bar on the UI.
     /// </summary>
-    protected void DrawSearchBar()
+    private void DrawSearchBar()
     {
         float btnWidth = 100*ImGuiHelpers.GlobalScale;
         ImGui.SetNextItemWidth( ImGui.GetWindowContentRegionMax().X - btnWidth - ImGui.GetStyle().FramePadding.X * 2 );
@@ -84,7 +84,7 @@ public class ThesaurusUI : Window, IReflected
     /// <summary>
     /// Draws the last search's data to the UI.
     /// </summary>
-    protected void DrawSearchErrors()
+    private void DrawSearchErrors()
     {
         if ( SearchHelper.State == ApiState.Failed )
         {
@@ -102,7 +102,7 @@ public class ThesaurusUI : Window, IReflected
     /// Draws one search result item to the UI.
     /// </summary>
     /// <param name="result">The search result to be drawn</param>
-    protected void DrawSearchResult(WordSearchResult result)
+    private void DrawSearchResult(WordSearchResult result)
     {
         if (result != null)
         {
@@ -125,7 +125,7 @@ public class ThesaurusUI : Window, IReflected
     /// Draws a search result's entry data. One search result can have multiple data entries.
     /// </summary>
     /// <param name="entry">The data to draw.</param>
-    protected void DrawEntry(ThesaurusEntry entry)
+    private void DrawEntry(ThesaurusEntry entry)
     {
         if ( ImGui.CollapsingHeader($"{entry.Type.Trim().CaplitalizeFirst()} - {entry.Definition.Replace("{it}", "").Replace("{/it}", "")}##{entry.ID}"))
         {
@@ -171,7 +171,7 @@ public class ThesaurusUI : Window, IReflected
     /// Moves the search string into the query to search for it.
     /// </summary>
     /// <returns>Returns true if the search string passes the minimum length.</returns>
-    protected bool ScheduleSearch(string query)
+    private bool ScheduleSearch(string query)
     {
         if ( query.Length >= _searchMinLength )
         { 
@@ -184,5 +184,5 @@ public class ThesaurusUI : Window, IReflected
     /// <summary>
     ///  Disposes of the SearchHelper child.
     /// </summary>
-    public void DisposeChild() => this.SearchHelper.Dispose();
+    public void Dispose() => this.SearchHelper.Dispose();
 }

@@ -3,7 +3,7 @@
 namespace Wordsmith;
 
 [Serializable]
-public class Configuration : IPluginConfiguration, IReflected
+public sealed class Configuration : IPluginConfiguration, IReflected
 {
     [NonSerialized]
     internal bool RecentlySaved = false;
@@ -52,13 +52,15 @@ public class Configuration : IPluginConfiguration, IReflected
     /// </summary>
     public bool EnableTextHighlighting { get; set; } = true;
 
+    /// <summary>
+    /// Default list that spell checker will attempt to delete.
+    /// </summary>
     private const string PUNCTUATION_CLEAN_LIST_DEFAULT = @",.:;'*""(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
 
     /// <summary>
     /// The spell checker will attempt to delete these punctuation marks from the beginning and end of every word
     /// </summary>
     public string PunctuationCleaningList { get; set; } = PUNCTUATION_CLEAN_LIST_DEFAULT;
-    internal char[] PuncCleanArray => PunctuationCleaningList.ToCharArray();
 
     /// <summary>
     /// Toggles displaying text in copy chunks.
@@ -110,7 +112,7 @@ public class Configuration : IPluginConfiguration, IReflected
     /// <summary>
     /// Decides behavior when hitting enter in Scratch Pad text entry.
     /// </summary>
-    public Enums.EnterKeyAction ScratchPadTextEnterBehavior { get; set; } = Enums.EnterKeyAction.None;
+    public Enums.EnterKeyAction ScratchPadTextEnterBehavior { get; set; } = Enums.EnterKeyAction.NewLine;
 
     /// <summary>
     /// Maximum length of input on ScratchPads
@@ -147,6 +149,8 @@ public class Configuration : IPluginConfiguration, IReflected
     public List<(int ChatType, string Alias, object? data)> HeaderAliases { get; set; } = new();
 
     public int ScratchPadHistoryLimit { get; set; } = 5;
+
+    public int ScratchPadInputLineHeight { get; set; } = 5;
     #endregion
 
     #region Spell Checker Settings
@@ -213,12 +217,13 @@ public class Configuration : IPluginConfiguration, IReflected
         ParseHeaderInput = true;
         OocOpeningTag = "(( ";
         OocClosingTag = " ))";
-        ScratchPadTextEnterBehavior = Enums.EnterKeyAction.None;
+        ScratchPadTextEnterBehavior = Enums.EnterKeyAction.NewLine;
         SentenceTerminators = ".?!";
         EncapsulationTerminators = "\"'*-";
         ContinuationMarker = "(#c/#m)";
         ContinuationMarkerOnLast = true;
         ScratchPadMaximumTextLength = 4096;
+        ScratchPadInputLineHeight = 5;
 
         // Alias Settings
         HeaderAliases = new();

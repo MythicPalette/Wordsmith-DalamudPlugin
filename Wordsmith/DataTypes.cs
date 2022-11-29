@@ -4,7 +4,7 @@ using Wordsmith.Enums;
 
 namespace Wordsmith;
 
-internal class HeaderData
+internal sealed class HeaderData
 {
     // Event for when header data is changed.
     internal delegate void DataChangedHandler( HeaderData data );
@@ -104,7 +104,7 @@ internal class HeaderData
     }
 
     public int Length => Headstring.Length;
-    public int AliasLength => this._alias.Length+1;
+    public int AliasLength => this._alias.Length > 0 ? this._alias.Length+1 : -1;
 
     public bool Valid { get; private set; }
 
@@ -201,7 +201,7 @@ internal class HeaderData
     public override string ToString() => Headstring;
 }
 
-internal class TextChunk
+internal sealed class TextChunk
 {
     /// <summary>
     /// Chat header to put at the beginning of each chunk when copied.
@@ -257,38 +257,38 @@ internal class TextChunk
     public override string ToString() => $"{{ StartIndex: {StartIndex}, Header: \"{Header}\", Text: \"{Text}\", Words: {Words}, Marker: {ContinuationMarker}, OOC Start: \"{OutOfCharacterStartTag}\", OOC End: \"{OutOfCharacterEndTag}\" }}";
 }
 
-public class ThesaurusEntry : WordEntry
+internal sealed class ThesaurusEntry : WordEntry
 {
     // Synonyms
-    protected List<string> _syn = new List<string>();
+    private List<string> _syn = new List<string>();
     public string[] Synonyms { get => _syn.ToArray(); }
     public void AddSynonym(string word) => _syn.Add(word);
     public void AddSynonyms(IEnumerable<string> words) => _syn.AddRange(words);
     public string SynonymString => string.Join(", ", Synonyms ?? new string[] { });
 
     // Related words
-    protected List<string> _rel = new List<string>();
+    private List<string> _rel = new List<string>();
     public string[] Related { get => _rel.ToArray(); }
     public void AddRelatedWord(string word) => _rel.Add(word);
     public void AddRelatedWords(IEnumerable<string> words) => _rel.AddRange(words);
     public string RelatedString => string.Join(", ", Related ?? new string[] { });
 
     // Near antonyms
-    protected List<string> _near = new List<string>();
+    private List<string> _near = new List<string>();
     public string[] NearAntonyms { get => _near.ToArray(); }
     public void AddNearAntonym(string word) => _near.Add(word);
     public void AddNearAntonyms(IEnumerable<string> words) => _near.AddRange(words);
     public string NearAntonymString => string.Join(", ", NearAntonyms ?? new string[] { });
 
     // Antonyms
-    protected List<string> _ant = new List<string>();
+    private List<string> _ant = new List<string>();
     public string[] Antonyms { get => _ant.ToArray(); }
     public void AddAntonym(string word) => _ant.Add(word);
     public void AddAntonyms(IEnumerable<string> words) => _ant.AddRange(words);
     public string AntonymString => string.Join(", ", Antonyms ?? new string[] { });
 }
 
-internal class Rect2
+internal sealed class Rect2
 {
     internal Vector2 Position;
     internal Vector2 Size;
@@ -306,7 +306,7 @@ internal class Rect2
     internal bool Contains(Vector2 v) => v.X > Position.X && v.X < Position.X + Size.X && v.Y > Position.Y && v.Y < Position.Y + Size.Y;
 }
 
-internal class WebManifest
+internal sealed class WebManifest
 {
     internal bool IsLoaded { get; set; } = false;
     public string[] Dictionaries = Array.Empty<string>();
@@ -373,7 +373,7 @@ internal sealed class Word
     }
 }
 
-public class WordEntry
+internal class WordEntry
 {
     private static long _nextid;
     public readonly long ID;
@@ -386,7 +386,7 @@ public class WordEntry
     /// <summary>
     /// Holds the type of the word (i.e. Noun)
     /// </summary>
-    protected string _type = "";
+    private string _type = "";
 
     /// <summary>
     /// Gets or sets the type of the word (i.e. Noun)
@@ -414,12 +414,12 @@ public class WordEntry
     public WordEntry() { ID = ++_nextid; }
 }
 
-public class WordSearchResult
+internal sealed class WordSearchResult
 {
     /// <summary>
     /// Static value that holds the next available ID
     /// </summary>
-    protected static long _nextid = 0;
+    private static long _nextid = 0;
 
     /// <summary>
     /// Holds the ID of this instance.
@@ -444,7 +444,7 @@ public class WordSearchResult
     /// <summary>
     /// A list of all WordEntries that hold the word variant data.
     /// </summary>
-    protected List<WordEntry> _entries = new List<WordEntry>();
+    private List<WordEntry> _entries = new List<WordEntry>();
 
     /// <summary>
     /// An array of all word variant entries.

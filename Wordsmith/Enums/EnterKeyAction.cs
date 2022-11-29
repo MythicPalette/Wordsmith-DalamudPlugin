@@ -1,6 +1,3 @@
 ﻿namespace Wordsmith.Enums;
 
-public enum EnterKeyAction
-{
-    None, SpellCheck, CopyNextChunk
-}
+public enum EnterKeyAction { NewLine, SpellCheck, CopyNextChunk }

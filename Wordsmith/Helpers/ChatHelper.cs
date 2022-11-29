@@ -1,6 +1,6 @@
 ﻿namespace Wordsmith.Helpers;
 
-internal class ChatHelper: IReflected
+internal sealed class ChatHelper: IReflected
 {
     private const int _safety = 10;
     /// <summary>
@@ -99,7 +99,7 @@ internal class ChatHelper: IReflected
     /// <param name="byteLimit">The maximum byte length of the return.</param>
     /// <exception cref="IndexOutOfRangeException">Offset is out of range of text.</exception>
     /// <returns>A string that is under the byte limit.</returns>
-    protected static string? SubstringByByteCount( string text, in int startIndex, in int byteLimit )
+    private static string? SubstringByByteCount( string text, in int startIndex, in int byteLimit )
     {
         try
         {
