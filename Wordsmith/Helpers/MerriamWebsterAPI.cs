@@ -6,10 +6,10 @@ using System.Xml.Linq;
 namespace Wordsmith.Helpers;
 
 internal enum ApiState { Idle, Searching, Failed}
-public class MerriamWebsterAPI : IDisposable
+internal sealed class MerriamWebsterAPI : IDisposable
 {
     public bool Loading { get; private set; } = false;
-    protected float _progress = 0.0f;
+    private float _progress = 0.0f;
     public float Progress => _progress;
 
     internal ApiState State { get; private set; }
@@ -21,7 +21,7 @@ public class MerriamWebsterAPI : IDisposable
     /// Adds a searched item to the history.
     /// </summary>
     /// <param name="entry">The entry to add to the history.</param>
-    protected void AddHistoryEntry(WordSearchResult entry)
+    private void AddHistoryEntry(WordSearchResult entry)
     {
         // Add the latest to the history
         _history.Insert(0, entry);
@@ -48,7 +48,7 @@ public class MerriamWebsterAPI : IDisposable
     /// <summary>
     /// The client used by Wordsmith Thesaurus to get the web pages for scraping.
     /// </summary>
-    protected HttpClient _client;
+    private HttpClient _client;
 
     /// <summary>
     /// Instantiates a new SearchHelper object

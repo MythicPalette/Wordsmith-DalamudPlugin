@@ -4,7 +4,7 @@ using ImGuiNET;
 
 namespace Wordsmith.Gui;
 
-internal class ScratchPadHelpUI : Window
+internal sealed class ScratchPadHelpUI : Window
 {
     internal static ImGuiScene.TextureWrap? MerriamWebsterLogo = null;
 

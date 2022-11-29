@@ -7,9 +7,12 @@ global using System.Collections.Generic;
 global using Dalamud.Logging;
 
 global using Wordsmith.Interfaces;
+using Dalamud.Interface;
+
 namespace Wordsmith;
 
 internal static class Global
 {
     internal const int BUTTON_Y = 25;
+    internal static float BUTTON_Y_SCALED => BUTTON_Y * ImGuiHelpers.GlobalScale;
 }

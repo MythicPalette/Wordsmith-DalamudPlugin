@@ -445,19 +445,19 @@ internal static class Extensions
         return obj.ToString() ?? "NULL";
     }
 
-    public static bool IsGenericList( this object o )
+    internal static bool IsGenericList( this object o )
     {
         var oType = o.GetType();
         return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( List<> )));
     }
 
-    public static bool IsGenericDictionary( this object o )
+    internal static bool IsGenericDictionary( this object o )
     {
         var oType = o.GetType();
         return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( Dictionary<,> )));
     }
 
-    public static bool IsGenericEnumerable( this object o )
+    internal static bool IsGenericEnumerable( this object o )
     {
         var oType = o.GetType();
         return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( IEnumerable<> )));
@@ -529,6 +529,14 @@ internal static class Extensions
         foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
             result[Name] = Value;
 
+        return result;
+    }
+
+    internal static Dictionary<int, Vector4> Clone(this Dictionary<int, Vector4> dict)
+    {
+        Dictionary<int, Vector4> result = new();
+        foreach ( int key in dict.Keys )
+            result[key] = new Vector4( dict[key].X, dict[key].Y, dict[key].Z, dict[key].W );
         return result;
     }
 }
