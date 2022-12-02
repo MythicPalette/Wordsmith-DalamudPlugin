@@ -49,6 +49,13 @@ internal sealed class Console
                     WordsmithUI.ShowErrorWindow( pad.Dump(), $"Scratch Pad #{pad.ID} Dump" );
                 break;
 
+            case "addpads":
+                int count;
+                if ( int.TryParse( m.Groups["value"].Value, out count ) )
+                    for ( int i = 0; i < count; i++ )
+                        WordsmithUI.ShowScratchPad();
+                break;
+
             default:
                 return false;
         }

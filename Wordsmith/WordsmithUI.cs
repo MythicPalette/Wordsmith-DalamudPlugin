@@ -209,7 +209,7 @@ internal static class WordsmithUI
     /// Shows a ScratchPad by ID or creates a new one.
     /// </summary>
     /// <param name="id">The id of the pad to be shown.</param>
-    internal static void ShowScratchPad( int id ) { if ( !ShowWindow( ScratchPadUI.CreateWindowName(id) ) ) ShowScratchPad(); }
+    internal static void ShowScratchPad( int id ) { if ( !ShowWindow( ScratchPadUI.CreateWindowName(id) ) ) AddWindow(new ScratchPadUI(id) { IsOpen = true } ); }
 
     /// <summary>
     /// Creates or shows the ScratchPadHelpUI help <see cref="Window"/>

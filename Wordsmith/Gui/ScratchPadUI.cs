@@ -154,6 +154,8 @@ internal sealed class ScratchPadUI : Window, IReflected
 
     private System.Timers.Timer _spellchecktimer = new(Wordsmith.Configuration.AutoSpellCheckDelay * 1000) { AutoReset = false, Enabled = false };
 
+    private bool _hideOnly = false;
+
     #region Construction & Initialization
     internal static string CreateWindowName( int id ) => $"{Wordsmith.AppName} - Scratch Pad #{id}";
     /// <summary>
@@ -240,6 +242,33 @@ internal sealed class ScratchPadUI : Window, IReflected
         {
             DrawHistory();
         }
+    }
+
+    /// <summary>
+    /// Handles automatically deleting the pad if configured to do so.
+    /// </summary>
+    public override void OnClose()
+    {
+        // If automatically deleting closed pads and we're not just hiding it
+        if ( Wordsmith.Configuration.DeleteClosedScratchPads && !this._hideOnly )
+        {
+            // If confirmation required then launch a confirmation dialog
+            if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
+            {
+                WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete Scratch Pad {this.ID}? (Cancel will close without deleting.)", ( mb ) =>
+                {
+                    if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                        WordsmithUI.RemoveWindow( this );
+                },
+                ImGuiHelpers.ScaledVector2( 200, 120 )
+                );
+            }
+            else // No confirmation required, just delete.
+                WordsmithUI.RemoveWindow( this );
+        }
+
+        // Always reset hide only.
+        this._hideOnly = false;
     }
 
     /// <summary>
@@ -1259,28 +1288,6 @@ internal sealed class ScratchPadUI : Window, IReflected
     }
 
     /// <summary>
-    /// Handles automatically deleting the pad if configured to do so.
-    /// </summary>
-    public override void OnClose()
-    {
-        if ( Wordsmith.Configuration.DeleteClosedScratchPads )
-        {
-            if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
-            {
-                WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete Scratch Pad {this.ID}? (Cancel will close without deleting.)", ( mb ) =>
-                {
-                    if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
-                        WordsmithUI.RemoveWindow( this );
-                },
-                ImGuiHelpers.ScaledVector2( 200, 120 )
-                );
-            }
-            else
-                WordsmithUI.RemoveWindow( this );
-        }
-    }
-
-    /// <summary>
     /// Handles DataChanged event for the HeaderData
     /// </summary>
     /// <param name="sender">The object sending the data change event</param>
@@ -1519,51 +1526,7 @@ internal sealed class ScratchPadUI : Window, IReflected
         return 0;
     }
     #endregion
-    #region Internal Methods
-    private float GetDefaultInputHeight() => Wordsmith.Configuration.ScratchPadInputLineHeight * ImGui.CalcTextSize( "A" ).Y;
-
-    /// <summary>
-    /// Gets the height of the footer.
-    /// </summary>
-    /// <param name="IncludeTextbox">If false, the height of the textbox is not added to the result.</param>
-    /// <returns>Returns the height of footer elements as a <see langword="float"/></returns>
-    private float GetFooterHeight(float inputSize = -1)
-    {
-        if ( this._editorstate == EDITING_TEXT )
-        {
-            // Text input size can either be given or calculated.
-            float result = inputSize > 0 ? inputSize : GetDefaultInputHeight();
-            int paddingCount = 2;
-
-            // Delete pad button
-            if ( !Wordsmith.Configuration.DeleteClosedScratchPads )
-            {
-                result += Global.BUTTON_Y_SCALED;
-                paddingCount++;
-            }
-
-            // Replace Text section
-            if ( this._corrections.Count > 0 )
-            {
-                result += Global.BUTTON_Y_SCALED;
-                paddingCount++;
-            }
-
-            // Button row
-            result += Global.BUTTON_Y_SCALED;
-            paddingCount++;
-
-            // Padding
-            result += ImGui.GetStyle().FramePadding.Y * paddingCount;
-
-            return result;
-        }
-        else if ( this._editorstate == VIEWING_HISTORY )
-            return Global.BUTTON_Y_SCALED + ImGui.GetStyle().FramePadding.Y;
-        
-        return 0;
-    }
-
+    #region General Methods
     /// <summary>
     /// Checks to see if the width of the window has changed and rewraps text if it has.
     /// </summary>
@@ -1623,6 +1586,59 @@ internal sealed class ScratchPadUI : Window, IReflected
             }
         }
         return text;
+    }
+
+    private float GetDefaultInputHeight() => Wordsmith.Configuration.ScratchPadInputLineHeight * ImGui.CalcTextSize( "A" ).Y;
+
+    /// <summary>
+    /// Gets the height of the footer.
+    /// </summary>
+    /// <param name="IncludeTextbox">If false, the height of the textbox is not added to the result.</param>
+    /// <returns>Returns the height of footer elements as a <see langword="float"/></returns>
+    private float GetFooterHeight( float inputSize = -1 )
+    {
+        if ( this._editorstate == EDITING_TEXT )
+        {
+            // Text input size can either be given or calculated.
+            float result = inputSize > 0 ? inputSize : GetDefaultInputHeight();
+            int paddingCount = 2;
+
+            // Delete pad button
+            if ( !Wordsmith.Configuration.DeleteClosedScratchPads )
+            {
+                result += Global.BUTTON_Y_SCALED;
+                paddingCount++;
+            }
+
+            // Replace Text section
+            if ( this._corrections.Count > 0 )
+            {
+                result += Global.BUTTON_Y_SCALED;
+                paddingCount++;
+            }
+
+            // Button row
+            result += Global.BUTTON_Y_SCALED;
+            paddingCount++;
+
+            // Padding
+            result += ImGui.GetStyle().FramePadding.Y * paddingCount;
+
+            return result;
+        }
+        else if ( this._editorstate == VIEWING_HISTORY )
+            return Global.BUTTON_Y_SCALED + ImGui.GetStyle().FramePadding.Y;
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Hides the window without deleting. Ignores automatic deletion.
+    /// </summary>
+    internal void Hide()
+    {
+        this._hideOnly = true;
+        this.IsOpen = false;
     }
 
     /// <summary>

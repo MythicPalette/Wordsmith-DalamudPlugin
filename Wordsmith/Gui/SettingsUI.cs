@@ -322,26 +322,36 @@ internal sealed class SettingsUI : Window, IReflected
                 if ( ImGui.CollapsingHeader( "Open Scratch Pads##settingsheader" ) )
                 {
                     ImGui.Indent();
-                    if ( ImGui.BeginTable( $"SettingsPadListTable", 4 ) )
+
+                    if ( ImGui.BeginChild( "OpenPadsChildObject", new(-1, ImGui.GetWindowContentRegionMax().Y - ImGui.GetCursorPosY() - Global.BUTTON_Y_SCALED - ImGui.GetStyle().FramePadding.Y*2 ) ))
                     {
-                        ImGui.TableSetupColumn( "SettingsUIPadListIDColumn", ImGuiTableColumnFlags.WidthFixed, Global.BUTTON_Y_SCALED );
-                        ImGui.TableSetupColumn( "SettingsUIPadListDescColumn", ImGuiTableColumnFlags.WidthStretch, 1 );
-                        ImGui.TableSetupColumn( "SettingsUIPadListShowColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale );
-                        ImGui.TableSetupColumn( "SettingsUIPadListCloseColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale );
-
-                        ImGui.TableNextColumn();
-                        ImGui.TableHeader( "ID##SettingsUIPadListColumnHeader" );
-                        ImGui.TableNextColumn();
-                        ImGui.TableHeader( "Chat Header##SettingsUIPadListColumnHeader." );
-                        ImGui.TableNextColumn();
-                        ImGui.TableHeader( "##ShowSettingsUIPadListColumnHeader" );
-                        ImGui.TableNextColumn();
-                        ImGui.TableHeader( "##CloseSettingsUIPadListColumnHeader" );
-
-                        foreach ( Window w in WordsmithUI.Windows )
+                        if ( ImGui.BeginTable( $"SettingsPadListTable", 4 ) )
                         {
-                            if ( w is ScratchPadUI pad )
+                            ImGui.TableSetupColumn( "SettingsUIPadListIDColumn", ImGuiTableColumnFlags.WidthFixed, Global.BUTTON_Y_SCALED );
+                            ImGui.TableSetupColumn( "SettingsUIPadListDescColumn", ImGuiTableColumnFlags.WidthStretch, 1 );
+                            ImGui.TableSetupColumn( "SettingsUIPadListShowColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale );
+                            ImGui.TableSetupColumn( "SettingsUIPadListCloseColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale );
+
+                            ImGui.TableNextColumn();
+                            ImGui.TableHeader( "ID##SettingsUIPadListColumnHeader" );
+                            ImGui.TableNextColumn();
+                            ImGui.TableHeader( "Chat Header##SettingsUIPadListColumnHeader." );
+                            ImGui.TableNextColumn();
+                            ImGui.TableHeader( "##ShowSettingsUIPadListColumnHeader" );
+                            ImGui.TableNextColumn();
+                            ImGui.TableHeader( "##CloseSettingsUIPadListColumnHeader" );
+
+                            // Create a list of Scratch Pads
+                            List<ScratchPadUI> scratchpads = new();
+                            foreach ( Window w in WordsmithUI.Windows )
+                                if ( w is ScratchPadUI pad )
+                                    scratchpads.Add( pad );
+
+                            scratchpads = scratchpads.OrderBy( pad => pad.ID ).ToList();
+
+                            foreach ( ScratchPadUI pad in scratchpads )
                             {
+
                                 ImGui.TableNextColumn();
                                 ImGui.Text( pad.ID.ToString() );
 
@@ -354,13 +364,19 @@ internal sealed class SettingsUI : Window, IReflected
                                     if ( ImGui.Button( $"Show##SettingsUIPadListOpen{pad.ID}", new Vector2( -1, Global.BUTTON_Y_SCALED ) ) )
                                         pad.IsOpen = true;
                                 }
+                                else
+                                {
+                                    if ( ImGui.Button( $"Hide##SettingsUIPadListHIde{pad.ID}", new Vector2( -1, Global.BUTTON_Y_SCALED ) ) )
+                                        pad.Hide();
+                                }
+
                                 ImGui.TableNextColumn();
 
                                 if ( ImGui.Button( $"Close##SettingsUIPadListClose{pad.ID}", new( -1, Global.BUTTON_Y_SCALED ) ) )
                                 {
                                     try
                                     {
-                                        if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
+                                        if ( this._confirmDeleteClosed )
                                         {
                                             WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete Scratch Pad {pad.ID}?", ( mb ) =>
                                             {
@@ -378,10 +394,16 @@ internal sealed class SettingsUI : Window, IReflected
                                         PluginLog.LogError( e.ToString() );
                                     }
                                 }
+
                             }
+                            ImGui.EndTable();
                         }
-                        ImGui.EndTable();
+                        ImGui.EndChild();
                     }
+                    if ( ImGui.Button( "Close All", new( -1, Global.BUTTON_Y_SCALED ) ) )
+                        foreach ( ScratchPadUI pad in WordsmithUI.Windows )
+                            WordsmithUI.RemoveWindow( pad );
+
                     ImGui.Unindent();
                  }
                 ImGui.EndChild();
