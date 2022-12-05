@@ -370,19 +370,19 @@ internal static class Extensions
         return -1;
     }
 
-    internal static IReadOnlyList<(int Type, string Name, string Value)> GetProperties( this IReflected reflected, params string[]? excludes )
+    internal static IReadOnlyList<(int Type, string Name, string Value)> GetProperties( this object obj, params string[]? excludes )
     {
-        Type t = reflected.GetType();
+        Type t = obj.GetType();
 
         List<(int Type, string Name, string Value)> result = new();
 
         // Get properties
         foreach ( PropertyInfo p in t.GetProperties().Where( x => !excludes?.Contains( x.Name ) ?? true ) )
-            result.Add( new( 0, p.Name, GetValueString( p.GetValue( reflected ) ) ) );
+            result.Add( new( 0, p.Name, GetValueString( p.GetValue( obj ) ) ) );
 
         // Get fields
         foreach ( FieldInfo f in t.GetFields( BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static ).Where( x => !excludes?.Contains( x.Name ) ?? true ) )
-            result.Add( new( 1, f.Name, GetValueString( f.GetValue( reflected ) ) ) );
+            result.Add( new( 1, f.Name, GetValueString( f.GetValue( obj ) ) ) );
 
         return result;
     }
@@ -512,14 +512,14 @@ internal static class Extensions
         return result;
     }
 
-    internal static Dictionary<string, object> Dump(this IReflected reflected)
+    internal static Dictionary<string, object> Dump(this object obj)
     {
         // Get the list of results
-        IReadOnlyList<(int Type, string Name, string Value) > data = reflected.GetProperties();
+        IReadOnlyList<(int Type, string Name, string Value) > data = obj.GetProperties();
 
         Dictionary<string, object> result = new Dictionary<string, object>();
 
-        result["Type"] = reflected.GetType().ToString();
+        result["Type"] = obj.GetType().ToString();
 
         // Get Properties
         foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )

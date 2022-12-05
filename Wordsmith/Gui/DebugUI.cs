@@ -17,63 +17,56 @@ internal sealed class DebugUI : Window
 
         PluginLog.LogDebug( $"DebugUI created." );
     }
+
     public override void Draw()
     {
         if ( ImGui.CollapsingHeader( $"Wordsmith Configuration" ) )
-        {
-            ImGui.Indent();
             DrawClassData( Wordsmith.Configuration, $"Configuration" );
-            ImGui.Unindent();
-        }
-        // If there is a scratch pad, draw the scratch pad section.
-        if ( WordsmithUI.Windows.FirstOrDefault( x => x.GetType() == typeof( ScratchPadUI ) ) is not null )
-        {
-            if ( ImGui.CollapsingHeader( "Scratch Pad Data##DebugUIHeader" ) )
-            {
-                ImGui.Indent();
-                foreach ( IReflected r in WordsmithUI.Windows.Where(x => x is ScratchPadUI) )
-                    DrawClassData( r, $"ScratchPad{((ScratchPadUI)r).ID}", "NextID" );
-
-                ImGui.Unindent();
-            }
-        }
 
         // If there is a setting, draw the settings section.
-        if ( WordsmithUI.Windows.FirstOrDefault( x => x.GetType() == typeof( SettingsUI ) ) is not null )
-        {
-            if ( ImGui.CollapsingHeader( "Settings UI Data##DebugUIHeader" ) )
-            {
-                ImGui.Indent();
-
-                foreach ( IReflected r in WordsmithUI.Windows.Where(x => x is SettingsUI) )
-                    DrawClassData( r, $"SettingsUI" );
-
-                ImGui.Unindent();
-            }
-        }
+        if ( ImGui.CollapsingHeader( "Settings Data##DebugUIHeDebugUICollapsingHeaderader" ) )
+            DrawClassData( WordsmithUI.Windows.FirstOrDefault( x => x.GetType() == typeof( SettingsUI ) ), SettingsUI.GetWindowName() );        
 
         // If there is a thesaurus, draw the thesaurus section.
-        if ( WordsmithUI.Windows.FirstOrDefault( x => x.GetType() == typeof( ThesaurusUI )) is not null )
+        if ( ImGui.CollapsingHeader( "Thesaurus Data##DebugUICollapsingHeader" ) )
+            DrawClassData( WordsmithUI.Windows.FirstOrDefault( x => x.GetType() == typeof( ThesaurusUI ) ), ThesaurusUI.GetWindowName() );
+
+        // If there is a MessageBox, draw the MessageBox section.
+        if ( ImGui.CollapsingHeader( $"Message Boxes##DebugUICollapsingHeader" ) )
         {
-            if ( ImGui.CollapsingHeader( $"Thesuaurs UI Data##DebugUIHeader" ) )
-            {
-                ImGui.Indent();
-                foreach ( IReflected r in WordsmithUI.Windows.Where( x => x is ThesaurusUI ) )
-                    DrawClassData( r, $"ThesaurusUI" );
-                ImGui.Unindent();
-            }
+            ImGui.Indent();
+            foreach ( MessageBox mb in WordsmithUI.Windows.Where(w => w.GetType() == typeof(MessageBox)) )
+                if ( ImGui.CollapsingHeader($"{mb.WindowName}") )
+                    DrawClassData( mb, $"MessageBoxUI" );
+
+            foreach ( ErrorWindow ew in WordsmithUI.Windows.Where( w => w.GetType() == typeof( ErrorWindow ) ) )
+                if ( ImGui.CollapsingHeader( $"{ew.WindowName}" ) )
+                    DrawClassData( ew, $"ErrorWindowUI" );
+            ImGui.Unindent();
         }
+
+        // If there is a scratch pad, draw the scratch pad section.
+        if ( ImGui.CollapsingHeader( "Scratch Pad Data##DebugUICollapsingHeader" ) )
+        {
+            ImGui.Indent();
+            foreach ( ScratchPadUI pad in WordsmithUI.Windows.Where( w => w.GetType() == typeof( ScratchPadUI ) ) )
+                if ( ImGui.CollapsingHeader($"Scratch Pad {pad.ID}##DebugUICollapsingHeader") )
+                    DrawClassData( pad, $"ScratchPad{pad.ID}", "NextID" );
+            ImGui.Unindent();
+        }
+        
     }
-    private void DrawClassData( IReflected? reflected, object id, params string[]? excludes )
+    private void DrawClassData( object? obj, object id, params string[]? excludes )
     {
-        if ( reflected == null )
+        if ( obj == null )
             return;
 
+        ImGui.Indent();
         // Get the list of results
-        IReadOnlyList<(int Type, string Name, string Value) > data = reflected.GetProperties(excludes);
+        IReadOnlyList<(int Type, string Name, string Value) > data = obj.GetProperties(excludes);
 
         // Draw Properties
-        if ( ImGui.CollapsingHeader( $"Properties##{id}" ) )
+        if ( ImGui.CollapsingHeader( $"Properties##{id}DebugUIHeader" ) )
         {
             ImGui.Indent();
             foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
@@ -82,16 +75,13 @@ internal sealed class DebugUI : Window
         }
 
         // Draw Fields
-        if ( ImGui.CollapsingHeader( $"Fields##{id}" ) )
+        if ( ImGui.CollapsingHeader( $"Fields##{id}DebugUIHeader" ) )
         {
             ImGui.Indent();
             foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
                 ImGui.TextWrapped( $"{Name}\t: {Value.Replace( "\r", "\\r" ).Replace( "\n", "\\n" )}" );
             ImGui.Unindent();
         }
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
+        ImGui.Unindent();
     }
 }

@@ -4,10 +4,11 @@ using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
+using static Wordsmith.Gui.MessageBox;
 
 namespace Wordsmith.Gui;
 
-internal sealed class SettingsUI : Window, IReflected
+internal sealed class SettingsUI : Window
 {
     /// <summary>
     /// The maximum length of scratch text.
@@ -17,7 +18,7 @@ internal sealed class SettingsUI : Window, IReflected
     /// <summary>
     /// Gets the available size for tab pages while leaving room for the footer.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>Returns a float representing the available canvas height for settings tabs.</returns>
     private float GetCanvasSize() => ImGui.GetContentRegionMax().Y - ImGui.GetCursorPosY() - (Global.BUTTON_Y*ImGuiHelpers.GlobalScale) - (ImGui.GetStyle().FramePadding.Y * 2);
 
     // Thesaurus settings.
@@ -122,8 +123,8 @@ internal sealed class SettingsUI : Window, IReflected
         result += $"\t]";
         return result;
     }
-
-    public SettingsUI() : base($"{Wordsmith.AppName} - Settings")
+    internal static string GetWindowName() => $"{Wordsmith.AppName} - Settings";
+    public SettingsUI() : base( GetWindowName() )
     {
         this._searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
         this._researchToTopChange = Wordsmith.Configuration.ResearchToTop;
@@ -306,7 +307,7 @@ internal sealed class SettingsUI : Window, IReflected
                     ImGui.SetNextItemWidth( dragWidth );
                     ImGui.SliderInt( "Max Text Length##ScratchPadSettingsSlider", ref this._scratchMaxTextLen, 512, MAX_SCRATCH_LENGTH );
                     if ( ImGui.IsItemHovered() )
-                        ImGui.SetTooltip( $"This is the buffer size for text input. The higher this value is the more\nmemory consumed up to a maximum of {MAX_SCRATCH_LENGTH/1024}KB per Scratch Pad." );
+                        ImGui.SetTooltip( $"This is the buffer size for text input.\nThe higher this value is the more\nmemory consumed up to a maximum of\n{MAX_SCRATCH_LENGTH/1024}KB per Scratch Pad." );
 
                     ImGui.Separator();
                     ImGui.SetNextItemWidth( dragWidth );
@@ -378,13 +379,15 @@ internal sealed class SettingsUI : Window, IReflected
                                     {
                                         if ( this._confirmDeleteClosed )
                                         {
-                                            WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete Scratch Pad {pad.ID}?", ( mb ) =>
-                                            {
-                                                if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
-                                                    WordsmithUI.RemoveWindow( pad );
-                                            },
-                                            ImGuiHelpers.ScaledVector2( 200, 100 )
-                                            );
+                                            WordsmithUI.ShowMessageBox(
+                                                "Confirm Delete",
+                                                $"Are you sure you want to delete Scratch Pad {pad.ID}?",
+                                                MessageBox.ButtonStyle.OkCancel, 
+                                                ( mb ) =>
+                                                {
+                                                    if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                                                        WordsmithUI.RemoveWindow( pad );
+                                                });
                                         }
                                         else
                                             WordsmithUI.RemoveWindow( pad );
@@ -750,7 +753,17 @@ internal sealed class SettingsUI : Window, IReflected
                     // Delete all
                     ImGui.TableNextColumn();
                     if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
-                        WordsmithUI.ShowResetDictionary();
+                        WordsmithUI.ShowMessageBox(
+                            $"{Wordsmith.AppName} - Reset Dictionary",
+                            "This will delete all entries that you added to the\ndictionary.This cannot be undone.\nProceed?",
+                            ButtonStyle.OkCancel,
+                            ( mb ) => {
+                                if ( (mb.Result & DialogResult.Ok) == DialogResult.Ok )
+                                {
+                                    Wordsmith.Configuration.CustomDictionaryEntries = new();
+                                    Wordsmith.Configuration.Save();
+                                }
+                            } );
                     if (ImGui.IsItemHovered())
                         ImGui.SetTooltip($"Deletes all dictionary entries. This action cannot be undone.");
 
@@ -946,7 +959,16 @@ internal sealed class SettingsUI : Window, IReflected
             // Reset settings to default.
             if (ImGui.Button("Defaults", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
             {
-                WordsmithUI.ShowRestoreSettings();
+                WordsmithUI.ShowMessageBox( $"{Wordsmith.AppName} - Restore Default Settings",
+                    "Restoring defaults resets all settings to their original values\n(not including words added to your dictionary).\nProceed?",
+                    buttonStyle: ButtonStyle.OkCancel,
+                    ( mb ) =>
+                    {
+                        if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                            Wordsmith.Configuration.ResetToDefault();
+
+                        this.IsOpen= true;
+                    });
                 this.IsOpen = false;
             }
 

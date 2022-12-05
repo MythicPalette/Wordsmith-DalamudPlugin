@@ -1,23 +1,26 @@
 ﻿// Author: Lady Defile
 // Description: Wordsmith is a plugin for Dalamud; a plugin API for Final Fantasy XIV Online.
+// The purpose of Wordsmith is to make roleplay easier. Roleplay in FFXIV requires typing
+// into a small, single horizontal line with very little width. This makes it impossible to
+// proofread your text for spelling and grammatical errors. The other option is to type in
+// external programs but then copy/paste is a bit of guess work. Wordsmith aims to solve this
+// by being the perfect-ish roleplay text editor.
 //
-// A note to anyone looking to explore this code and/or my future self if I forget how all of
-// this code works.
-// Wordsmith.cs is the main interface and the entry point for Dalamud.
-// WordsmithUI.cs manages the creation, showing/hiding, and disposal of user windows.
-// Extensions.cs has several extension methods.
-// Global.cs has plugin-wide constants and global usings
+// A few notes to anyone looking to explore this code and/or my future self if I forget how all of
+// this code works:
+// *    Wordsmith.cs is the main plugin interface and the entry point for Dalamud. It handles the
+//          initialization of the plugin and text commands.
+// *    WordsmithUI.cs manages the creation, showing/hiding, and disposal of GUI windows.
+// *    Extensions.cs has several extension methods.
+// *    Global.cs has plugin-wide constants and global usings
 //
 // Files in the Helpers namespace are processing code removed from the file that uses them.
-// This was done to help cut down on file inflation and clearly separate functions from UI
-// where possible.
+// This was done to help cut down on file bloat and separate functions from UI where possible.
 //
-// Files in the Data namespace are data container classes/structs. The exception is Lang.cs
+// Files in the Gui namespace are GUI windows that are displayed to the user at one point or
+// another for a variety of reasons.
 //
-// Data/Lang.cs is the file that manages the loading, searching, comparing, and unloading of
-// Wordsmith's internal dictionary. This is necessary for the spell checking feature to work.
-//
-// While the code may appear complicated, I've done my best to simply and compartmentalize
+// While the code may appear complicated, I've done my best to simplify and compartmentalize
 // anything that I can to keep things easy to pick up. It should not be too difficult for
 // others or my future self to (re)visit the code in these files and quickly rediscover
 // the functions of each file as well as the flow of the program.
@@ -60,6 +63,8 @@ public sealed class Wordsmith : IDalamudPlugin
     public string Name => AppName;
 
     #region Plugin Services
+    // All plugin services are automatically populated by Dalamud. These are important
+    // classes that are used to directly interface with the plugin API.
     [PluginService]
     internal static DalamudPluginInterface PluginInterface { get; private set; } = null!;
 
@@ -77,7 +82,7 @@ public sealed class Wordsmith : IDalamudPlugin
 
     #region Constructor and Disposer
     /// <summary>
-    /// Default constructor.
+    /// Default constructor and initializer for the Wordsmith plugin.
     /// </summary>
     public Wordsmith()
     {

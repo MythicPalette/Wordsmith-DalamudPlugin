@@ -6,22 +6,20 @@ using Wordsmith;
 
 namespace Wordsmith.Gui;
 
-internal sealed class ThesaurusUI : Window, IReflected, IDisposable
+internal sealed class ThesaurusUI : Window, IDisposable
 {
-    private string _search = "";
     private string _query = "";
-    private bool _searchFailed = false;
     private int _searchMinLength = 3;
 
     private MerriamWebsterAPI SearchHelper;
 
+    internal static string GetWindowName() => $"{Wordsmith.AppName} - Thesaurus";
     /// <summary>
     /// Instantiates a new ThesaurusUI object.
     /// </summary>
-    public ThesaurusUI() : base($"{Wordsmith.AppName} - Thesaurus")
+    public ThesaurusUI() : base(GetWindowName())
     {
         SearchHelper = new MerriamWebsterAPI();
-        _search = "";
 
         SizeConstraints = new WindowSizeConstraints()
         {

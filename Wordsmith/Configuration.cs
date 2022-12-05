@@ -3,13 +3,24 @@
 namespace Wordsmith;
 
 [Serializable]
-public sealed class Configuration : IPluginConfiguration, IReflected
+public sealed class Configuration : IPluginConfiguration
 {
-    [NonSerialized]
-    internal bool RecentlySaved = false;
+    /// <summary>
+    /// This is enabled when a save is performed to notify that changes
+    /// have been commited to the configuration file.
+    /// </summary>
+    internal bool RecentlySaved { get; set; } = false;
 
+    /// <summary>
+    /// A variable requried by Dalamud. This is used to
+    /// identify the versioning of the configuration in case there
+    /// are any breaking changes.
+    /// </summary>
     public int Version { get; set; } = 0;
 
+    /// <summary>
+    /// The Api key used to acces the Merriam-Webster Thesaurus API
+    /// </summary>
     public string MwApiKey { get; set; } = "690d3d0f-785a-4403-8075-001258483181";
 
     /// <summary>

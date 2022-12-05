@@ -8,7 +8,7 @@ using Wordsmith.Helpers;
 
 namespace Wordsmith.Gui;
 
-internal sealed class ScratchPadUI : Window, IReflected
+internal sealed class ScratchPadUI : Window
 {
     #region NoticeID
     internal const int CORRECTIONS_FOUND = -1;
@@ -90,9 +90,7 @@ internal sealed class ScratchPadUI : Window, IReflected
     /// <summary>
     /// Contains all of the variables related to the PadState
     /// </summary>
-    #region Pad State
     private PadState _lastState = new();
-    #endregion
 
     private List<Word> _corrections = new();
 
@@ -241,6 +239,7 @@ internal sealed class ScratchPadUI : Window, IReflected
         else if ( this._editorstate == VIEWING_HISTORY )
         {
             DrawHistory();
+            DrawHistoryFooter();
         }
     }
 
@@ -255,13 +254,15 @@ internal sealed class ScratchPadUI : Window, IReflected
             // If confirmation required then launch a confirmation dialog
             if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
             {
-                WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete Scratch Pad {this.ID}? (Cancel will close without deleting.)", ( mb ) =>
-                {
-                    if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
-                        WordsmithUI.RemoveWindow( this );
-                },
-                ImGuiHelpers.ScaledVector2( 200, 120 )
-                );
+                WordsmithUI.ShowMessageBox(
+                    "Confirm Delete",
+                    $"Are you sure you want to delete Scratch Pad {this.ID}? (Cancel will close without deleting.)",
+                    MessageBox.ButtonStyle.OkCancel,
+                    ( mb ) =>
+                    {
+                        if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                            WordsmithUI.RemoveWindow( this );
+                    });
             }
             else // No confirmation required, just delete.
                 WordsmithUI.RemoveWindow( this );
@@ -851,12 +852,15 @@ internal sealed class ScratchPadUI : Window, IReflected
             {
                 if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
                 {
-                    WordsmithUI.ShowMessageBox( "Confirm Delete", $"Are you sure you want to delete this pad?", ( mb ) =>
-                    {
-                        if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
-                            WordsmithUI.RemoveWindow( this );
-                    },
-                    ImGuiHelpers.ScaledVector2(200, 100));
+                    WordsmithUI.ShowMessageBox(
+                        "Confirm Delete",
+                        $"Are you sure you want to delete this pad?",
+                        MessageBox.ButtonStyle.OkCancel,
+                        ( mb ) =>
+                        {
+                            if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
+                                WordsmithUI.RemoveWindow( this );
+                        });
                 }
                 else
                     WordsmithUI.RemoveWindow(this);
@@ -948,7 +952,6 @@ internal sealed class ScratchPadUI : Window, IReflected
                 DrawHistoryItem( this._text_history[i], i );
             ImGui.EndChild();
         }
-        DrawHistoryFooter();
     }
 
     /// <summary>
@@ -983,7 +986,13 @@ internal sealed class ScratchPadUI : Window, IReflected
             ImGui.EndGroup();
 
             // Create a border around the group
-            Rect2 r = new(ImGui.GetItemRectMin(), new( ImGui.GetWindowWidth() - ImGui.GetStyle().FramePadding.X*2, ImGui.GetItemRectMax().Y - ImGui.GetItemRectMin().Y));
+            Vector2 vMin = ImGui.GetItemRectMin();
+
+            Rect r;
+            r.Left = (int)vMin.X;
+            r.Top = (int)vMin.Y;
+            r.Right = (int)(vMin.X + ImGui.GetWindowWidth() - ImGui.GetStyle().FramePadding.X * 2);
+            r.Bottom = (int)(ImGui.GetItemRectMax().Y - ImGui.GetItemRectMin().Y);
             ImGui.GetWindowDrawList().AddRect( r.Position, r.Size + r.Position, ImGui.GetColorU32( ImGuiCol.Border ) );
 
             if ( ImGui.BeginPopup( $"ScratchPad{this.ID}History{idx}Popup" ) )
@@ -995,12 +1004,12 @@ internal sealed class ScratchPadUI : Window, IReflected
                     // If there is currently written text, require confirmation.
                     if ( this.ScratchString != "" )
                         WordsmithUI.ShowMessageBox(
-                            "Load History?", "Loading the history state will overwrite any currently written text and chat headers.",
+                            "Load History?", "Loading the history state will overwrite\nany currently written text and chat headers.",
+                            MessageBox.ButtonStyle.OkCancel,
                             new Action<MessageBox>((m) => {
                                 if ( m.Result == MessageBox.DialogResult.Ok )
                                     LoadState( this._text_history[index] );
-                            } ),
-                            ImGuiHelpers.ScaledVector2(300, 100)
+                            } )
                         );
 
                     // If there is no currently written text just load the state.
