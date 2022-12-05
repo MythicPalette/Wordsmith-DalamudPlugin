@@ -381,7 +381,7 @@ internal static class Extensions
             result.Add( new( 0, p.Name, GetValueString( p.GetValue( obj ) ) ) );
 
         // Get fields
-        foreach ( FieldInfo f in t.GetFields( BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static ).Where( x => !excludes?.Contains( x.Name ) ?? true ) )
+        foreach ( FieldInfo f in t.GetFields( BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public ).Where( x => !excludes?.Contains( x.Name ) ?? true ) )
             result.Add( new( 1, f.Name, GetValueString( f.GetValue( obj ) ) ) );
 
         return result;
