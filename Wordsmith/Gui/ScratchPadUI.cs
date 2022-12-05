@@ -10,14 +10,10 @@ namespace Wordsmith.Gui;
 
 internal sealed class ScratchPadUI : Window
 {
-    #region NoticeID
+    #region Constants
     internal const int CORRECTIONS_FOUND = -1;
-
     internal const int CHECKING_SPELLING = 1;
     internal const int CORRECTIONS_NOT_FOUND = 2;
-    #endregion
-
-    #region ScratchPad
     internal const int EDITING_TEXT = 0;
     internal const int VIEWING_HISTORY = 1;
     #endregion
@@ -71,7 +67,6 @@ internal sealed class ScratchPadUI : Window
     /// <summary>
     /// Contains all of the variables related to ID
     /// </summary>
-    #region ID
     private static int _nextID = 0;
     private static int NextAvailableID()
     {
@@ -85,7 +80,11 @@ internal sealed class ScratchPadUI : Window
         return id;
     }
     public int ID { get; set; }
-    #endregion
+
+    /// <summary>
+    /// A custom text title to name the scratch pad.
+    /// </summary>
+    public string Title { get; private set; } = "";
 
     /// <summary>
     /// Contains all of the variables related to the PadState
@@ -156,6 +155,8 @@ internal sealed class ScratchPadUI : Window
 
     #region Construction & Initialization
     internal static string CreateWindowName( int id ) => $"{Wordsmith.AppName} - Scratch Pad #{id}";
+    internal static string CreateWindowName( string str ) => $"{Wordsmith.AppName} - Scratch Pad: {str.Replace("%", "%%")}";
+
     /// <summary>
     /// Initializes a new <see cref="ScratchPadUI"/> object with the next available ID.
     /// </summary>
@@ -165,7 +166,7 @@ internal sealed class ScratchPadUI : Window
     /// Initializes a new <see cref="ScratchPadUI"/> object with a specific ID
     /// </summary>
     /// <param name="chatType"><see cref="int"/>ID to use</param>
-    public ScratchPadUI(int id ) : base( CreateWindowName(id) )
+    public ScratchPadUI( int id ) : base( CreateWindowName( id ) )
     {
         this.ID = id;
         this.SizeConstraints = new()
@@ -182,6 +183,12 @@ internal sealed class ScratchPadUI : Window
         this.Header.DataChanged += this.OnDataChanged;
 
         InitWorker();
+    }
+
+    public ScratchPadUI( string name ) : this(NextAvailableID())
+    {
+        this.WindowName = CreateWindowName( name );
+        this.Title = name;
     }
 
     /// <summary>

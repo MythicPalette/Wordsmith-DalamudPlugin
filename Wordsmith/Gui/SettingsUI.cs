@@ -336,7 +336,7 @@ internal sealed class SettingsUI : Window
                             ImGui.TableNextColumn();
                             ImGui.TableHeader( "ID##SettingsUIPadListColumnHeader" );
                             ImGui.TableNextColumn();
-                            ImGui.TableHeader( "Chat Header##SettingsUIPadListColumnHeader." );
+                            ImGui.TableHeader( "Description##SettingsUIPadListColumnHeader." );
                             ImGui.TableNextColumn();
                             ImGui.TableHeader( "##ShowSettingsUIPadListColumnHeader" );
                             ImGui.TableNextColumn();
@@ -357,7 +357,10 @@ internal sealed class SettingsUI : Window
                                 ImGui.Text( pad.ID.ToString() );
 
                                 ImGui.TableNextColumn();
-                                ImGui.Text( pad.Header.Length > 0 ? pad.Header.ToString() : "None" );
+                                if ( pad.Title.Length > 0 )
+                                    ImGui.Text( pad.Title );
+                                else
+                                    ImGui.Text( pad.Header.Length > 0 ? pad.Header.ToString() : "None" );
 
                                 ImGui.TableNextColumn();
                                 if ( !pad.IsOpen )

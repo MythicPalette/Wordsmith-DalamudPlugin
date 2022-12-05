@@ -129,8 +129,10 @@ public sealed class Wordsmith : IDalamudPlugin
     private void OnScratchCommand(string command, string args)
     {
         int x;
-        if (int.TryParse(args.Trim(), out x))
-            WordsmithUI.ShowScratchPad(x);
+        if ( int.TryParse( args.Trim(), out x ) )
+            WordsmithUI.ShowScratchPad( x );
+        else if ( args.Trim().Length > 3 )
+            WordsmithUI.ShowScratchPad( args );
         else
             WordsmithUI.ShowScratchPad();
     }
