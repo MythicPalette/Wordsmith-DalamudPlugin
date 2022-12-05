@@ -1,6 +1,6 @@
 ﻿namespace Wordsmith.Helpers;
 
-internal sealed class ChatHelper: IReflected
+internal sealed class ChatHelper
 {
     private const int _safety = 10;
     /// <summary>

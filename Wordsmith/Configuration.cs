@@ -3,13 +3,28 @@
 namespace Wordsmith;
 
 [Serializable]
-public sealed class Configuration : IPluginConfiguration, IReflected
+public sealed class Configuration : IPluginConfiguration
 {
-    [NonSerialized]
-    internal bool RecentlySaved = false;
+    /// <summary>
+    /// This is enabled when a save is performed to notify that changes
+    /// have been commited to the configuration file.
+    /// </summary>
+    internal bool RecentlySaved { get; set; } = false;
 
+    public string LastNoticeRead { get; set; } = "";
+
+    public bool NeverShowNotices { get; set; } = false;
+
+    /// <summary>
+    /// A variable requried by Dalamud. This is used to
+    /// identify the versioning of the configuration in case there
+    /// are any breaking changes.
+    /// </summary>
     public int Version { get; set; } = 0;
 
+    /// <summary>
+    /// The Api key used to acces the Merriam-Webster Thesaurus API
+    /// </summary>
     public string MwApiKey { get; set; } = "690d3d0f-785a-4403-8075-001258483181";
 
     /// <summary>
@@ -38,7 +53,7 @@ public sealed class Configuration : IPluginConfiguration, IReflected
     /// When true, a confirmation window will pop up asking if the user would like to delete
     /// the scratch pad that they closed with the Delete Pad button or through settings.
     /// </summary>
-    public bool ConfirmCloseScratchPads { get; set; } = true;
+    public bool ConfirmDeleteClosePads { get; set; } = true;
 
     /// <summary>
     /// If true, the spellchecker will not attempt to match words ending in a hyphen.
@@ -204,6 +219,10 @@ public sealed class Configuration : IPluginConfiguration, IReflected
 
     internal void ResetToDefault()
     {
+        // General settings
+        LastNoticeRead = "";
+        NeverShowNotices = false;
+
         // Thesaurus settings.
         SearchHistoryCount = 10;
         ResearchToTop = true;
@@ -211,7 +230,7 @@ public sealed class Configuration : IPluginConfiguration, IReflected
         // Scratch Pad settings
         AutomaticallyClearAfterLastCopy = false;
         DeleteClosedScratchPads = true;
-        ConfirmCloseScratchPads = true;
+        ConfirmDeleteClosePads = true;
         ShowTextInChunks = true;
         SplitTextOnSentence = true;
         ParseHeaderInput = true;
@@ -263,10 +282,11 @@ public sealed class Configuration : IPluginConfiguration, IReflected
 
         Save();
     }
-    internal void Save()
+    internal void Save(bool notify = true)
     {
         Wordsmith.PluginInterface.SavePluginConfig(this);
-        Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+        if (notify)
+            Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
         RecentlySaved = true;
     }
 }

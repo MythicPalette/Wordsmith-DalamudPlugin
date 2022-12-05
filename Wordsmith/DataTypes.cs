@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Wordsmith.Enums;
 
@@ -288,20 +289,15 @@ internal sealed class ThesaurusEntry : WordEntry
     public string AntonymString => string.Join(", ", Antonyms ?? new string[] { });
 }
 
-internal sealed class Rect2
+[StructLayout( LayoutKind.Sequential )]
+internal struct Rect
 {
-    internal Vector2 Position;
-    internal Vector2 Size;
-    public Rect2(float x, float y, float w, float h)
-    {
-        Position = new(x, y);
-        Size = new(w, h);
-    }
-    public Rect2(Vector2 position, Vector2 size)
-    {
-        Position = position;
-        Size = size;
-    }
+    public int Left;        // x position of upper-left corner
+    public int Top;         // y position of upper-left corner
+    public int Right;       // x position of lower-right corner
+    public int Bottom;      // y position of lower-right corner
+    public Vector2 Position => new Vector2( Left, Top );
+    public Vector2 Size => new Vector2( Right - Left, Bottom - Top );
 
     internal bool Contains(Vector2 v) => v.X > Position.X && v.X < Position.X + Size.X && v.Y > Position.Y && v.Y < Position.Y + Size.Y;
 }
@@ -310,6 +306,7 @@ internal sealed class WebManifest
 {
     internal bool IsLoaded { get; set; } = false;
     public string[] Dictionaries = Array.Empty<string>();
+    public string[] Notice = Array.Empty<string>();
 }
 
 internal sealed class Word
@@ -430,16 +427,6 @@ internal sealed class WordSearchResult
     /// The original string used for the search.
     /// </summary>
     public string Query { get; set; }
-
-    /// <summary>
-    /// Returns true if an exception happened while searching for the word.
-    /// </summary>
-    public bool SearchError => Exception != null;
-
-    /// <summary>
-    /// Is null unless an exception occured while searching in which case this will hold that value.
-    /// </summary>
-    public Exception? Exception;
 
     /// <summary>
     /// A list of all WordEntries that hold the word variant data.

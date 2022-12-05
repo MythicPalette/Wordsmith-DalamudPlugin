@@ -49,6 +49,18 @@ internal sealed class Console
                     WordsmithUI.ShowErrorWindow( pad.Dump(), $"Scratch Pad #{pad.ID} Dump" );
                 break;
 
+            case "addpads":
+                int count;
+                if ( int.TryParse( m.Groups["value"].Value, out count ) )
+                    for ( int i = 0; i < count; i++ )
+                        WordsmithUI.ShowScratchPad();
+                break;
+
+            case "guid":
+                if ( m.Groups["value"].Value.ToLower() == "new" )
+                    ImGuiNET.ImGui.SetClipboardText(Guid.NewGuid().ToString().ToUpper());
+                break;
+
             default:
                 return false;
         }

@@ -7,6 +7,7 @@ internal sealed class Git
 {
     private const string MANIFEST_JSON_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/manifest.json";
     private const string LIBRARY_FILE_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/library";
+
     internal class DictionaryDoesNotExistException : Exception
     { }
 
@@ -21,9 +22,10 @@ internal sealed class Git
             client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.UtcNow;
             while ( tries-- > 0 )
             {
+                string raw = "";
                 try
                 {
-                    string raw = client.GetStringAsync( MANIFEST_JSON_URL ).Result;
+                    raw = client.GetStringAsync( MANIFEST_JSON_URL ).Result;
 
                     // Deserialize the manifest.
                     WebManifest? manifest = JsonConvert.DeserializeObject<WebManifest>(raw);
@@ -33,16 +35,18 @@ internal sealed class Git
                         result = manifest;
 
                     result.IsLoaded = true;
+
+                    // Break from the while loop to avoid trying more times.
+                    break;
                 }
                 catch ( Exception e )
                 {
                     // Disable the IfModifiedSince header to avoid a 304 response error.
                     client.DefaultRequestHeaders.IfModifiedSince = null;
-                    PluginLog.LogError( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}" );
+                    PluginLog.LogError( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}\nRaw: {raw}" );
                 }
             }
         }
-
         return result;
     }
 
@@ -61,6 +65,7 @@ internal sealed class Git
                 {
                     // Get data
                     result = client.GetStringAsync( $"{LIBRARY_FILE_URL}/{name}" ).Result;
+                    break;
                 }
                 catch ( Exception e )
                 {

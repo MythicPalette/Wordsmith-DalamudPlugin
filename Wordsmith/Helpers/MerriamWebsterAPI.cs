@@ -14,7 +14,8 @@ internal sealed class MerriamWebsterAPI : IDisposable
 
     internal ApiState State { get; private set; }
 
-    protected List<WordSearchResult> _history = new List<WordSearchResult>();
+    private List<WordSearchResult> _history = new List<WordSearchResult>();
+
     public WordSearchResult[] History => _history.ToArray();
 
     /// <summary>
@@ -267,8 +268,18 @@ internal sealed class MerriamWebsterAPI : IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Dispose of the HTML client and return.
+    /// </summary>
     public void Dispose()
     {
-        _client.Dispose();
+        try
+        {
+            _client?.Dispose();
+        }
+        catch ( Exception e )
+        {
+            PluginLog.LogError( e.Message );
+        }
     }
 }
