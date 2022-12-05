@@ -6,7 +6,6 @@ namespace Wordsmith.Helpers;
 internal sealed class Git
 {
     private const string MANIFEST_JSON_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/manifest.json";
-
     private const string LIBRARY_FILE_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/library";
     internal class DictionaryDoesNotExistException : Exception
     { }
@@ -25,8 +24,6 @@ internal sealed class Git
                 try
                 {
                     string raw = client.GetStringAsync( MANIFEST_JSON_URL ).Result;
-
-                    PluginLog.LogVerbose($"raw manifest: {raw}");
 
                     // Deserialize the manifest.
                     WebManifest? manifest = JsonConvert.DeserializeObject<WebManifest>(raw);
