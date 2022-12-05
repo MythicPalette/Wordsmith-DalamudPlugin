@@ -11,9 +11,9 @@ internal class MessageBox: Window
     [return: MarshalAs( UnmanagedType.Bool )]
     static extern bool GetWindowRect( HandleRef hWnd, out Rect lpRect );
 
-    internal enum DialogResult { None, Ok, Canceled, Closed, Aborted, Yes, No }
+    internal enum DialogResult { None, Ok, Canceled, Closed, Aborted, Yes, No, NeverAgain }
     [Flags]
-    internal enum ButtonStyle { None=0, Ok=1, Cancel=2, OkCancel=3, Abort=4, OkAbort=5, Yes=8, No=16, YesNo=24 }
+    internal enum ButtonStyle { None=0, Ok=1, Cancel=2, OkCancel=3, Abort=4, OkAbort=5, Yes=8, No=16, YesNo=24, NeverAgain=32 }
 
     internal DialogResult Result = DialogResult.None;
     private string _message = string.Empty;
@@ -76,6 +76,7 @@ internal class MessageBox: Window
         if ( (this._buttonStyle & ButtonStyle.Abort) != 0 )     btn_count++;
         if ( (this._buttonStyle & ButtonStyle.Yes) != 0 )       btn_count++;
         if ( (this._buttonStyle & ButtonStyle.No) != 0 )        btn_count++;
+        if ( (this._buttonStyle & ButtonStyle.NeverAgain) != 0 )btn_count++;
 
         float fAvailableWidth = ImGui.GetWindowWidth();
         fAvailableWidth -= (ImGui.GetStyle().WindowPadding.X * 2);
@@ -94,8 +95,7 @@ internal class MessageBox: Window
                 if ( this._callback != null ) this._callback( this );
                 WordsmithUI.RemoveWindow( this );
             }
-            if ( this._buttonStyle != ButtonStyle.Ok )
-                ImGui.SameLine();
+            ImGui.SameLine();
         }
 
         if ( (this._buttonStyle & ButtonStyle.Cancel) == ButtonStyle.Cancel )
@@ -108,8 +108,7 @@ internal class MessageBox: Window
                 WordsmithUI.RemoveWindow( this );
             }
 
-            if ( this._buttonStyle != ButtonStyle.Abort )
-                ImGui.SameLine();
+            ImGui.SameLine();
         }
 
         if ( (this._buttonStyle & ButtonStyle.Abort) == ButtonStyle.Abort )
@@ -121,9 +120,10 @@ internal class MessageBox: Window
                     this._callback( this );
                 WordsmithUI.RemoveWindow( this );
             }
+            ImGui.SameLine();
         }
 
-        if ( this._buttonStyle == ButtonStyle.YesNo )
+        if ( (this._buttonStyle & ButtonStyle.Yes) == ButtonStyle.Yes )
         {
             if ( ImGui.Button( $"Yes##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
             {
@@ -132,9 +132,11 @@ internal class MessageBox: Window
                     this._callback( this );
                 WordsmithUI.RemoveWindow( this );
             }
-
             ImGui.SameLine();
-
+        }
+            
+        if (( this._buttonStyle & ButtonStyle.No) == ButtonStyle.No )
+        { 
             if ( ImGui.Button( $"No##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
             {
                 this.Result = DialogResult.No;
@@ -142,7 +144,21 @@ internal class MessageBox: Window
                     this._callback( this );
                 WordsmithUI.RemoveWindow( this );
             }
+            ImGui.SameLine();
         }
+
+        if ( (this._buttonStyle & ButtonStyle.NeverAgain) == ButtonStyle.NeverAgain )
+        {
+            if ( ImGui.Button( $"Never Show Again##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
+            {
+                this.Result = DialogResult.NeverAgain;
+                if ( this._callback != null )
+                    this._callback( this );
+                WordsmithUI.RemoveWindow( this );
+            }
+            ImGui.SameLine();
+        }
+
         Center();
     }
 

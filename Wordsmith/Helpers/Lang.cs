@@ -8,7 +8,6 @@ namespace Wordsmith.Helpers;
 public static class Lang
 {
     private static HashSet<string> _dictionary = new();
-    internal static WebManifest Manifest = new();
 
     private static bool _enabled = false;
     /// <summary>
@@ -113,9 +112,6 @@ public static class Lang
 
     private static bool LoadWebLanguage()
     {
-        // Get the manifest
-        Manifest = Git.GetManifest();
-
         Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:web: )*(.+)");
         if (!m.Success)
             return false;
@@ -124,7 +120,7 @@ public static class Lang
 
         // If the dictionary isn't in the manifest the user may have a custom dictionary
         // file that they prefer to use. Check for its existence here.
-        if ( !Manifest.IsLoaded || !Manifest.Dictionaries.Contains(title) )
+        if ( !Wordsmith.WebManifest.IsLoaded || !Wordsmith.WebManifest.Dictionaries.Contains(title) )
             return false;
 
         try

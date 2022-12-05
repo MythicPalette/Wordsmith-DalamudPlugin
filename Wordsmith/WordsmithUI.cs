@@ -1,6 +1,5 @@
-﻿using Dalamud.Interface;
+﻿using System.Text.RegularExpressions;
 using Dalamud.Interface.Windowing;
-using ImGuiNET;
 using Wordsmith.Gui;
 using static Wordsmith.Gui.MessageBox;
 
@@ -137,6 +136,9 @@ internal static class WordsmithUI
             // the draw function.
             bool resetConfigSaved = Wordsmith.Configuration.RecentlySaved;
 
+            if ( _windowSystem.Windows.Count > 0 )
+                ShowNotice();
+
             // Draw all windows.
             _windowSystem.Draw();
 
@@ -225,6 +227,39 @@ internal static class WordsmithUI
         ButtonStyle buttonStyle = ButtonStyle.OkCancel,
         Action<MessageBox>? callback = null
         ) => AddWindow( new MessageBox( title, message, buttonStyle, callback ) );
+
+    internal static bool ShowNotice()
+    {
+        // If they never want notices again, immediately return.
+        if ( Wordsmith.Configuration.NeverShowNotices )
+            return false;
+
+        if ( Wordsmith.WebManifest.Notice.Length < 2 )
+            return false;
+
+        // If the first string is a guid
+        if ( Regex.Match( Wordsmith.WebManifest.Notice[0], "[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{12}" ).Success )
+        {
+            // If the notice hasn't been read
+            if ( Wordsmith.Configuration.LastNoticeRead != Wordsmith.WebManifest.Notice[0] )
+            {
+                Wordsmith.Configuration.LastNoticeRead = Wordsmith.WebManifest.Notice[0];
+                Wordsmith.Configuration.Save(false);
+
+                ShowMessageBox( "Wordsmith Notice", Wordsmith.WebManifest.Notice[1] + "\n\nNotices are only displayed once. Hit ok to mark it as read.\nSelecting \"Never Show Again\" will disable ALL future notices.\nYou can change this any time in the settings.", MessageBox.ButtonStyle.Ok | ButtonStyle.NeverAgain, ( mb ) =>
+                {
+                    // If they never want to see a notice again then immediately disable them.
+                    if ( mb.Result == DialogResult.NeverAgain )
+                    {
+                        Wordsmith.Configuration.NeverShowNotices = true;
+                        Wordsmith.Configuration.Save( false );
+                    }
+                } );
+                return true;
+            }
+        }
+        return false;
+    }
     #endregion
 
     /// <summary>

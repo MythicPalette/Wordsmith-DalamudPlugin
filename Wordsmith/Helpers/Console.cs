@@ -56,6 +56,11 @@ internal sealed class Console
                         WordsmithUI.ShowScratchPad();
                 break;
 
+            case "guid":
+                if ( m.Groups["value"].Value.ToLower() == "new" )
+                    ImGuiNET.ImGui.SetClipboardText(Guid.NewGuid().ToString().ToUpper());
+                break;
+
             default:
                 return false;
         }

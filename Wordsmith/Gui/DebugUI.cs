@@ -20,8 +20,11 @@ internal sealed class DebugUI : Window
 
     public override void Draw()
     {
-        if ( ImGui.CollapsingHeader( $"Wordsmith Configuration" ) )
+        if ( ImGui.CollapsingHeader( $"Wordsmith Configuration##DebugUIHeDebugUICollapsingHeaderader" ) )
             DrawClassData( Wordsmith.Configuration, $"Configuration" );
+
+        if ( ImGui.CollapsingHeader( $"Web manifest##DebugUIHeDebugUICollapsingHeaderader" ) )
+            DrawClassData( Wordsmith.WebManifest, $"Web Manifest" );
 
         // If there is a setting, draw the settings section.
         if ( ImGui.CollapsingHeader( "Settings Data##DebugUIHeDebugUICollapsingHeaderader" ) )

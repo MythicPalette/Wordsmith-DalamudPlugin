@@ -11,6 +11,10 @@ public sealed class Configuration : IPluginConfiguration
     /// </summary>
     internal bool RecentlySaved { get; set; } = false;
 
+    public string LastNoticeRead { get; set; } = "";
+
+    public bool NeverShowNotices { get; set; } = false;
+
     /// <summary>
     /// A variable requried by Dalamud. This is used to
     /// identify the versioning of the configuration in case there
@@ -49,7 +53,7 @@ public sealed class Configuration : IPluginConfiguration
     /// When true, a confirmation window will pop up asking if the user would like to delete
     /// the scratch pad that they closed with the Delete Pad button or through settings.
     /// </summary>
-    public bool ConfirmCloseScratchPads { get; set; } = true;
+    public bool ConfirmDeleteClosePads { get; set; } = true;
 
     /// <summary>
     /// If true, the spellchecker will not attempt to match words ending in a hyphen.
@@ -215,6 +219,10 @@ public sealed class Configuration : IPluginConfiguration
 
     internal void ResetToDefault()
     {
+        // General settings
+        LastNoticeRead = "";
+        NeverShowNotices = false;
+
         // Thesaurus settings.
         SearchHistoryCount = 10;
         ResearchToTop = true;
@@ -222,7 +230,7 @@ public sealed class Configuration : IPluginConfiguration
         // Scratch Pad settings
         AutomaticallyClearAfterLastCopy = false;
         DeleteClosedScratchPads = true;
-        ConfirmCloseScratchPads = true;
+        ConfirmDeleteClosePads = true;
         ShowTextInChunks = true;
         SplitTextOnSentence = true;
         ParseHeaderInput = true;
@@ -274,10 +282,11 @@ public sealed class Configuration : IPluginConfiguration
 
         Save();
     }
-    internal void Save()
+    internal void Save(bool notify = true)
     {
         Wordsmith.PluginInterface.SavePluginConfig(this);
-        Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+        if (notify)
+            Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
         RecentlySaved = true;
     }
 }

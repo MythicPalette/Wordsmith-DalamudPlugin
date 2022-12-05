@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using Dalamud.Interface;
-using Dalamud.Interface.Style;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Enums;
@@ -259,7 +258,7 @@ internal sealed class ScratchPadUI : Window
         if ( Wordsmith.Configuration.DeleteClosedScratchPads && !this._hideOnly )
         {
             // If confirmation required then launch a confirmation dialog
-            if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
+            if ( Wordsmith.Configuration.ConfirmDeleteClosePads )
             {
                 WordsmithUI.ShowMessageBox(
                     "Confirm Delete",
@@ -857,7 +856,7 @@ internal sealed class ScratchPadUI : Window
         {
             if (ImGui.Button($"Delete Pad##Scratch{this.ID}", ImGuiHelpers.ScaledVector2(-1, Global.BUTTON_Y ) ))
             {
-                if ( Wordsmith.Configuration.ConfirmCloseScratchPads )
+                if ( Wordsmith.Configuration.ConfirmDeleteClosePads )
                 {
                     WordsmithUI.ShowMessageBox(
                         "Confirm Delete",

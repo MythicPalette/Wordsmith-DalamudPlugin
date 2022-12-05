@@ -30,6 +30,7 @@ using Dalamud.Data;
 using Dalamud.IoC;
 using Dalamud.Plugin;
 using Wordsmith.Gui;
+using Wordsmith.Helpers;
 
 namespace Wordsmith;
 
@@ -80,6 +81,8 @@ public sealed class Wordsmith : IDalamudPlugin
     /// </summary>
     internal static Configuration Configuration { get; private set; } = null!;
 
+    internal static WebManifest WebManifest { get; private set; } = null!;
+
     #region Constructor and Disposer
     /// <summary>
     /// Default constructor and initializer for the Wordsmith plugin.
@@ -97,12 +100,14 @@ public sealed class Wordsmith : IDalamudPlugin
         CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo(this.OnSettingsCommand) { HelpMessage = "Display the configuration window." });
         CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo(this.OnScratchCommand) { HelpMessage = "Opens a new scratch pad or a specific pad if number given i.e. /scratchpad 5" });
 
+        WebManifest = Git.GetManifest();
+
         // Register handlers for draw and openconfig events.
         PluginInterface.UiBuilder.Draw += WordsmithUI.Draw;
         PluginInterface.UiBuilder.OpenConfigUi += WordsmithUI.ShowSettings;
 
         // Initialize the dictionary.
-        Helpers.Lang.Init();
+        Lang.Init();
     }
 
     /// <summary>
@@ -136,5 +141,6 @@ public sealed class Wordsmith : IDalamudPlugin
         else
             WordsmithUI.ShowScratchPad();
     }
+    internal static void ReloadManifest() => WebManifest = Git.GetManifest();
     #endregion
 }

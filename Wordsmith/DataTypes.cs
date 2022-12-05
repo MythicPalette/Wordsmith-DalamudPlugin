@@ -306,6 +306,7 @@ internal sealed class WebManifest
 {
     internal bool IsLoaded { get; set; } = false;
     public string[] Dictionaries = Array.Empty<string>();
+    public string[] Notice = Array.Empty<string>();
 }
 
 internal sealed class Word

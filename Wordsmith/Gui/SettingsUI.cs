@@ -21,13 +21,15 @@ internal sealed class SettingsUI : Window
     /// <returns>Returns a float representing the available canvas height for settings tabs.</returns>
     private float GetCanvasSize() => ImGui.GetContentRegionMax().Y - ImGui.GetCursorPosY() - (Global.BUTTON_Y*ImGuiHelpers.GlobalScale) - (ImGui.GetStyle().FramePadding.Y * 2);
 
-    // Thesaurus settings.
+    // General settings.
+    private bool _neverShowNotices = Wordsmith.Configuration.NeverShowNotices;
+    private string _lastSeenNotice = Wordsmith.Configuration.LastNoticeRead;
     private int _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
     private bool _researchToTopChange = Wordsmith.Configuration.ResearchToTop;
 
     // Scratch Pad settings.
     private bool _deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
-    private bool _confirmDeleteClosed = Wordsmith.Configuration.ConfirmCloseScratchPads;
+    private bool _confirmDeleteClosed = Wordsmith.Configuration.ConfirmDeleteClosePads;
     private bool _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
     private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
     private bool _onSentence = Wordsmith.Configuration.SplitTextOnSentence;
@@ -149,10 +151,13 @@ internal sealed class SettingsUI : Window
 
     public override void Draw()
     {
+        if ( Wordsmith.Configuration.RecentlySaved )
+            ResetValues();
+
         if (ImGui.BeginTabBar("SettingsUITabBar"))
         {
+            DrawGeneralTab();
             DrawScratchPadTab();
-            //DrawThesaurusTab();
             DrawAliasesTab();
             DrawSpellCheckTab();
             DrawLinkshellTab();
@@ -162,6 +167,45 @@ internal sealed class SettingsUI : Window
 
         ImGui.Separator();
         DrawFooter();
+    }
+
+    private void DrawGeneralTab()
+    {
+        if ( ImGui.BeginTabItem( "General##SettingsUITabItem" ) )
+        {
+            if ( ImGui.BeginChild( "GeneralSettingsChildFrame", new( -1, GetCanvasSize() ) ) )
+            {
+                if ( ImGui.Button( $"Refresh Web manifest##RefreshDictionaryManifestButton" ) )
+                    Wordsmith.ReloadManifest();
+
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( $"Refresh the list of available dictionaries." );
+
+                ImGui.Checkbox( "Never Show Notices", ref this._neverShowNotices );
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( "Enabling this will prevent Wordsmith from showing new notices upon opening.\nAlready seen notices don't repeat." );
+
+                ImGui.SetNextItemWidth( ImGui.CalcTextSize( " AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA " ).X + ImGui.GetStyle().FramePadding.X * 2 );
+                ImGui.InputText( "Last Notice GUID", ref this._lastSeenNotice, 26 );
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( "Please note that if you change this or clear this it will cause the latest notice to be shown again." );
+
+                //Search history count
+                //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
+                ImGui.SetNextItemWidth( -1 );
+                ImGui.DragInt( "Thesaurus History Size", ref this._searchHistoryCountChange, 1, 1, 100 );
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( "This is the number of searches to keep in memory at one time.\nNote: The more you keep, them more memory used." );
+
+                //Re-search to top
+                ImGui.Checkbox( "Move repeated search to top of history.", ref this._researchToTopChange );
+                if ( ImGui.IsItemHovered() )
+                    ImGui.SetTooltip( "If enabled, when searching for a word you've searched\nalready, it will move it to the top of the list." );
+
+                ImGui.EndChild();
+            }
+            ImGui.EndTabItem();
+        }
     }
 
     private void DrawScratchPadTab()
@@ -418,33 +462,6 @@ internal sealed class SettingsUI : Window
         }
     }
 
-    private void DrawThesaurusTab()
-    {
-        if (ImGui.BeginTabItem("Thesaurus##SettingsUITabItem"))
-        {
-            if (ImGui.BeginChild("ThesaurusSettingsChildFrame", new(-1, GetCanvasSize() ) ))
-            {
-                //Search history count
-                //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
-                ImGui.InputInt("History Size", ref this._searchHistoryCountChange, 1, 5);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("This is the number of searches to keep in memory at one time.\nNote: The more you keep, them more memory used.");
-                if (this._searchHistoryCountChange < 1)
-                    this._searchHistoryCountChange = 1;
-                if (this._searchHistoryCountChange > 50)
-                    this._searchHistoryCountChange = 50;
-
-                //Re-search to top
-                ImGui.Checkbox("Move repeated search to top of history.", ref this._researchToTopChange);
-                if (ImGui.IsItemHovered())
-                    ImGui.SetTooltip("If enabled, when searching for a word you've searched\nalready, it will move it to the top of the list.");
-
-                ImGui.EndChild();
-            }
-            ImGui.EndTabItem();
-        }
-    }
-
     private void DrawAliasesTab()
     {
         if ( ImGui.BeginTabItem( "Aliases##SettingsUITabItem" ) )
@@ -692,7 +709,7 @@ internal sealed class SettingsUI : Window
                 List<string> dictionaries = new List<string>();
 
                 // Add the dictionaries from the web manifest.
-                foreach ( string s in Lang.Manifest.Dictionaries )
+                foreach ( string s in Wordsmith.WebManifest.Dictionaries )
                     dictionaries.Add( $"web: {s}" );
 
                 // Add all local dictionaries.
@@ -716,18 +733,13 @@ internal sealed class SettingsUI : Window
                 else
                 {
                     ImGui.SameLine();
+
                     // Get the index of the current dictionary file if it exists.
                     int selection = dictionaries.IndexOf(this._dictionaryFilename);
 
                     // If the file isn't found, default to option 0.
                     if (selection < 0)
                         selection = 0;
-
-                    if ( ImGui.Button( $"Refresh List##RefreshDictionaryManifestButton" ) )
-                        Lang.Manifest = Git.GetManifest();
-                    if ( ImGui.IsItemHovered() )
-                        ImGui.SetTooltip( $"Refresh the list of available dictionaries." );
-                    ImGui.SameLine();
 
                     ImGui.SetNextItemWidth(ImGui.GetContentRegionMax().X - 380*ImGuiHelpers.GlobalScale);
 
@@ -992,14 +1004,16 @@ internal sealed class SettingsUI : Window
 
     private void ResetValues()
     {
-        // Thesaurus settings.
+        // General settings.
+        this._neverShowNotices = Wordsmith.Configuration.NeverShowNotices;
+        this._lastSeenNotice = Wordsmith.Configuration.LastNoticeRead;
         this._searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
         this._researchToTopChange = Wordsmith.Configuration.ResearchToTop;
 
         // Scratch Pad settings.
         this._autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
         this._deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
-        this._confirmDeleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
+        this._confirmDeleteClosed = Wordsmith.Configuration.ConfirmDeleteClosePads;
         this._ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
         this._showChunks = Wordsmith.Configuration.ShowTextInChunks;
         this._onSentence = Wordsmith.Configuration.SplitTextOnSentence;
@@ -1035,7 +1049,13 @@ internal sealed class SettingsUI : Window
 
     private void Save()
     {
-        // Thesaurus Settings.
+        // General Settings.
+        if ( this._neverShowNotices != Wordsmith.Configuration.NeverShowNotices )
+            Wordsmith.Configuration.NeverShowNotices = this._neverShowNotices;
+
+        if ( this._lastSeenNotice != Wordsmith.Configuration.LastNoticeRead )
+            Wordsmith.Configuration.LastNoticeRead = this._lastSeenNotice;
+
         if (this._searchHistoryCountChange != Wordsmith.Configuration.SearchHistoryCount)
             Wordsmith.Configuration.SearchHistoryCount = this._searchHistoryCountChange;
 
@@ -1049,8 +1069,8 @@ internal sealed class SettingsUI : Window
         if (this._deleteClosed != Wordsmith.Configuration.DeleteClosedScratchPads)
             Wordsmith.Configuration.DeleteClosedScratchPads = this._deleteClosed;
 
-        if ( this._confirmDeleteClosed != Wordsmith.Configuration.ConfirmCloseScratchPads )
-            Wordsmith.Configuration.ConfirmCloseScratchPads = this._confirmDeleteClosed;
+        if ( this._confirmDeleteClosed != Wordsmith.Configuration.ConfirmDeleteClosePads )
+            Wordsmith.Configuration.ConfirmDeleteClosePads = this._confirmDeleteClosed;
 
         if (this._ignoreHypen != Wordsmith.Configuration.IgnoreWordsEndingInHyphen)
             Wordsmith.Configuration.IgnoreWordsEndingInHyphen = this._ignoreHypen;
