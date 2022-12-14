@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.7.5</Version>
+    <Version>1.7.7</Version>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
     <LangVersion>preview</LangVersion>
     <TargetFramework>net6.0-windows</TargetFramework>
@@ -15,12 +15,6 @@
     <OutputPath>$(AppData)\XIVLauncher\devPlugins\Wordsmith\</OutputPath>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="fonts\**" />
-    <EmbeddedResource Remove="fonts\**" />
-    <None Remove="fonts\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <Content Include="..\images\icon.png" Link="images\icon.png" CopyToOutputDirectory="Always" />

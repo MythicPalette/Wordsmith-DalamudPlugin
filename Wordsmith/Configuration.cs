@@ -5,15 +5,6 @@ namespace Wordsmith;
 [Serializable]
 public sealed class Configuration : IPluginConfiguration
 {
-    /// <summary>
-    /// This is enabled when a save is performed to notify that changes
-    /// have been commited to the configuration file.
-    /// </summary>
-    internal bool RecentlySaved { get; set; } = false;
-
-    public string LastNoticeRead { get; set; } = "";
-
-    public bool NeverShowNotices { get; set; } = false;
 
     /// <summary>
     /// A variable requried by Dalamud. This is used to
@@ -21,6 +12,9 @@ public sealed class Configuration : IPluginConfiguration
     /// are any breaking changes.
     /// </summary>
     public int Version { get; set; } = 0;
+    #region General Settings
+    public int SearchHistoryCount { get; set; } = 10;
+    public bool ResearchToTop { get; set; } = true;
 
     /// <summary>
     /// The Api key used to acces the Merriam-Webster Thesaurus API
@@ -31,12 +25,17 @@ public sealed class Configuration : IPluginConfiguration
     /// A setting that enables the hidden debug UI.
     /// </summary>
     public bool EnableDebug { get; set; } = false;
-    #region Thesaurus Settings
-    //
-    // Thesaurus Settings
-    //
-    public int SearchHistoryCount { get; set; } = 10;
-    public bool ResearchToTop { get; set; } = true;
+    /// <summary>
+    /// This is enabled when a save is performed to notify that changes
+    /// have been commited to the configuration file.
+    /// </summary>
+    internal bool RecentlySaved { get; set; } = false;
+
+    public string LastNoticeRead { get; set; } = "";
+
+    public bool NeverShowNotices { get; set; } = false;
+
+    public bool ShowAdvancedSettings { get; set; } = false;
     #endregion
 
     #region Scratch Pad Settings

@@ -7,7 +7,7 @@ internal enum SpellCheckResultState { Cancelled=-1, Exception=-2, Success=0 }
 internal struct SpellCheckResult
 {
     internal SpellCheckResultState State;
-    internal Word[] Words;
+    internal IReadOnlyList<Word> Words;
 }
 internal sealed class SpellChecker
 {   
@@ -26,10 +26,10 @@ internal sealed class SpellChecker
 
         List<Word> results = new();
 
-        Word[] words = str.Words();
+        List<Word> words = str.Words();
 
         // Iterate through all of the words.
-        for ( int i = 0; i < words.Length; ++i )
+        for ( int i = 0; i < words.Count; ++i )
         {
             if ( worker?.CancellationPending ?? false)
                 return;
@@ -92,6 +92,6 @@ internal sealed class SpellChecker
 
         // Done checking all of the words, return the results.
         if ( e != null )
-            e.Result = new SpellCheckResult() { State = SpellCheckResultState.Success, Words = results.ToArray() };
+            e.Result = new SpellCheckResult() { State = SpellCheckResultState.Success, Words = results };
     }
 }

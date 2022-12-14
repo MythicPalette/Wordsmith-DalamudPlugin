@@ -247,11 +247,11 @@ internal static class Extensions
     /// </summary>
     /// <param name="s">The string to parse.</param>
     /// <returns><see cref="Word"/> array containing all words in the string.</returns>
-    internal static Word[] Words( this string s )
+    internal static List<Word> Words( this string s )
     {
         s = s.Unwrap();
         if ( s.Length == 0 )
-            return Array.Empty<Word>();
+            return new();
 
         List<Word> words = new();
 
@@ -316,7 +316,7 @@ internal static class Extensions
             }
             ++len;
         }
-        return words.ToArray();
+        return words;
     }
 
     internal static string? GetTarget( this string s )
