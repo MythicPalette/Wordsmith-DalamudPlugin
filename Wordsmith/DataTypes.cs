@@ -2,6 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Wordsmith.Enums;
+using Wordsmith.Gui;
 
 namespace Wordsmith;
 
@@ -202,6 +203,54 @@ internal sealed class HeaderData
     public override string ToString() => Headstring;
 }
 
+/// <summary>
+/// A class used for comparing multiple pad state elements at once.
+/// </summary>
+internal class PadState
+{
+    internal string ScratchText;
+    internal bool UseOOC;
+    internal HeaderData? Header = null;
+
+    public PadState()
+    {
+        this.ScratchText = "";
+        this.UseOOC = false;
+    }
+
+    public PadState( ScratchPadUI ui )
+    {
+        this.ScratchText = ui.ScratchString;
+        this.UseOOC = ui.UseOOC;
+        this.Header = ui.Header;
+    }
+
+    public static bool operator ==( PadState state, object other ) => state.Equals( other );
+
+    public static bool operator !=( PadState state, object other ) => !state.Equals( other );
+
+    public override bool Equals( object? obj )
+    {
+        if ( obj == null )
+            return false;
+
+        if ( obj is not PadState )
+            return false;
+
+
+        PadState o = (PadState)obj;
+        if ( o.ScratchText != this.ScratchText )
+            return false;
+        if ( o.UseOOC != this.UseOOC )
+            return false;
+        return true;
+    }
+
+    public override int GetHashCode() => HashCode.Combine( this.Header?.ChatType, this.ScratchText, this.UseOOC, this.Header?.TellTarget );
+
+    public override string ToString() => $"{{ ChatType: {this.Header?.ChatType}, ScratchText: \"{this.ScratchText}\", UseOOC: {this.UseOOC}, TellTarget: \"{this.Header?.TellTarget ?? ""}\", CrossWorld: {this.Header?.CrossWorld}, Linkshell: {this.Header?.Linkshell} }}";
+}
+
 internal sealed class TextChunk
 {
     /// <summary>
@@ -217,7 +266,7 @@ internal sealed class TextChunk
     /// <summary>
     /// Text split into words.
     /// </summary>
-    internal Word[] Words => Text.Words();
+    internal List<Word> Words => Text.Words();
 
     /// <summary>
     /// The number of words in the text chunk.
@@ -351,9 +400,9 @@ internal sealed class Word
     public Word() { }
 
     internal string GetString(string s) => GetString(s, 0);
-    internal string GetString(string s, int offset) => StartIndex + offset >= 0 && StartIndex < EndIndex && EndIndex + offset <= s.Unwrap().Length ? s.Unwrap()[(StartIndex + offset)..(EndIndex + offset)] : "";
+    internal string GetString(string s, int offset) => StartIndex + offset >= 0 && StartIndex < EndIndex && EndIndex + offset <= s.Length ? s[(StartIndex + offset)..(EndIndex + offset)] : "";
     internal string GetWordString(string s) => GetWordString(s, 0);
-    internal string GetWordString(string s, int offset) => WordIndex + offset >= 0 && WordLength > 0 && WordIndex + WordLength + offset <= s.Unwrap().Length ? s.Unwrap()[(WordIndex + offset)..(WordIndex + WordLength + offset)] : "";
+    internal string GetWordString(string s, int offset) => WordIndex + offset >= 0 && WordLength > 0 && WordIndex + WordLength + offset <= s.Length ? s[(WordIndex + offset)..(WordIndex + WordLength + offset)] : "";
     internal void Offset(int value)
     {
         StartIndex += value;
