@@ -1175,11 +1175,6 @@ internal sealed class ScratchPadUI : Window
     /// </summary>
     private void DoSpellCheck()
     {
-        // There is no point in attempting to do a spell check if the dictionary
-        // has been disabled for any reason.
-        if ( !Lang.Enabled )
-            return;
-
         try
         {
             this._corrections = SpellChecker.CheckString( this.ScratchString );
@@ -1324,7 +1319,6 @@ internal sealed class ScratchPadUI : Window
             }
             else
             {
-                this._corrections?.Clear();
                 OnTextEdit( data );
                 OnTextChanged();
             }
@@ -1352,12 +1346,6 @@ internal sealed class ScratchPadUI : Window
             {
                 this._rest_time = Wordsmith.Configuration.AutoSpellCheckDelay;
                 this._do_spell_check = true;
-                //this._spellchecktimer.Stop();
-                //if ( this.ScratchString.Length > 0 )
-                //{
-                //    this._spellchecktimer.Interval = Wordsmith.Configuration.AutoSpellCheckDelay * 1000;
-                //    this._spellchecktimer.Start();
-                //}
             }
         }
         catch ( Exception e ) { DumpError( e ); }

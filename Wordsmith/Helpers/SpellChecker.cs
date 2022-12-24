@@ -1,26 +1,23 @@
-﻿using System.Text.RegularExpressions;
-using System.ComponentModel;
-
-namespace Wordsmith.Helpers;
+﻿namespace Wordsmith.Helpers;
 
 internal sealed class SpellChecker
-{   
-    /// Checks a string against the currently loaded dictionary.
+{
+    /// <summary>
+    /// Checks a string against the currently enabled dictionary.
     /// </summary>
-    /// <param name="str">String to check.</param>
-    /// <param name="token">Cancellation token</param>
-    /// <returns><see cref="SpellCheckResult"/> with result data.</returns>
+    /// <param name="str"><see cref="string"/> to check for spelling errors.</param>
+    /// <returns>A list containing all mispelled words. If there are no spelling errors then an empty list is returned.</returns>
     internal static List<Word> CheckString( string str )
     {
-        List<Word> results = new();
-        if ( Lang.Enabled && str is not null )
+        List<Word> lResults = new();
+        if ( Lang.Enabled && str.Length > 0 )
         {
-            List<Word> words = str.Words();
-
+            List<Word> lWords = str.Words();
+            string sUnwrapped = str.Unwrap();
             // Iterate through all of the words.
-            for ( int i = 0; i < words.Count; ++i )
+            for ( int i = 0; i < lWords.Count; ++i )
             {
-                Word word = words[i];
+                Word word = lWords[i];
                 if ( word is null )
                     continue;
 
@@ -29,7 +26,7 @@ internal sealed class SpellChecker
                     continue;
 
                 // Get the word without punctuation at the beginning and end.
-                string text = word.GetWordString(str);
+                string text = word.GetWordString(sUnwrapped);
 
                 if ( text is null || text.Length < 1 )
                     continue;
@@ -53,11 +50,11 @@ internal sealed class SpellChecker
                 if ( !m.Success )
                 {
                     word.InDictionary = false;
-                    results.Add( word );
+                    lResults.Add( word );
                 }
 
                 // If the match data is not a known word
-                else
+                else if ( !Lang.isWord(text))
                 {
                     // Try to segment the word into subwords and match those. This is for cases where
                     // words are slashed/hyphened (i.e.: heavy/large)
@@ -68,7 +65,7 @@ internal sealed class SpellChecker
                             // If we reached this code, we were not able to locate a proper match for the word.
                             // Add the index to the list.
                             word.InDictionary = false;
-                            results.Add( word );
+                            lResults.Add( word );
                             break;
                         }
                     }
@@ -76,6 +73,6 @@ internal sealed class SpellChecker
             }
         }
         
-        return results;
+        return lResults;
     }
 }

@@ -211,7 +211,7 @@ public sealed class Configuration : IPluginConfiguration
     public string DateQuery { get; set; } = DATE_QUERY_DEFAULT;
 
 
-    private const string WORD_QUERY_DEFAULT = @"\S*(?='(?:ll|m|em|d))|\S+";
+    private const string WORD_QUERY_DEFAULT = @"\S*(?='(?:ll|m|em|d))?";
     public string WordQuery { get; set; } = WORD_QUERY_DEFAULT;
 
     private const string TIME_QUERY_DEFAULT = @"(?:\d{1,2}[:.]){1,3}\d{2}?\s*(?:[AaPp]\.?[Mm]\.?)*";
