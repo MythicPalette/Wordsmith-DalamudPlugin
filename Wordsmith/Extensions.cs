@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using Dalamud.Interface;
+using Dalamud.Interface.Windowing;
 using ImGuiNET;
 
 namespace Wordsmith;
@@ -9,6 +10,8 @@ internal static class Extensions
 {
     private const string SPACED_WRAP_MARKER = "\r\r";
     private const string NOSPACE_WRAP_MARKER = "\r";
+
+    internal static float Scale( this int i ) => i * ImGuiHelpers.GlobalScale;
 
     /// <summary>
     /// Capitalizes the first letter in a string.
@@ -125,6 +128,15 @@ internal static class Extensions
 
     internal static string CleanMarkers( this string s ) => s.Replace( SPACED_WRAP_MARKER, " " ).Replace( NOSPACE_WRAP_MARKER, "" );
 
+    internal static string ReplacePlaceholders(this string s, int c, int m)
+    {
+        return s.Replace( "#C", $"{c}" )
+            .Replace( "#c", $"{c}" )
+            .Replace( "#M", $"{m}" )
+            .Replace( "#m", $"{m}" )
+            .Replace( "#R", $"{m - c}" )
+            .Replace( "#r", $"{m - c}" );
+    }
     /// <summary>
     /// Unwraps the text string using the spaced and no space markers.
     /// </summary>
@@ -538,5 +550,19 @@ internal static class Extensions
         foreach ( int key in dict.Keys )
             result[key] = new Vector4( dict[key].X, dict[key].Y, dict[key].Z, dict[key].W );
         return result;
+    }
+
+}
+
+internal static class ImGuiExt
+{
+    /// <summary>
+    /// Wraps <see cref="ImGui.SetTooltip(string)"/> in an <see langword="if"/> <see cref="ImGui.IsItemHovered()"/> check
+    /// </summary>
+    /// <param name="tooltip"><see cref="string"/> tooltip message.</param>
+    internal static void SetHoveredTooltip( string tooltip )
+    {
+        if ( ImGui.IsItemHovered() )
+            ImGui.SetTooltip( tooltip );
     }
 }

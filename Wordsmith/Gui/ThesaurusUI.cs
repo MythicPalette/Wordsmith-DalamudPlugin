@@ -129,7 +129,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
         {
             ImGui.Indent();
 
-            if (entry.Synonyms.Length > 0)
+            if (entry.Synonyms.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -137,7 +137,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
                 ImGui.TextWrapped(entry.SynonymString);
             }
 
-            if (entry.Related.Length > 0)
+            if (entry.Related.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -145,7 +145,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
                 ImGui.TextWrapped(entry.RelatedString);
             }
 
-            if (entry.NearAntonyms.Length > 0)
+            if (entry.NearAntonyms.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -153,7 +153,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
                 ImGui.TextWrapped(entry.NearAntonymString);
             }
 
-            if (entry.Antonyms.Length > 0)
+            if (entry.Antonyms.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();

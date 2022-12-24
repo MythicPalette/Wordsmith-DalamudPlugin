@@ -1,10 +1,168 @@
 ﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using Wordsmith.Enums;
 using Wordsmith.Gui;
 
 namespace Wordsmith;
+
+public enum MarkerPosition { BeforeBody, BeforeOOC, AfterBody, AfterOOC, AfterContinuationMarker }
+public enum RepeatMode { All, AllExceptFirst, AllExceptLast, OnlyOnFirst, OnlyOnLast, EveryNth }
+
+[Flags]
+public enum DisplayMode { WithMultipleChunks = 1, WithSingleChunk = 2, WithAnyChunkCount = 3, WithOOC = 4, WithoutOOC = 8, AnyOOC = 12, Always = 15}
+
+public sealed class ChunkMarker
+{
+    // Every Nth will require a starting position and a step.
+    private MarkerPosition _position = MarkerPosition.AfterOOC;
+    public MarkerPosition Position { get { return this._position; } set { this._position = value; } }
+
+    private RepeatMode _repeatMode = RepeatMode.All;
+    public RepeatMode RepeatMode { get { return this._repeatMode; } set { this._repeatMode = value; } }
+
+    private DisplayMode _displayMode = DisplayMode.WithMultipleChunks | DisplayMode.AnyOOC;
+    public DisplayMode DisplayMode { get { return this._displayMode; } set { this._displayMode = value; } }
+
+    private uint _nth = 1;
+    public uint Nth
+    {
+        get { return this._nth; }
+        set
+        {
+            // nth can't be zero.
+            if ( value == 0 )
+                this._nth = 1;
+            else
+                this._nth = value;
+        }
+    }
+
+    private uint _offset = 1;
+    public uint StartPosition { get { return this._offset; } set { this._offset = value; } }
+
+    private string _text = "";
+    public string Text { get { return this._text;} set { this._text = value; } }
+
+    public ChunkMarker() { }
+    public ChunkMarker( string text, MarkerPosition position, RepeatMode repeat, DisplayMode display) : this( text, position, repeat, display, 1, 0 ) { }
+    public ChunkMarker(string text, MarkerPosition position, RepeatMode repeat, DisplayMode display, uint nth, uint offset)
+    {
+        this.Text = text;
+        this.Position = position;
+        this.DisplayMode = display;
+
+        // If the display mode is single chunk the repeat mode can only be "All"
+        this.RepeatMode = (display & DisplayMode.WithAnyChunkCount) == DisplayMode.WithSingleChunk ? RepeatMode.All : repeat;
+        this.Nth = nth;
+        this.StartPosition = offset;
+    }
+    internal bool AppliesTo(int chunkNumber, int chunkCount)
+    {
+        if ( this.RepeatMode != RepeatMode.All )
+        {
+            if ( this.RepeatMode == RepeatMode.AllExceptFirst && chunkNumber == 0 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.AllExceptLast && chunkNumber == chunkCount - 1 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.OnlyOnFirst && chunkNumber != 0 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.OnlyOnLast && chunkNumber != chunkCount - 1 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.EveryNth )
+            {
+                int startpos = (int)(this.StartPosition - 1);
+
+                if ( chunkNumber < startpos )
+                    return false;
+                if ( (chunkNumber - startpos) % this.Nth != 0 )
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    internal bool Visible(bool UseOOC, int index, int chunkCount)
+    {
+        // DisplayMode should never be 0 but in any case that it is
+        // consider this an immeditate false. This is to future-proof
+        // in the case that a disabling mode is added.
+        if ( this.DisplayMode == 0 )
+            return false;
+
+        // If DisplayMode is not Always then we need to begin filtering  
+        if ( this.DisplayMode != DisplayMode.Always )
+        {
+            // If there is an OOC specifier
+            if ( (this.DisplayMode & DisplayMode.AnyOOC) != DisplayMode.AnyOOC)
+            {
+                // If only showing with OOC and OOC is off then skip
+                if ( (this.DisplayMode & DisplayMode.WithOOC) == DisplayMode.WithOOC && !UseOOC )
+                    return false;
+
+                // If not showing with OOC and OOC is on then skip
+                else if ( (this.DisplayMode & DisplayMode.WithoutOOC) == DisplayMode.WithoutOOC && UseOOC )
+                    return false;
+            }
+
+            // If there is a chunk count specifier
+            if ( (this.DisplayMode & DisplayMode.WithAnyChunkCount) != DisplayMode.WithAnyChunkCount )
+            {
+                // If only displaying with single chunk and there is more than one then skip
+                if ( (this.DisplayMode & DisplayMode.WithSingleChunk) == DisplayMode.WithSingleChunk && chunkCount > 1 )
+                    return false;
+
+                // If only displaying with multiple chunks and there is only one then skip
+                if ( (this.DisplayMode & DisplayMode.WithMultipleChunks) == DisplayMode.WithMultipleChunks && chunkCount == 1 )
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    public override string ToString()
+    {
+        Dictionary<string, object> dict = this.Dump();
+        List<string> lResults = new();
+        foreach ( string key in dict.Keys )
+            lResults.Add($"{{\"{key}\", {dict[key]}}}");
+        return $"{{{string.Join(", ", lResults)}}}";
+    }
+
+    public static List<ChunkMarker> SortList(List<ChunkMarker> list )
+    {
+        List<ChunkMarker> result = new();
+        foreach ( MarkerPosition mp in Enum.GetValues( typeof( MarkerPosition ) ) )
+            foreach ( ChunkMarker cm in list.Where( x => x.Position == mp ) )
+                result.Add( cm );
+        return result;
+    }
+}
+
+internal sealed class Clock
+{
+    private const float TICKS_PER_SECOND = 10000000f;
+    private DateTime _lastTick = DateTime.MinValue;
+    internal float Delta { get; private set; }
+    internal float LongestFrame { get; private set; }
+    public Clock()
+    {
+        this._lastTick = DateTime.UtcNow;
+    }
+    internal void Tick()
+    {
+        DateTime tick = DateTime.UtcNow;
+        float delta = (tick.Ticks - this._lastTick.Ticks) / TICKS_PER_SECOND;
+        if ( delta > this.LongestFrame )
+            this.LongestFrame = delta;
+        this.Delta = delta;
+        this._lastTick = tick;
+    }
+    internal void ResetLongest() => this.LongestFrame = this.Delta;
+}
 
 internal sealed class HeaderData
 {
@@ -206,7 +364,7 @@ internal sealed class HeaderData
 /// <summary>
 /// A class used for comparing multiple pad state elements at once.
 /// </summary>
-internal class PadState
+internal sealed class PadState
 {
     internal string ScratchText;
     internal bool UseOOC;
@@ -256,12 +414,12 @@ internal sealed class TextChunk
     /// <summary>
     /// Chat header to put at the beginning of each chunk when copied.
     /// </summary>
-    internal string Header = "";
+    internal string Header { get; set; } = "";
 
     /// <summary>
     /// Original text.
     /// </summary>
-    internal string Text = "";
+    internal string Text { get; set; } = "";
 
     /// <summary>
     /// Text split into words.
@@ -273,66 +431,59 @@ internal sealed class TextChunk
     /// </summary>
     internal int WordCount => Words.Count();
 
-    /// <summary>
-    /// Assembles the complete chunk with header, OOC tags, continuation markers, and user-defined text.
-    /// </summary>
-    internal string CompleteText => $"{(Header.Length > 0 ? $"{Header} " : "")}{OutOfCharacterStartTag}{Text.CleanMarkers().Replace("\n", "").Trim()}{OutOfCharacterEndTag}{(ContinuationMarker.Length > 0 ? $" {ContinuationMarker}" : "")}";
-
-    /// <summary>
-    /// The continuation marker to append to the end of the Complete Text value.
-    /// </summary>
     internal string ContinuationMarker = "";
 
     /// <summary>
     /// The OOC starting tag to insert into the Complete Text value before Text.
     /// </summary>
-    internal string OutOfCharacterStartTag = "";
+    internal string OutOfCharacterStartTag { get; set; } = "";
 
     /// <summary>
     /// The OOC ending tag to insert into the Complete Text value after Text.
     /// </summary>
-    internal string OutOfCharacterEndTag = "";
+    internal string OutOfCharacterEndTag { get; set; } = "";
 
+    /// <summary>
+    /// The continuation marker to append to the end of the Complete Text value.
+    /// </summary>
     /// <summary>
     /// The index where this chunk starts within the original text.
     /// </summary>
-    internal int StartIndex = -1;
+    internal int StartIndex { get; set; } = -1;
 
     /// <summary>
     /// Default constructor.
     /// </summary>
     /// <param name="text">The text that forms the chunk.</param>
-    internal TextChunk(string text) => Text = text;
-
-    public override string ToString() => $"{{ StartIndex: {StartIndex}, Header: \"{Header}\", Text: \"{Text}\", Words: {Words}, Marker: {ContinuationMarker}, OOC Start: \"{OutOfCharacterStartTag}\", OOC End: \"{OutOfCharacterEndTag}\" }}";
+    internal TextChunk( string text ) { Text = text; }
 }
 
 internal sealed class ThesaurusEntry : WordEntry
 {
     // Synonyms
     private List<string> _syn = new List<string>();
-    public string[] Synonyms { get => _syn.ToArray(); }
+    public IReadOnlyList<string> Synonyms { get => _syn; }
     public void AddSynonym(string word) => _syn.Add(word);
     public void AddSynonyms(IEnumerable<string> words) => _syn.AddRange(words);
     public string SynonymString => string.Join(", ", Synonyms ?? new string[] { });
 
     // Related words
     private List<string> _rel = new List<string>();
-    public string[] Related { get => _rel.ToArray(); }
+    public IReadOnlyList<string> Related { get => _rel; }
     public void AddRelatedWord(string word) => _rel.Add(word);
     public void AddRelatedWords(IEnumerable<string> words) => _rel.AddRange(words);
     public string RelatedString => string.Join(", ", Related ?? new string[] { });
 
     // Near antonyms
     private List<string> _near = new List<string>();
-    public string[] NearAntonyms { get => _near.ToArray(); }
+    public IReadOnlyList<string> NearAntonyms { get => _near; }
     public void AddNearAntonym(string word) => _near.Add(word);
     public void AddNearAntonyms(IEnumerable<string> words) => _near.AddRange(words);
     public string NearAntonymString => string.Join(", ", NearAntonyms ?? new string[] { });
 
     // Antonyms
     private List<string> _ant = new List<string>();
-    public string[] Antonyms { get => _ant.ToArray(); }
+    public IReadOnlyList<string> Antonyms { get => _ant; }
     public void AddAntonym(string word) => _ant.Add(word);
     public void AddAntonyms(IEnumerable<string> words) => _ant.AddRange(words);
     public string AntonymString => string.Join(", ", Antonyms ?? new string[] { });
@@ -485,7 +636,7 @@ internal sealed class WordSearchResult
     /// <summary>
     /// An array of all word variant entries.
     /// </summary>
-    public WordEntry[] Entries { get => _entries.ToArray(); }
+    public IReadOnlyList<WordEntry> Entries { get => _entries; }
 
     /// <summary>
     /// Adds a single entry to the collection.

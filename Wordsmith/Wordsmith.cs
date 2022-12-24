@@ -24,6 +24,16 @@
 // anything that I can to keep things easy to pick up. It should not be too difficult for
 // others or my future self to (re)visit the code in these files and quickly rediscover
 // the functions of each file as well as the flow of the program.
+#region GLOBAL USING
+global using System;
+global using System.IO;
+global using System.Linq;
+global using System.Text;
+global using System.Numerics;
+global using System.Collections.Generic;
+global using Dalamud.Logging;
+global using System.Text.RegularExpressions;
+#endregion
 
 using Dalamud.Game.Command;
 using Dalamud.Data;
@@ -43,6 +53,11 @@ public sealed class Wordsmith : IDalamudPlugin
     internal const string AppName = "Wordsmith";
 
     /// <summary>
+    /// The default height of a button.
+    /// </summary>
+    internal const int BUTTON_Y = 25;
+
+    /// <summary>
     /// Command to open a new or specific scratch pad.
     /// </summary>
     private const string SCRATCH_CMD_STRING = "/scratchpad";
@@ -56,6 +71,7 @@ public sealed class Wordsmith : IDalamudPlugin
     /// Command to open the thesaurus.
     /// </summary>
     private const string THES_CMD_STRING = "/thesaurus";
+
     #endregion
 
     /// <summary>
@@ -81,6 +97,9 @@ public sealed class Wordsmith : IDalamudPlugin
     /// </summary>
     internal static Configuration Configuration { get; private set; } = null!;
 
+    /// <summary>
+    /// <see cref="WebManifest"/> containing notice and language information.
+    /// </summary>
     internal static WebManifest WebManifest { get; private set; } = null!;
 
     #region Constructor and Disposer
@@ -92,13 +111,19 @@ public sealed class Wordsmith : IDalamudPlugin
         // Get the configuration.
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
+        // Try to load the Merriam-Webster logo if the file exists. It should be in the correct location
+        // but it should always be verified beforehand.
         if ( File.Exists( Path.Combine( PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ) ) )
             ScratchPadHelpUI.MerriamWebsterLogo = PluginInterface.UiBuilder.LoadImage( Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ));
 
-        // Add commands
-        CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo(this.OnThesaurusCommand) { HelpMessage = "Display the thesaurus window." });
-        CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo(this.OnSettingsCommand) { HelpMessage = "Display the configuration window." });
-        CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo(this.OnScratchCommand) { HelpMessage = "Opens a new scratch pad or a specific pad if number given i.e. /scratchpad 5" });
+        // Add commands for the different windows
+        // Note that the first two use inline functions but scratch pads require a little text parsing.
+        CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo( ( c, a ) => { WordsmithUI.ShowThesaurus(); } ) { HelpMessage = "Display the thesaurus window." });
+        CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo( ( c, a ) => { WordsmithUI.ShowSettings(); }) { HelpMessage = "Display the configuration window." });
+        CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo( this.OnScratchCommand )
+        {
+            HelpMessage = "Opens or creates a scratch pad. Follow with a number or custom name if you like. (i.e. \"/scratchpad 5\" or \"/scratchpad Juliet\")"
+        });
 
         WebManifest = Git.GetManifest();
 
@@ -127,10 +152,14 @@ public sealed class Wordsmith : IDalamudPlugin
         // Dispose of the UI
         WordsmithUI.Dispose();
     }
+
+    internal static void ResetConfig()
+    {
+        Configuration = new();
+        Configuration.Save();
+    }
     #endregion
     #region Event Callbacks
-    private void OnThesaurusCommand(string command, string args) => WordsmithUI.ShowThesaurus();
-    private void OnSettingsCommand(string command, string args) => WordsmithUI.ShowSettings();
     private void OnScratchCommand(string command, string args)
     {
         int x;

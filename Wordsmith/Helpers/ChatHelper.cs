@@ -1,7 +1,12 @@
-﻿namespace Wordsmith.Helpers;
+﻿using System;
+
+namespace Wordsmith.Helpers;
 
 internal sealed class ChatHelper
 {
+    /// <summary>
+    /// Buffer zone to protect the size of the text.
+    /// </summary>
     private const int _safety = 10;
     /// <summary>
     /// Takes inputs and returns it as a collection of strings that are ready to be sent, all under 500 bytes.
@@ -11,84 +16,96 @@ internal sealed class ChatHelper
     /// <returns>Returns an array of strings, all under 500 bytes to prepare for sending.</returns>
     internal static List<TextChunk>? FFXIVify(HeaderData header, string text, bool OOC)
     {
-        try
+        UTF8Encoding encoder = new();
+
+        // Get the number of bytes taken by the header.
+        // We then cut the bytes out required for the safety zone, header, continuation marker, and OOC tags.
+        int iMaxByteWidth = 480 - _safety - encoder.GetByteCount($"{header} ") - encoder.GetByteCount($"{Wordsmith.Configuration.ContinuationMarker}");
+
+        // If the user has enabled OOC then subtract the byte length of the opening and closing tags
+        // from the available byte length.
+        if ( OOC )
         {
-            UTF8Encoding encoder = new();
-
-            // Get the number of bytes taken by the header.
-            // We then cut the bytes out required for the safety zone, header, continuation marker, and OOC tags.
-            int availableBytes = 480 - _safety - encoder.GetByteCount($"{header} ") - encoder.GetByteCount(Wordsmith.Configuration.ContinuationMarker);
-
-            // If the user has enabled OOC then subtract the byte length of the opening and closing tags
-            // from the available byte length.
-            if ( OOC )
-            {
-                int oLen = encoder.GetByteCount( Wordsmith.Configuration.OocOpeningTag );
-                int cLen = encoder.GetByteCount( Wordsmith.Configuration.OocClosingTag );
-                availableBytes -= oLen + cLen;
-            }
-
-            // Create a list to hold all of our strings.
-            List<TextChunk> results = new();
-
-            // Break the string into smaller sizes.
-            // offset will be adjusted to the end of the previous string with each iteration.
-            int offset = 0;
-            while ( offset < text.Length )
-            {
-                // Get the current possible string.
-                string? substring = SubstringByByteCount(text, offset, availableBytes);
-
-                // If the string comes back null, throw an error.
-                if ( substring == null )
-                    throw new Exception( "substring is null" );
-
-                string str = substring;
-
-                // Add the string to the list with the header and, if offset is not at
-                // the end of the string yet, add the continuation marker for the player.
-                if ( str.Trim().Length > 0 )
-                    results.Add( new( str.Trim() )
-                    {
-                        // The StartIndex is adjusted here because if there was white space
-                        // trimmed from the string, we want to eliminate it from the chunk
-                        // text.
-                        StartIndex = offset + (str.Length - str.TrimStart().Length),
-                        Header = header.ToString(),
-                        OutOfCharacterStartTag = OOC ? Wordsmith.Configuration.OocOpeningTag : "",
-                        OutOfCharacterEndTag = OOC ? Wordsmith.Configuration.OocClosingTag : ""
-                    } );
-
-                // Add the length of the string to the offset.
-                offset += str.Length;
-            }
-
-            // If there is more than one result we want to do continuation markers
-            if ( results.Count > 1 )
-            {
-                // Iterate through the chunks and append the continuation marker. We have to do this
-                // in a separate loop from when we created the chunks in case the user adds the #m tag
-                // to their continuation marker and we need to know the total number of chunks.
-                for ( int i = 0; i < (Wordsmith.Configuration.ContinuationMarkerOnLast ? results.Count : results.Count - 1); ++i )
-                    results[i].ContinuationMarker = Wordsmith.Configuration.ContinuationMarker.Replace( "#c", (i + 1).ToString() ).Replace( "#m", results.Count.ToString() );
-            }
-
-            // Return the results.
-            return results;
+            int oLen = encoder.GetByteCount( Wordsmith.Configuration.OocOpeningTag );
+            int cLen = encoder.GetByteCount( Wordsmith.Configuration.OocClosingTag );
+            iMaxByteWidth -= oLen + cLen;
         }
-        
-        catch ( Exception e )
+
+        // Create a new dictionary for all of the chunk markers.
+        Dictionary<RepeatMode, List<ChunkMarker>> dMarkers = new();
+        foreach ( RepeatMode opt in Enum.GetValues( typeof( RepeatMode ) ) )
+            dMarkers[opt] = new();
+
+        // Sort all of the chunk markers by repeat option.
+        foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
+            dMarkers[cm.RepeatMode].Add(cm);
+
+        // Subtract the "always on" markers from the byte width. Due to the complexity and taxing
+        // nature of retroactively calculating in the OnlyOnLast for just the last chunk it will
+        // be considered "always on" in this calculation.
+        iMaxByteWidth -= GetMarkerByteLength( dMarkers[RepeatMode.All] ) +
+                GetMarkerByteLength( dMarkers[RepeatMode.AllExceptFirst] ) +
+                GetMarkerByteLength( dMarkers[RepeatMode.AllExceptLast] ) +
+                GetMarkerByteLength( dMarkers[RepeatMode.OnlyOnLast] );
+
+        // Create a list to hold all of our chunks.
+        List<TextChunk> results = new();
+
+        // Break the string into smaller sizes.
+        // offset will be adjusted to the end of the previous string with each iteration.
+        int offset = 0;
+        int index = 0;
+        while ( offset < text.Length )
         {
-            Dictionary<string, object> dump = new();
-            dump["Type"] = typeof( ChatHelper );
-            dump["Exception"] = new Dictionary<string, string>()
-            {
-                { "Error", e.ToString() },
-                { "Message", e.Message }
-            };
-            WordsmithUI.ShowErrorWindow( dump, $"ChatHelper Exception##ErrorWindow{DateTime.Now}" );
+            // Get all of the default marker width
+            int iMarkerWidth = 0;
+
+            // If this is the first chunk then include all first chunk markers.
+            if ( offset == 0 )
+                iMarkerWidth += GetMarkerByteLength( dMarkers[RepeatMode.OnlyOnFirst] ) - GetMarkerByteLength( dMarkers[RepeatMode.AllExceptFirst] );
+
+            // Get a list of nth markers that apply to this marker and go from there.
+            iMarkerWidth += GetMarkerByteLength( dMarkers[RepeatMode.EveryNth].Where( x =>
+                (index == 0 && x.StartPosition == 1 ) ||
+                (index > 0 && index % x.Nth == 0)).ToList() );
+
+            if ( iMaxByteWidth - iMarkerWidth < 1 )
+                throw new Exception( "Too many markers. Unable to fit text body." );
+
+            // Get the current possible string.
+            string? substring = GetSubstringByByteCount(text, offset, iMaxByteWidth - iMarkerWidth);
+
+            // If the string comes back null, throw an error.
+            if ( substring == null )
+                throw new Exception( "substring is null" );
+
+            if ( substring.Length == 0 )
+                throw new Exception( "Failed to retrieve a valid substring." );
+
+            string str = substring;
+
+            // Add the string to the list with the header and, if offset is not at
+            // the end of the string yet, add the continuation marker for the player.
+            if ( str.Trim().Length > 0 )
+                results.Add( new( str.Trim() )
+                {
+                    // The StartIndex is adjusted here because if there was white space
+                    // trimmed from the string, we want to eliminate it from the chunk
+                    // text.
+                    StartIndex = offset + (str.Length - str.TrimStart().Length),
+                    Header = header.ToString(),
+                    OutOfCharacterStartTag = OOC ? Wordsmith.Configuration.OocOpeningTag : "",
+                    OutOfCharacterEndTag = OOC ? Wordsmith.Configuration.OocClosingTag : "",
+                    ContinuationMarker = Wordsmith.Configuration.ContinuationMarker
+                } );
+
+            // Add the length of the string to the offset.
+            offset += str.Length;
+            index++;
         }
-        return null;
+
+        // Return the results.
+        return results;
     }
 
     /// <summary>
@@ -99,85 +116,72 @@ internal sealed class ChatHelper
     /// <param name="byteLimit">The maximum byte length of the return.</param>
     /// <exception cref="IndexOutOfRangeException">Offset is out of range of text.</exception>
     /// <returns>A string that is under the byte limit.</returns>
-    private static string? SubstringByByteCount( string text, in int startIndex, in int byteLimit )
+    private static string? GetSubstringByByteCount( string text, in int startIndex, in int byteLimit )
     {
-        try
+        // If the offset is out of index, throw an out of range exception
+        if ( startIndex >= text.Length )
+            throw new IndexOutOfRangeException();
+
+        // Designate a text encoder so we don't reinitialize a new one every time.
+        UTF8Encoding encoder = new UTF8Encoding();
+
+        // Create a variable to hold the last known space and last known sentence marker
+        int lastSpace = -1;
+        int lastSentence = -1;
+
+        // Start with a character length of 1 and try increasing lengths.
+        for ( int length = 1; length + startIndex < text.Length; ++length )
         {
-            // If the offset is out of index, throw an out of range exception
-            if ( startIndex >= text.Length )
-                throw new IndexOutOfRangeException();
-
-            // Designate a text encoder so we don't reinitialize a new one every time.
-            UTF8Encoding encoder = new UTF8Encoding();
-
-            // Create a variable to hold the last known space and last known sentence marker
-            int lastSpace = -1;
-            int lastSentence = -1;
-
-            // Start with a character length of 1 and try increasing lengths.
-            for ( int length = 1; length + startIndex < text.Length; ++length )
+            // If the current length would be over the byte limit
+            if ( encoder.GetByteCount( text.Substring( startIndex, length ) ) > byteLimit )
             {
-                // If the current length would be over the byte limit
-                if ( encoder.GetByteCount( text.Substring( startIndex, length ) ) > byteLimit )
-                {
-                    // reduce the length by one as we've officially crossed the maximum byte count.
-                    --length;
+                // reduce the length by one as we've officially crossed the maximum byte count.
+                --length;
 
-                    // If we never found a space, we'll have to split the string at length regardless.
-                    if ( lastSpace == -1 )
-                        lastSpace = length;
-
-                    if ( Wordsmith.Configuration.SplitTextOnSentence && lastSentence > 0 && lastSentence > startIndex )
-                        return text.Substring( startIndex, lastSentence );
-                    else
-                        // get the substring starting from offset. If the character at offset+length is a space,
-                        // split there. If not, go back to the last space found.
-                        return text.Substring( startIndex, (text[startIndex + length] == ' ' ? length : lastSpace) );
-                }
-
-                // If the current character is a new line.
-                else if ( text[startIndex + length] == '\n' )
-                    return text.Substring( startIndex, length );
-
-                // Check if the current character is a space.
-                if ( text[startIndex + length] == ' ' )
-                {
-                    // If it is, take note of it.
+                // If we never found a space, we'll have to split the string at length regardless.
+                if ( lastSpace == -1 )
                     lastSpace = length;
 
-                    // If the character is a split point 
-                    if ( Wordsmith.Configuration.SentenceTerminators.Contains( text[startIndex + length - 1] ) )
-                        lastSentence = length;
+                if ( Wordsmith.Configuration.SplitTextOnSentence && lastSentence > 0 && lastSentence > startIndex )
+                    return text.Substring( startIndex, lastSentence );
+                else
+                    // get the substring starting from offset. If the character at offset+length is a space,
+                    // split there. If not, go back to the last space found.
+                    return text.Substring( startIndex, (text[startIndex + length] == ' ' ? length : lastSpace) );
+            }
 
-                    // If there are more characters previous
-                    else if ( startIndex + length - 2 >= 0 )
+            // If the current character is a new line.
+            else if ( text[startIndex + length] == '\n' )
+                return text.Substring( startIndex, length );
+
+            // Check if the current character is a space.
+            if ( text[startIndex + length] == ' ' )
+            {
+                // If it is, take note of it.
+                lastSpace = length;
+
+                // If the character is a split point 
+                if ( Wordsmith.Configuration.SentenceTerminators.Contains( text[startIndex + length - 1] ) )
+                    lastSentence = length;
+
+                // If there are more characters previous
+                else if ( startIndex + length - 2 >= 0 )
+                {
+                    // Check if we have a case of encapsulation like (Hello.)
+                    if ( Wordsmith.Configuration.EncapsulationTerminators.Contains( text[startIndex + length - 1] ) )
                     {
-                        // Check if we have a case of encapsulation like (Hello.)
-                        if ( Wordsmith.Configuration.EncapsulationTerminators.Contains( text[startIndex + length - 1] ) )
-                        {
-                            // If the character is a split point 
-                            if ( Wordsmith.Configuration.SentenceTerminators.Contains( text[startIndex + length - 2] ) )
-                                lastSentence = length;
-                        }
+                        // If the character is a split point 
+                        if ( Wordsmith.Configuration.SentenceTerminators.Contains( text[startIndex + length - 2] ) )
+                            lastSentence = length;
                     }
                 }
             }
+        }
 
-            // If we make it here, the remaining string from offset to end of string is all
-            // all within the given byte limit so return the remaining substring.
-            return text[startIndex..^0];
-        }
-        catch ( Exception e )
-        {
-            Dictionary<string, object> dump = new();
-            dump["Type"] = typeof( ChatHelper );
-            dump["Exception"] = new Dictionary<string, string>()
-            {
-                { "Error", e.ToString() },
-                { "Message", e.Message }
-            };
-            WordsmithUI.ShowErrorWindow( dump, $"ChatHelper Exception##ErrorWindow{DateTime.Now}" );
-        }
-        return text;
+        // If we make it here, the remaining string from offset to end of string is all
+        // all within the given byte limit so return the remaining substring.
+        return text[startIndex..^0];
     }
+
+    private static int GetMarkerByteLength(List<ChunkMarker> lMarkers) => new UTF8Encoding().GetByteCount( $" {(string.Join(' ', lMarkers.Select(x => x.Text)))}" );
 }

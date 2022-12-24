@@ -3,12 +3,6 @@ using System.ComponentModel;
 
 namespace Wordsmith.Helpers;
 
-internal enum SpellCheckResultState { Cancelled=-1, Exception=-2, Success=0 }
-internal struct SpellCheckResult
-{
-    internal SpellCheckResultState State;
-    internal IReadOnlyList<Word> Words;
-}
 internal sealed class SpellChecker
 {   
     /// Checks a string against the currently loaded dictionary.
@@ -16,82 +10,72 @@ internal sealed class SpellChecker
     /// <param name="str">String to check.</param>
     /// <param name="token">Cancellation token</param>
     /// <returns><see cref="SpellCheckResult"/> with result data.</returns>
-    internal static void CheckString( string str, BackgroundWorker? worker, DoWorkEventArgs? e )
+    internal static List<Word> CheckString( string str )
     {
-        if ( !Lang.Enabled )
-            return;
-
-        if ( e != null)
-            e.Result = new SpellCheckResult() { State = SpellCheckResultState.Cancelled };
-
         List<Word> results = new();
-
-        List<Word> words = str.Words();
-
-        // Iterate through all of the words.
-        for ( int i = 0; i < words.Count; ++i )
+        if ( Lang.Enabled && str is not null )
         {
-            if ( worker?.CancellationPending ?? false)
-                return;
+            List<Word> words = str.Words();
 
-            Word word = words[i];
-
-            // If the word is hyphen terminated, then ignore it.
-            if ( word.HyphenTerminated && Wordsmith.Configuration.IgnoreWordsEndingInHyphen )
-                continue;
-
-            // Get the word without punctuation at the beginning and end.
-            string text = word.GetWordString(str);
-
-            if ( text.Length < 1 )
-                continue;
-
-            // If it's numeric, skip it
-            if ( Regex.Match(text, Wordsmith.Configuration.NumericQuery).Success )
-                continue;
-
-            // If it is a date, skip it.
-            if ( Regex.Match( text, Wordsmith.Configuration.DateQuery).Success )
-                continue;
-
-            // If it is a timestamp, skip it
-            if ( Regex.Match( text, Wordsmith.Configuration.TimeQuery ).Success )
-                continue;
-
-            // Regex is used here to get the word without any contractions.
-            Match m = Regex.Match( text, Wordsmith.Configuration.WordQuery );
-
-            // Failed to match to a word.
-            if ( !m.Success )
+            // Iterate through all of the words.
+            for ( int i = 0; i < words.Count; ++i )
             {
-                word.InDictionary = false;
-                results.Add( word );
-            }
+                Word word = words[i];
+                if ( word is null )
+                    continue;
 
-            // If the match data is not a known word
-            else
-            {
-                // Try to segment the word into subwords and match those. This is for cases where
-                // words are slashed/hyphened (i.e.: heavy/large)
-                foreach ( Match sub in Regex.Matches( m.Value, @"[^\s\-\\/]+" ) )
+                // If the word is hyphen terminated, then ignore it.
+                if ( word.HyphenTerminated && Wordsmith.Configuration.IgnoreWordsEndingInHyphen )
+                    continue;
+
+                // Get the word without punctuation at the beginning and end.
+                string text = word.GetWordString(str);
+
+                if ( text is null || text.Length < 1 )
+                    continue;
+
+                // If it's numeric, skip it
+                if ( Regex.Match( text, Wordsmith.Configuration.NumericQuery ).Success )
+                    continue;
+
+                // If it is a date, skip it.
+                if ( Regex.Match( text, Wordsmith.Configuration.DateQuery ).Success )
+                    continue;
+
+                // If it is a timestamp, skip it
+                if ( Regex.Match( text, Wordsmith.Configuration.TimeQuery ).Success )
+                    continue;
+
+                // Regex is used here to get the word without any contractions.
+                Match m = Regex.Match( text, Wordsmith.Configuration.WordQuery );
+
+                // Failed to match to a word.
+                if ( !m.Success )
                 {
-                    if ( worker?.CancellationPending ?? false )
-                        return;
+                    word.InDictionary = false;
+                    results.Add( word );
+                }
 
-                    if ( !Lang.isWord( sub.Value, true ) )
+                // If the match data is not a known word
+                else
+                {
+                    // Try to segment the word into subwords and match those. This is for cases where
+                    // words are slashed/hyphened (i.e.: heavy/large)
+                    foreach ( Match sub in Regex.Matches( m.Value, @"[^\s\-\\/]+" ) )
                     {
-                        // If we reached this code, we were not able to locate a proper match for the word.
-                        // Add the index to the list.
-                        word.InDictionary = false;
-                        results.Add( word );
-                        break;
+                        if ( !Lang.isWord( sub.Value, true ) )
+                        {
+                            // If we reached this code, we were not able to locate a proper match for the word.
+                            // Add the index to the list.
+                            word.InDictionary = false;
+                            results.Add( word );
+                            break;
+                        }
                     }
                 }
             }
         }
-
-        // Done checking all of the words, return the results.
-        if ( e != null )
-            e.Result = new SpellCheckResult() { State = SpellCheckResultState.Success, Words = results };
+        
+        return results;
     }
 }
