@@ -164,10 +164,19 @@ public sealed class Configuration : IPluginConfiguration
         {(int)Enums.ChatType.Linkshell, new(0.8f, 1f, 0.6f, 1f) }
     };
 
+    /// <summary>
+    /// A collection of all header aliases the user has created.
+    /// </summary>
     public List<(int ChatType, string Alias, object? data)> HeaderAliases { get; set; } = new();
 
+    /// <summary>
+    /// The limit to the history size that <see cref="Gui.ScratchPadUI"/> keeps.
+    /// </summary>
     public int ScratchPadHistoryLimit { get; set; } = 5;
 
+    /// <summary>
+    /// The upper limit to the size of the input in a <see cref="Gui.ScratchPadUI"/>
+    /// </summary>
     public int ScratchPadInputLineHeight { get; set; } = 5;
     #endregion
 
@@ -182,6 +191,9 @@ public sealed class Configuration : IPluginConfiguration
     /// </summary>
     public string DictionaryFile { get; set; } = "web: lang_en";
 
+    /// <summary>
+    /// The color to display a mispelled word as.
+    /// </summary>
     public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
 
     /// <summary>
@@ -194,28 +206,21 @@ public sealed class Configuration : IPluginConfiguration
     /// </summary>
     public string PunctuationCleaningList { get; set; } = PUNCTUATION_CLEAN_LIST_DEFAULT;
 
+    /// <summary>
+    /// The maximum number of suggestions that a word will generate
+    /// </summary>
     public int MaximumSuggestions { get; set; } = 5;
 
+    /// <summary>
+    /// Enables automatic spell checking when <see langword="true"/>
+    /// </summary>
     public bool AutoSpellCheck { get; set; } = true;
 
+    /// <summary>
+    /// The <see cref="float"/> delay between when the user stops typing and
+    /// when the <see cref="Gui.ScratchPadUI"/> runs the spell check.
+    /// </summary>
     public float AutoSpellCheckDelay { get; set; } = 1f;
-    #endregion
-
-    #region Advanced User Settings
-    // For spell checking
-    private const string NUMERIC_QUERY_DEFAULT = @"^[0-9\-\.\,]+(?:st|nd|rd|th)?$";
-    public string NumericQuery { get; set; } = NUMERIC_QUERY_DEFAULT;
-
-
-    private const string DATE_QUERY_DEFAULT = @"^\d{0,4}[\\\/\-\.]\d{0,4}[\\\/\-\.]\d{0,4}$";
-    public string DateQuery { get; set; } = DATE_QUERY_DEFAULT;
-
-
-    private const string WORD_QUERY_DEFAULT = @"\S*(?='(?:ll|m|em|d))?";
-    public string WordQuery { get; set; } = WORD_QUERY_DEFAULT;
-
-    private const string TIME_QUERY_DEFAULT = @"(?:\d{1,2}[:.]){1,3}\d{2}?\s*(?:[AaPp]\.?[Mm]\.?)*";
-    public string TimeQuery { get; set; } = TIME_QUERY_DEFAULT;
     #endregion
 
     #region Linkshell Settings
@@ -230,6 +235,10 @@ public sealed class Configuration : IPluginConfiguration
     public string[] LinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
     #endregion
 
+    /// <summary>
+    /// Saves the current configuration to file.
+    /// </summary>
+    /// <param name="notify"><see cref="bool"/> indicating if the user should be notified that settings were saved.</param>
     internal void Save(bool notify = true)
     {
         Wordsmith.PluginInterface.SavePluginConfig(this);

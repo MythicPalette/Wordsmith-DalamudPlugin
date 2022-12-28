@@ -13,10 +13,22 @@ internal sealed class ErrorWindow : MessageBox
     {
         if ( mb is ErrorWindow ew )
         {
-            if ( ew.Result == DialogResult.Yes )
+            try
             {
-                ImGui.SetClipboardText( System.Text.Json.JsonSerializer.Serialize( ew.ErrorDump, new System.Text.Json.JsonSerializerOptions() { IncludeFields = true } ) );
-                System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/LadyDefile/Wordsmith-DalamudPlugin/issues" ) { UseShellExecute = true } );
+                if ( ew.Result == DialogResult.Yes )
+                {
+                    foreach ( string key in ew.ErrorDump.Keys )
+                    {
+                        if ( ew.ErrorDump[key] is IntPtr )
+                            ew.ErrorDump.Remove( key );
+                    }
+                    ImGui.SetClipboardText( System.Text.Json.JsonSerializer.Serialize( ew.ErrorDump, new System.Text.Json.JsonSerializerOptions() { IncludeFields = true } ) );
+                    System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/LadyDefile/Wordsmith-DalamudPlugin/issues" ) { UseShellExecute = true } );
+                }
+            }
+            catch ( Exception e )
+            {
+                PluginLog.LogError( e.ToString() );
             }
         }
         WordsmithUI.RemoveWindow( mb );

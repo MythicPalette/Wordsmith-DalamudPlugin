@@ -80,7 +80,6 @@ internal sealed class MerriamWebsterAPI : IDisposable
             // Check if the search already exists
             if ( !SearchHistory( query ) )
             {
-                //TODO Actually make reqeusts.
                 string request = $"https://dictionaryapi.com/api/v3/references/thesaurus/json/{query.ToLower().Trim()}?key={Wordsmith.Configuration.MwApiKey}";
                 string html = _client.GetStringAsync( request ).Result;
 

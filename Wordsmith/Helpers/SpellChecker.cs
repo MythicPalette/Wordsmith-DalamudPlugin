@@ -2,6 +2,14 @@
 
 internal sealed class SpellChecker
 {
+    private const string NUMERIC_QUERY = @"^[0-9\-\.\,]+(?:st|nd|rd|th)?$";
+
+    private const string DATE_QUERY = @"^\d{0,4}[\\\/\-\.]\d{0,4}[\\\/\-\.]\d{0,4}$";
+
+    private const string WORD_QUERY = @"^(?<word>\S+)(?:'(?:ll|m|em|d|s))$|^(?<word>\S+)$";
+
+    private const string TIME_QUERY = @"(?:\d{1,2}[:.]){1,3}\d{2}?\s*(?:[AaPp]\.?[Mm]\.?)*";
+
     /// <summary>
     /// Checks a string against the currently enabled dictionary.
     /// </summary>
@@ -32,19 +40,19 @@ internal sealed class SpellChecker
                     continue;
 
                 // If it's numeric, skip it
-                if ( Regex.Match( text, Wordsmith.Configuration.NumericQuery ).Success )
+                if ( Regex.Match( text, NUMERIC_QUERY ).Success )
                     continue;
 
                 // If it is a date, skip it.
-                if ( Regex.Match( text, Wordsmith.Configuration.DateQuery ).Success )
+                if ( Regex.Match( text, DATE_QUERY ).Success )
                     continue;
 
                 // If it is a timestamp, skip it
-                if ( Regex.Match( text, Wordsmith.Configuration.TimeQuery ).Success )
+                if ( Regex.Match( text, TIME_QUERY ).Success )
                     continue;
 
                 // Regex is used here to get the word without any contractions.
-                Match m = Regex.Match( text, Wordsmith.Configuration.WordQuery );
+                Match m = Regex.Match( text, WORD_QUERY );
 
                 // Failed to match to a word.
                 if ( !m.Success )

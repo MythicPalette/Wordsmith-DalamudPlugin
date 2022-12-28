@@ -222,10 +222,12 @@ internal sealed class ScratchPadUI : Window
         if ( Wordsmith.Configuration.RecentlySaved )
             this._chunks = ChatHelper.FFXIVify( this.Header, this.ScratchString.Unwrap(), this.UseOOC ) ?? new();
 
-        if ( this._do_spell_check || Helpers.Console.bOverrideSpellcheckLimited)
+        // iSpellcheckMode 2 disables the need to edit the text.
+        if ( this._do_spell_check || Helpers.Console.iSpellcheckMode == 2)
         {
             this._rest_time -= WordsmithUI.Clock.Delta;
-            if ( this._rest_time < 0 || Helpers.Console.bOverrideSpellcheckLimited)
+            // iSpellcheckModes 1 and 2 ignore timer
+            if ( this._rest_time < 0 || Helpers.Console.iSpellcheckMode > 0 )
             {
                 this._do_spell_check = false;
                 DoSpellCheck();
@@ -477,7 +479,7 @@ internal sealed class ScratchPadUI : Window
                     {
                         List<ChunkMarker> markers = new();
                         foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
-                            if ( cm.AppliesTo(i, this._chunks.Count ) && cm.Visible(this._useOOC, i, this._chunks.Count) )
+                            if ( cm.AppliesTo(i, this._chunks.Count ) && cm.Visible(this._useOOC, this._chunks.Count) )
                                 markers.Add( cm );
 
                         DrawChunkItem( this._chunks[i], this._header.ChatType, this._useOOC, i, this._chunks.Count, fSpaceWidth, markers, this._corrections );
@@ -532,7 +534,7 @@ internal sealed class ScratchPadUI : Window
         }
 
 
-        float regionWidth = ImGui.GetWindowContentRegionMax().X;
+        float regionWidth = ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X;
         void DrawMarkers(List<ChunkMarker> lMarkerSublist)
         {
             foreach ( ChunkMarker cm in lMarkerSublist )
@@ -562,8 +564,9 @@ internal sealed class ScratchPadUI : Window
         DrawMarkers( lMarkers.Where( x => x.Position == MarkerPosition.BeforeBody ).ToList() );
 
         // Draw body
-        string chunktext = chunk.Text.Unwrap();
+        string chunktext = chunk.Text.Trim().Unwrap();
         List<Word> words = chunk.Words;
+
         for ( int i = 0; i < words.Count; ++i )
         {
             // Get the first word
@@ -698,7 +701,7 @@ internal sealed class ScratchPadUI : Window
             // Draw the text input.
             ImGui.SameLine(0,0);
             ImGui.SetNextItemWidth(ImGui.GetContentRegionMax().X - ImGui.CalcTextSize("Spelling Error: ").X - (120*ImGuiHelpers.GlobalScale));
-            string wordText = word.GetWordString( this.ScratchString );
+            string wordText = word.GetWordString( this.ScratchString.Trim().Unwrap() );
             this._replaceText = wordText;
 
             if (ImGui.InputText($"##ScratchPad{this.ID}ReplaceTextTextbox", ref this._replaceText, 128, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -924,128 +927,136 @@ internal sealed class ScratchPadUI : Window
     /// <param name="s">The text for the history.</param>
     private void DrawHistoryItem(PadState p, int idx)
     {
-        try
+        ImGuiStylePtr style = ImGui.GetStyle();
+        string sUnwrapped = p.ScratchText.Unwrap();
+        ImGui.SetNextItemWidth( ImGui.GetContentRegionAvail().X - style.WindowPadding.X );
+        if ( ImGui.CollapsingHeader($"{sUnwrapped.Replace("\n", "")}##HistoryItemHeader" ) )
         {
-            // Create a group.
-            ImGui.BeginGroup();
-
-            // Get the text chunks.
-            List<TextChunk>? result = ChatHelper.FFXIVify(p.Header!, p.ScratchText, p.UseOOC);
-            if ( result == null )
-                return;
-
-            List<TextChunk> tlist = result;
-            float fSpaceWidth = ImGui.CalcTextSize( " " ).X;
-            // Display the chunks.
-            for ( int i = 0; i < tlist.Count; ++i )
+            ImGui.Indent();
+            try
             {
-                if ( i > 0 )
-                    ImGui.Spacing();
+                ImGui.BeginGroup();
+                // Get the text chunks.
+                List<TextChunk>? result = ChatHelper.FFXIVify(p.Header!, p.ScratchText.Unwrap(), p.UseOOC);
+                if ( result == null )
+                    return;
 
-                List<ChunkMarker> markers = new();
-                foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
-                    if ( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this._useOOC, i, this._chunks.Count ) )
-                        markers.Add( cm );
-                DrawChunkItem( tlist[i], p.Header!.ChatType, p.UseOOC, i, tlist.Count, fSpaceWidth, markers, null );
-            }
-
-            // End the group.
-            ImGui.EndGroup();
-
-            // Create a border around the group
-            Vector2 vMin = ImGui.GetItemRectMin();
-
-            Rect r;
-            r.Left = (int)vMin.X;
-            r.Top = (int)vMin.Y;
-            r.Right = (int)(vMin.X + ImGui.GetWindowWidth() - ImGui.GetStyle().FramePadding.X * 2);
-            r.Bottom = (int)(ImGui.GetItemRectMax().Y - ImGui.GetItemRectMin().Y);
-            ImGui.GetWindowDrawList().AddRect( r.Position, r.Size + r.Position, ImGui.GetColorU32( ImGuiCol.Border ) );
-
-            if ( ImGui.BeginPopup( $"ScratchPad{this.ID}History{idx}Popup" ) )
-            {
-                if ( ImGui.MenuItem( $"Reload Pad State##ScratchPad{this.ID}HistoryItem{idx}Reload" ) )
+                List<TextChunk> tlist = result;
+                float fSpaceWidth = ImGui.CalcTextSize( " " ).X;
+                // Display the chunks.
+                for ( int i = 0; i < tlist.Count; ++i )
                 {
-                    int index = this._selected_history;
+                    if ( i > 0 )
+                        ImGui.Spacing();
 
-                    // If there is currently written text, require confirmation.
-                    if ( this.ScratchString != "" )
-                        WordsmithUI.ShowMessageBox(
-                            "Load History?", "Loading the history state will overwrite\nany currently written text and chat headers.",
-                            MessageBox.ButtonStyle.OkCancel,
-                            new Action<MessageBox>((m) => {
-                                if ( m.Result == MessageBox.DialogResult.Ok )
-                                    LoadState( this._text_history[index] );
-                            } )
-                        );
-
-                    // If there is no currently written text just load the state.
-                    else
-                        LoadState( this._text_history[index] );
-                    
-                    // Close the popup
-                    ImGui.CloseCurrentPopup();
+                    List<ChunkMarker> markers = new();
+                    foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
+                        if ( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this._useOOC, this._chunks.Count ) )
+                            markers.Add( cm );
+                    DrawChunkItem( tlist[i], p.Header!.ChatType, p.UseOOC, i, tlist.Count, fSpaceWidth, markers, null );
                 }
-                else if ( ImGui.MenuItem( $"Copy Text To Clipboard##ScratchPad{this.ID}HistoryItem{idx}Copy" ) )
+
+                // End the group.
+                ImGui.EndGroup();
+
+                // Create a border around the group
+                Vector2 vMin = ImGui.GetItemRectMin();
+                Vector2 vMax = ImGui.GetItemRectMax();
+                Rect r;
+                r.Left = (int)vMin.X;
+                r.Top = (int)vMin.Y;
+                r.Right = (int)vMax.X;
+                r.Bottom = (int)vMax.Y;
+
+                if ( ImGui.BeginPopup( $"ScratchPad{this.ID}History{idx}Popup" ) )
                 {
-                    // Get the selected pad state
-                    PadState selected = this._text_history[this._selected_history];
-
-                    // Get each chunk
-                    List<TextChunk>? results = ChatHelper.FFXIVify(selected.Header!, selected.ScratchText, selected.UseOOC);
-                    if ( results != null )
+                    if ( ImGui.MenuItem( $"Reload Pad State##ScratchPad{this.ID}HistoryItem{idx}Reload" ) )
                     {
-                        List<TextChunk> chunks = results;
+                        int index = this._selected_history;
 
-                        // Get the text from every chunk.
-                        List<string> text = new();
-                        for ( int i = 0; i < chunks.Count; )
-                            text.Add( CreateCompleteTextChunk( chunks[i], selected.UseOOC, i, chunks.Count ) );
+                        // If there is currently written text, require confirmation.
+                        if ( this.ScratchString != "" )
+                            WordsmithUI.ShowMessageBox(
+                                "Load History?", "Loading the history state will overwrite\nany currently written text and chat headers.",
+                                MessageBox.ButtonStyle.OkCancel,
+                                new Action<MessageBox>( ( m ) =>
+                                {
+                                    if ( m.Result == MessageBox.DialogResult.Ok )
+                                        LoadState( this._text_history[index] );
+                                } )
+                            );
 
-                        // Set the clipboard text.
-                        ImGui.SetClipboardText( string.Join( '\n', text ) );
+                        // If there is no currently written text just load the state.
+                        else
+                            LoadState( this._text_history[index] );
 
-                        // Notify the user that the text was copied.
-                        Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+                        // Close the popup
+                        ImGui.CloseCurrentPopup();
+                    }
+                    else if ( ImGui.MenuItem( $"Copy Text To Clipboard##ScratchPad{this.ID}HistoryItem{idx}Copy" ) )
+                    {
+                        // Get the selected pad state
+                        PadState selected = this._text_history[this._selected_history];
+
+                        // Get each chunk
+                        List<TextChunk>? results = ChatHelper.FFXIVify(selected.Header!, selected.ScratchText.Unwrap(), selected.UseOOC);
+                        if ( results != null )
+                        {
+                            List<TextChunk> chunks = results;
+
+                            // Get the text from every chunk.
+                            List<string> text = new();
+                            for ( int i = 0; i < chunks.Count; )
+                                text.Add( CreateCompleteTextChunk( chunks[i], selected.UseOOC, i, chunks.Count ) );
+
+                            // Set the clipboard text.
+                            ImGui.SetClipboardText( string.Join( '\n', text ) );
+
+                            // Notify the user that the text was copied.
+                            Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+
+                            // Unselect the history time.
+                            this._selected_history = -1;
+                        }
+                        // Close the popup
+                        ImGui.CloseCurrentPopup();
+                    }
+                    else if ( ImGui.MenuItem( $"Delete##ScratchPad{this.ID}HistoryItem{idx}Delete" ) )
+                    {
+                        // Remove the history item.
+                        this._text_history.RemoveAt( this._selected_history );
 
                         // Unselect the history time.
                         this._selected_history = -1;
+
+                        // Close the popup
+                        ImGui.CloseCurrentPopup();
                     }
-                    // Close the popup
-                    ImGui.CloseCurrentPopup();
+                    else if ( ImGui.MenuItem( $"Delete All##ScratchPad{this.ID}HistoryItem{idx}DeleteAll" ) )
+                    {
+                        // Remove the history item.
+                        this._text_history.Clear();
+
+                        // Unselect the history time.
+                        this._selected_history = -1;
+
+                        // Close the popup
+                        ImGui.CloseCurrentPopup();
+                    }
+
+                    ImGui.EndPopup();
                 }
-                else if ( ImGui.MenuItem( $"Delete##ScratchPad{this.ID}HistoryItem{idx}Delete" ) )
+
+                Vector2 vMouse = ImGui.GetMousePos();
+                if ( ImGui.IsMouseClicked( ImGuiMouseButton.Right ) && r.Contains(vMouse) )
                 {
-                    // Remove the history item.
-                    this._text_history.RemoveAt( this._selected_history );
-
-                    // Unselect the history time.
-                    this._selected_history = -1;
-
-                    // Close the popup
-                    ImGui.CloseCurrentPopup();
+                    ImGui.OpenPopup( $"ScratchPad{this.ID}History{idx}Popup" );
+                    this._selected_history = idx;
                 }
-                else if ( ImGui.MenuItem( $"Delete All##ScratchPad{this.ID}HistoryItem{idx}DeleteAll" ) )
-                {
-                    // Remove the history item.
-                    this._text_history.Clear();
-
-                    // Unselect the history time.
-                    this._selected_history = -1;
-
-                    // Close the popup
-                    ImGui.CloseCurrentPopup();
-                }
-
-                ImGui.EndPopup();
             }
-            if ( ImGui.IsMouseClicked( ImGuiMouseButton.Right ) && r.Contains( ImGui.GetMousePos() ) )
-            {
-                ImGui.OpenPopup( $"ScratchPad{this.ID}History{idx}Popup" );
-                this._selected_history = idx;
-            }
+            catch ( Exception e ) { DumpError( e ); }
+            ImGui.Unindent();
         }
-        catch ( Exception e ) { DumpError( e ); }
     }
     
     /// <summary>
@@ -1171,7 +1182,7 @@ internal sealed class ScratchPadUI : Window
     }
 
     /// <summary>
-    /// Clears out any error messages or notices and runs the spell checker.
+    /// Checks the current scratch text for spelling errors.
     /// </summary>
     private void DoSpellCheck()
     {
@@ -1344,6 +1355,7 @@ internal sealed class ScratchPadUI : Window
 
             if ( Wordsmith.Configuration.AutoSpellCheck )
             {
+                this._corrections?.Clear();
                 this._rest_time = Wordsmith.Configuration.AutoSpellCheckDelay;
                 this._do_spell_check = true;
             }
@@ -1507,7 +1519,7 @@ internal sealed class ScratchPadUI : Window
         // Get the applicable markers.
         List<ChunkMarker> markers = new();
         foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
-            if ( cm.AppliesTo( index, count ) && cm.Visible( OOC, index, count ) )
+            if ( cm.AppliesTo( index, count ) && cm.Visible( OOC, count ) )
                 markers.Add( cm );
 
         List<ChunkMarker> current = markers.Where(x => x.Position == MarkerPosition.BeforeOOC).ToList();

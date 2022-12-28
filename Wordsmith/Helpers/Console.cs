@@ -6,7 +6,7 @@ namespace Wordsmith.Helpers;
 
 internal sealed class Console
 {
-    internal static bool bOverrideSpellcheckLimited = false;
+    internal static int iSpellcheckMode = 0;
     internal static bool ProcessCommand(ScratchPadUI pad, string s)
     {
         Match m = Regex.Match(s, @"(?<=^devx(?:\s*))(?<option>\S+)(?:\s*=\s*)(?<value>\S+)$");
@@ -19,26 +19,6 @@ internal sealed class Console
             case "dbg":
             case "debug":
                 Wordsmith.Configuration.EnableDebug = m.Groups["value"].Value == "on";
-                Wordsmith.Configuration.Save();
-                break;
-
-            case "nquery":
-                Wordsmith.Configuration.NumericQuery = m.Groups["value"].Value;
-                Wordsmith.Configuration.Save();
-                break;
-
-            case "dquery":
-                Wordsmith.Configuration.DateQuery = m.Groups["value"].Value;
-                Wordsmith.Configuration.Save();
-                break;
-
-            case "wquery":
-                Wordsmith.Configuration.WordQuery = m.Groups["value"].Value;
-                Wordsmith.Configuration.Save();
-                break;
-
-            case "tquery":
-                Wordsmith.Configuration.TimeQuery = m.Groups["value"].Value;
                 Wordsmith.Configuration.Save();
                 break;
 
@@ -104,10 +84,12 @@ internal sealed class Console
                 break;
 
             case "spellcheck":
-                if ( m.Groups["value"].Value.ToLower() == "unlimited" )
-                    bOverrideSpellcheckLimited = true;
-                else if ( m.Groups["value"].Value.ToLower() == "limited" )
-                    bOverrideSpellcheckLimited = false;
+                if ( m.Groups["value"].Value.ToLower() == "limited" )
+                    iSpellcheckMode = 0;
+                else if ( m.Groups["value"].Value.ToLower() == "unlimited" )
+                    iSpellcheckMode = 2;
+                else if ( m.Groups["value"].Value.ToLower() == "onedit" )
+                    iSpellcheckMode = 1;
                 break;
 
             default:

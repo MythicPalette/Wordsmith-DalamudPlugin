@@ -19,6 +19,7 @@ internal sealed class SettingsUI : Window
     /// <returns>Returns a float representing the available canvas height for settings tabs.</returns>
     private float GetCanvasSize() => ImGui.GetContentRegionMax().Y - ImGui.GetCursorPosY() - (Wordsmith.BUTTON_Y*ImGuiHelpers.GlobalScale) - (this._style.FramePadding.Y * 2);
 
+
     // General settings.
     private bool _showAdvancedSettings = Wordsmith.Configuration.ShowAdvancedSettings;
     private bool _neverShowNotices = Wordsmith.Configuration.NeverShowNotices;
@@ -259,7 +260,6 @@ internal sealed class SettingsUI : Window
                         ImGui.Checkbox( "Split Text On Sentence##SettingsUICheckbox", ref this._onSentence );
                         ImGuiExt.SetHoveredTooltip( "When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words." );
 
-                        // TODO Add user control to disable automatic header parsing.
                         ImGui.TableNextColumn();
                         ImGui.Checkbox( "Parse Header From Text##SettingsUICheckbox", ref this._detectHeader );
                         ImGuiExt.SetHoveredTooltip( "When enabled, typing a header into the input text of a scratch pad will cause\nthe scratchpad to try to parse the desired header automatically." );
@@ -316,8 +316,8 @@ internal sealed class SettingsUI : Window
                         }
                         ImGui.Unindent();
                     }
+                    ImGui.Spacing();
                 }
-                ImGui.Spacing();
 
                 if ( ImGui.CollapsingHeader( "Marks & Tags##settingsheader" ) )
                 {
