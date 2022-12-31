@@ -61,7 +61,7 @@ internal sealed class SpellChecker
                 }
 
                 // If the match data is not a known word
-                else if ( !Lang.isWord(text))
+                else if ( !Lang.isWord( m.Groups["word"].Value ))
                 {
                     // Try to segment the word into subwords and match those. This is for cases where
                     // words are slashed/hyphened (i.e.: heavy/large)
