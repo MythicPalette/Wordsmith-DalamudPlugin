@@ -65,7 +65,7 @@ internal sealed class SpellChecker
                 {
                     // Try to segment the word into subwords and match those. This is for cases where
                     // words are slashed/hyphened (i.e.: heavy/large)
-                    foreach ( Match sub in Regex.Matches( m.Value, @"[^\s\-\\/]+" ) )
+                    foreach ( Match sub in Regex.Matches( m.Groups["word"].Value, @"[^\s\-\\/]+" ) )
                     {
                         if ( !Lang.isWord( sub.Value, true ) )
                         {
