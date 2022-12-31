@@ -21,7 +21,6 @@ internal sealed class SpellChecker
         if ( Lang.Enabled && str.Length > 0 )
         {
             List<Word> lWords = str.Words();
-            string sUnwrapped = str.Unwrap();
             // Iterate through all of the words.
             for ( int i = 0; i < lWords.Count; ++i )
             {
@@ -34,7 +33,7 @@ internal sealed class SpellChecker
                     continue;
 
                 // Get the word without punctuation at the beginning and end.
-                string text = word.GetWordString(sUnwrapped);
+                string text = word.GetWordString(str);
 
                 if ( text is null || text.Length < 1 )
                     continue;

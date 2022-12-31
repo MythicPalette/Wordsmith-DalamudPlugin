@@ -740,7 +740,7 @@ internal sealed class ScratchPadUI : Window
                                 {
                                     if ( ImGui.Selectable( $"{suggestion}##ScratchPad{this.ID}Replacement" ) )
                                     {
-                                        this._replaceText = $"{suggestion}";
+                                        this._replaceText = suggestion;
                                         OnReplace( 0 );
                                     }
                                 }
@@ -1188,7 +1188,7 @@ internal sealed class ScratchPadUI : Window
     {
         try
         {
-            this._corrections = SpellChecker.CheckString( this.ScratchString );
+            this._corrections = SpellChecker.CheckString( this.ScratchString.Unwrap() );
         }
         catch ( Exception e )
         {
