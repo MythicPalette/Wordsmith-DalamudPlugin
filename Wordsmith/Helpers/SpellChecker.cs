@@ -4,6 +4,8 @@ internal sealed class SpellChecker
 {
     private const string NUMERIC_QUERY = @"^[0-9\-\.\,]+(?:st|nd|rd|th)?$";
 
+    private const string ROMAN_NUMERAL_QUERY = @"^[IVXLCDM]+(?:st|nd|rd|th)?$";
+
     private const string DATE_QUERY = @"^\d{0,4}[\\\/\-\.]\d{0,4}[\\\/\-\.]\d{0,4}$";
 
     private const string WORD_QUERY = @"^(?<word>\S+)(?:'(?:ll|m|em|d|s))$|^(?<word>\S+)$";
@@ -40,6 +42,10 @@ internal sealed class SpellChecker
 
                 // If it's numeric, skip it
                 if ( Regex.Match( text, NUMERIC_QUERY ).Success )
+                    continue;
+
+                // If it's a roman numeral, skip it
+                if ( Regex.Match( text, ROMAN_NUMERAL_QUERY ).Success )
                     continue;
 
                 // If it is a date, skip it.

@@ -1071,7 +1071,7 @@ internal sealed class SettingsUI : Window
                     ImGui.TableSetupColumn("CustomDictionaryDeleteColumn", ImGuiTableColumnFlags.WidthFixed, 65 * ImGuiHelpers.GlobalScale);
 
                     ImGui.TableNextColumn();
-                    ImGui.Text("Custom Dictionary Entries");
+                    ImGui.TableHeader( "Custom Dictionary Entries" );
 
                     // Delete all
                     ImGui.TableNextColumn();
@@ -1089,7 +1089,8 @@ internal sealed class SettingsUI : Window
                             } );
                     ImGuiExt.SetHoveredTooltip( $"Deletes all dictionary entries. This action cannot be undone." );
 
-                    // Individual entries
+                    // display each entry.
+                    string sRemoveEntry = "";
                     for (int i = 0; i < Wordsmith.Configuration.CustomDictionaryEntries.Count; ++i)
                     {
                         ImGui.TableNextColumn();
@@ -1097,9 +1098,14 @@ internal sealed class SettingsUI : Window
 
                         ImGui.TableNextColumn();
                         if ( ImGui.Button( $"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2( -1, Wordsmith.BUTTON_Y.Scale() ) ) )
-                            Lang.RemoveDictionaryEntry( Wordsmith.Configuration.CustomDictionaryEntries[i--] );
+                            sRemoveEntry = Wordsmith.Configuration.CustomDictionaryEntries[i]; //Lang.RemoveDictionaryEntry( Wordsmith.Configuration.CustomDictionaryEntries[i] );
 
                         ImGuiExt.SetHoveredTooltip($"Permanently deletes {Wordsmith.Configuration.CustomDictionaryEntries[i]} from your custom dictionary.");
+                    }
+                    if ( sRemoveEntry.Length > 0 )
+                    {
+                        Lang.RemoveDictionaryEntry( sRemoveEntry );
+                        sRemoveEntry = "";
                     }
                     ImGui.EndTable();
                 }

@@ -18,6 +18,8 @@ internal sealed class DebugUI : Window
 
         PluginLog.LogDebug( $"DebugUI created." );
     }
+    private static string _consoleInput = "";
+    private static int _consolePadNumber = 0;
 
     public override void Draw()
     {
@@ -64,6 +66,42 @@ internal sealed class DebugUI : Window
             ImGui.Unindent();
         }
         
+        if ( ImGui.CollapsingHeader( "Console##ConsoleCollapsingHeader" ) )
+        {
+            ImGui.Indent();
+            string[] options = WordsmithUI.Windows.Where(x => x is ScratchPadUI).Select(x => x.WindowName).ToArray();
+            if ( _consolePadNumber >= options.Length )
+                _consolePadNumber = 0;
+
+            Window? w = null;
+            if ( options.Length == 0 )
+            {
+                ImGui.BeginDisabled();
+                ImGui.Combo( "##ScratchPadConsoleSelectionCombo", ref _consolePadNumber, new string[] { "None" }, 1 );
+            }
+            else
+            {
+                ImGui.Combo( "##ScratchPadConsoleSelectionCombo", ref _consolePadNumber, options, options.Length );
+                w = WordsmithUI.GetWindow( options[_consolePadNumber] );
+            }
+
+            if ( ImGui.BeginChildFrame(99, new (ImGui.GetContentRegionAvail().X, WordsmithUI.LineHeight * 15 - Wordsmith.BUTTON_Y.Scale()*2 ) ) )
+            {
+                if ( w is ScratchPadUI pad && Helpers.Console.Log.Keys.Contains(pad))
+                    ImGui.TextWrapped( string.Join("\n", Helpers.Console.Log[pad] ) );
+            }
+            ImGui.EndChildFrame();
+
+            ImGui.SetNextItemWidth( -1 );
+            if ( ImGui.InputText( $"##ConsoleInputLine", ref _consoleInput, 1024, ImGuiInputTextFlags.EnterReturnsTrue ) )
+            {
+                if ( w is ScratchPadUI pad )
+                    Helpers.Console.ProcessCommand( pad, $"devx {_consoleInput}" );
+                _consoleInput = "";
+            }
+            if ( options.Length == 0 )
+                ImGui.EndDisabled();            
+        }
     }
     private void DrawClassData( object? obj, object id, params string[]? excludes )
     {

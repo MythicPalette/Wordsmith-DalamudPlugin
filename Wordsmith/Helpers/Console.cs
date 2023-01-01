@@ -7,6 +7,8 @@ namespace Wordsmith.Helpers;
 internal sealed class Console
 {
     internal static int iSpellcheckMode = 0;
+    internal static Dictionary<ScratchPadUI, List<string>> Log = new();
+
     internal static bool ProcessCommand(ScratchPadUI pad, string s)
     {
         Match m = Regex.Match(s, @"(?<=^devx(?:\s*))(?<option>\S+)(?:\s*=\s*)(?<value>\S+)$");
@@ -92,9 +94,24 @@ internal sealed class Console
                     iSpellcheckMode = 1;
                 break;
 
+            case "ex":
+                if ( m.Groups["value"].Value.ToLower() == "ffxivify" )
+                    pad.FFXIVify();
+                break;
+
             default:
                 return false;
         }
+
+        // Add the the command to the log.
+        if ( !Log.Keys.Contains( pad ) )
+            Log[pad] = new() { s };
+        else
+            Log[pad].Add( s );
+
+        while ( Log[pad].Count > 15 )
+            Log[pad].RemoveAt( 0 );
+
         return true;
     }
 }

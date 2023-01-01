@@ -218,20 +218,25 @@ internal sealed class ScratchPadUI : Window
                 this.ScratchString = s;
         }
 
-        // If the configuration was recently saved then rewrap the text.
+        // If the configuration was recently saved
         if ( Wordsmith.Configuration.RecentlySaved )
+        {
+            // Rebuild chunks
             this._chunks = ChatHelper.FFXIVify( this.Header, this.ScratchString.Unwrap(), this.UseOOC ) ?? new();
 
+            // Recheck spelling
+            DoSpellCheck();
+            this._do_spell_check = false;
+        }
+
+        // If the configuration wasn't saved recently then check if spell check is required
         // iSpellcheckMode 2 disables the need to edit the text.
-        if ( this._do_spell_check || Helpers.Console.iSpellcheckMode == 2)
+        else if ( this._do_spell_check || Helpers.Console.iSpellcheckMode == 2)
         {
             this._rest_time -= WordsmithUI.Clock.Delta;
             // iSpellcheckModes 1 and 2 ignore timer
             if ( this._rest_time < 0 || Helpers.Console.iSpellcheckMode > 0 )
-            {
-                this._do_spell_check = false;
                 DoSpellCheck();
-            }
         }
     }
     #endregion
@@ -265,30 +270,19 @@ internal sealed class ScratchPadUI : Window
                 // Text menu
                 if ( ImGui.BeginMenu( $"Text##ScratchPad{this.ID}TextMenu" ) )
                 {
-                    #region Undo Clear
-                    // Show undo clear text option.
-                    bool bNoUndoClear = !this._canUndo || this._text_history.Count == 0;
-                    if ( bNoUndoClear )
-                        ImGui.BeginDisabled();
-
-                    if ( ImGui.MenuItem( $"Undo Clear##ScratchPad{this.ID}TextUndoClearMenuItem" ) )
-                        UndoClearText();
-
-                    if ( bNoUndoClear )
-                        ImGui.EndDisabled();
-                    #endregion
-
                     #region Clear
-                    bool bNoClear = this.ScratchString.Length == 0;
-                    if ( bNoClear )
-                        ImGui.BeginDisabled();
-
-                    // Show the clear text option.
-                    if ( ImGui.MenuItem( $"Clear##ScratchPad{this.ID}TextClearMenuItem" ) )
-                        DoClearText();
-
-                    if ( bNoClear )
-                        ImGui.EndDisabled();
+                    if ( !this._canUndo || this._text_history.Count == 0 )
+                    {
+                        // Show the clear text option.
+                        if ( ImGui.MenuItem( $"Clear##ScratchPad{this.ID}TextClearMenuItem" ) )
+                            DoClearText();
+                    }
+                    else
+                    {
+                        // Show the undo clear text option
+                        if ( ImGui.MenuItem( $"Undo Clear##ScratchPad{this.ID}TextUndoClearMenuItem" ) )
+                            UndoClearText();
+                    }
                     #endregion
 
                     // Spell Check
@@ -1188,6 +1182,10 @@ internal sealed class ScratchPadUI : Window
     {
         try
         {
+            // Ensure that no automated spell checks happen.
+            this._do_spell_check = false;
+
+            // Do the spell check.
             this._corrections = SpellChecker.CheckString( this.ScratchString.Unwrap() );
         }
         catch ( Exception e )
@@ -1203,26 +1201,24 @@ internal sealed class ScratchPadUI : Window
     /// the same word in it.
     /// </summary>
     /// <param name="index"><see cref="int"/> index of the correction in correction list.</param>
-    private void OnAddToDictionary(int index)
+    private bool OnAddToDictionary(int index)
     {
         try
         {
             // Get the word
             Word word = this._corrections[index];
-            string newWord = word.GetWordString(this.ScratchString);
-
-            // Add the cleaned word to the dictionary.
-            Lang.AddDictionaryEntry( newWord );
+            string newWord = word.GetWordString(this.ScratchString.Unwrap());
 
             // Remove the cleaned word from the dictionary
             this._corrections.RemoveAt( index );
 
-            // Get rid of any spelling corrections with the same word
-            foreach ( Word w in this._corrections )
-                if ( this.ScratchString.Substring( w.WordIndex, w.WordLength ) == newWord )
-                    this._corrections.Remove( w );
+            // Add the cleaned word to the dictionary.
+            bool result = Lang.AddDictionaryEntry( newWord );
+
+            return result;
         }
         catch ( Exception e ) { DumpError( e ); }
+        return false;
     }
 
     /// <summary>
@@ -1574,10 +1570,18 @@ internal sealed class ScratchPadUI : Window
     }
 
     /// <summary>
+    /// Runs FFXIVify on this pad.
+    /// </summary>
+    internal void FFXIVify()
+    {
+        this._chunks = ChatHelper.FFXIVify( this.Header, this.ScratchString.Unwrap(), this.UseOOC ) ?? new();
+    }
+
+    /// <summary>
     /// Returns the default height of the text input.
     /// </summary>
     /// <returns></returns>
-    private static float GetDefaultInputHeight() => Wordsmith.Configuration.ScratchPadInputLineHeight * ImGui.CalcTextSize( "A" ).Y;
+    private static float GetDefaultInputHeight() => Wordsmith.Configuration.ScratchPadInputLineHeight * WordsmithUI.LineHeight;
 
     /// <summary>
     /// Gets the height of the footer.

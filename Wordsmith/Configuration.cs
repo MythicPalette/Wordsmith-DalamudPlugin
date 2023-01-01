@@ -33,10 +33,19 @@ public sealed class Configuration : IPluginConfiguration
     /// </summary>
     internal bool RecentlySaved { get; set; } = false;
 
+    /// <summary>
+    /// The <see cref="string"/> guid of the last notice the user saw
+    /// </summary>
     public string LastNoticeRead { get; set; } = "";
 
+    /// <summary>
+    /// If <see langword="true"/> disables all future notices
+    /// </summary>
     public bool NeverShowNotices { get; set; } = false;
 
+    /// <summary>
+    /// If <see langword="true"/> enables viewing of advanced settings
+    /// </summary>
     public bool ShowAdvancedSettings { get; set; } = false;
     #endregion
 

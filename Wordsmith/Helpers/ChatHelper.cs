@@ -86,7 +86,7 @@ internal sealed class ChatHelper
 
             // Add the string to the list with the header and, if offset is not at
             // the end of the string yet, add the continuation marker for the player.
-            if ( str.Trim().Length > 0 )
+            if ( str != "\n" && str.Trim().Length > 0 )
                 results.Add( new( str.Trim() )
                 {
                     // The StartIndex is adjusted here because if there was white space
@@ -132,8 +132,9 @@ internal sealed class ChatHelper
         // Start with a character length of 1 and try increasing lengths.
         for ( int length = 1; length + startIndex < text.Length; ++length )
         {
+            string substring = text.Substring( startIndex, length );
             // If the current length would be over the byte limit
-            if ( encoder.GetByteCount( text.Substring( startIndex, length ) ) > byteLimit )
+            if ( encoder.GetByteCount( substring ) > byteLimit )
             {
                 // reduce the length by one as we've officially crossed the maximum byte count.
                 --length;
@@ -142,7 +143,7 @@ internal sealed class ChatHelper
                 if ( lastSpace == -1 )
                     lastSpace = length;
 
-                if ( Wordsmith.Configuration.SplitTextOnSentence && lastSentence > 0 && lastSentence > startIndex )
+                if ( Wordsmith.Configuration.SplitTextOnSentence && lastSentence > 0 )
                     return text.Substring( startIndex, lastSentence );
                 else
                     // get the substring starting from offset. If the character at offset+length is a space,
@@ -152,7 +153,7 @@ internal sealed class ChatHelper
 
             // If the current character is a new line.
             else if ( text[startIndex + length] == '\n' )
-                return text.Substring( startIndex, length );
+                return substring;
 
             // Check if the current character is a space.
             if ( text[startIndex + length] == ' ' )
