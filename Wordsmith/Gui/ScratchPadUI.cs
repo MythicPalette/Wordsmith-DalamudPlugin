@@ -1000,7 +1000,7 @@ internal sealed class ScratchPadUI : Window
 
                             // Get the text from every chunk.
                             List<string> text = new();
-                            for ( int i = 0; i < chunks.Count; )
+                            for ( int i = 0; i < chunks.Count; i++)
                                 text.Add( CreateCompleteTextChunk( chunks[i], selected.UseOOC, i, chunks.Count ) );
 
                             // Set the clipboard text.
@@ -1349,9 +1349,9 @@ internal sealed class ScratchPadUI : Window
             this._chunks = ChatHelper.FFXIVify( this._header, this.ScratchString.Unwrap(), this._useOOC ) ?? new();
             this._nextChunk = 0;
 
+            this._corrections?.Clear();
             if ( Wordsmith.Configuration.AutoSpellCheck )
             {
-                this._corrections?.Clear();
                 this._rest_time = Wordsmith.Configuration.AutoSpellCheckDelay;
                 this._do_spell_check = true;
             }

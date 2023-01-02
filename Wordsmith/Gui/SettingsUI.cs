@@ -806,7 +806,8 @@ internal sealed class SettingsUI : Window
                         for ( int i = 1; i <= 8; ++i )
                             options.Add( $"{(toggle == 1 ? "CW-" : "")}Linkshell{i}" );
 
-                    for (int i = 0; i < this._headerAliases.Count; ++i)
+                    #region Existing Aliases
+                    for ( int i = 0; i < this._headerAliases.Count; ++i)
                     {
                         (int ChatType, string Alias, object? Data) alias = this._headerAliases[i];
                         string chatTypeName;
@@ -873,8 +874,9 @@ internal sealed class SettingsUI : Window
                         if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( Wordsmith.BUTTON_Y.Scale(), Wordsmith.BUTTON_Y.Scale() ) ))
                             this._headerAliases.RemoveAt( i-- );
                     }
+                    #endregion
 
-
+                    #region New Alias
                     // Display the chat type selection.
                     ImGui.TableNextColumn();
                     ImGui.Spacing();
@@ -885,7 +887,6 @@ internal sealed class SettingsUI : Window
                     ImGui.TableNextColumn();
                     ImGui.Spacing();
 
-                    bool add = false;
                     if ( options[this._newAliasSelection] == "Tell" )
                     {
                         // Set the size of the tell target.
@@ -906,15 +907,31 @@ internal sealed class SettingsUI : Window
                     else
                         ImGui.SetNextItemWidth( -1 );
 
-                    add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
+                    bool add = ImGui.InputTextWithHint( $"##NewAliasTextInput", $"Enter alias here without /.", ref this._newAlias, 128, ImGuiInputTextFlags.EnterReturnsTrue );
                     ImGuiExt.SetHoveredTooltip( "Enter the desired alias here without the \"/\" character" );
 
-                    // Put the + button.
+                    // Determine if the add button should be enabled or not
+                    // It should be enable dif there is a type choice made and an alias
+                    // given except in the case of a tell.
+                    bool bEnableAddAlias = false;
+                    if ( this._newAliasSelection > 0 && this._newAlias.Length > 0)
+                    {
+                        if ( this._newAliasSelection == (int)ChatType.Tell && !this._newAliasTarget.isTarget() )
+                            bEnableAddAlias = false;
+                        else
+                            bEnableAddAlias = true;
+                    }
                     ImGui.TableNextColumn();
                     ImGui.Spacing();
-                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( Wordsmith.BUTTON_Y.Scale(), Wordsmith.BUTTON_Y.Scale() ) );
 
-                    if ( add && this._newAliasSelection > 0 )
+                    // Put the + button. Disable until valid data is entered.
+                    if ( !bEnableAddAlias )
+                        ImGui.BeginDisabled();
+                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( Wordsmith.BUTTON_Y.Scale(), Wordsmith.BUTTON_Y.Scale() ) );
+                    if ( !bEnableAddAlias )
+                        ImGui.EndDisabled();
+
+                    if ( add && this._newAliasSelection > 0 && bEnableAddAlias)
                     {
                         // Create a flag to check validity.
                         bool valid = true;
@@ -966,6 +983,7 @@ internal sealed class SettingsUI : Window
                         }
                     }
                     ImGui.Spacing();
+                    #endregion
 
                     ImGui.EndTable();
                 }

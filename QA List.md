@@ -23,13 +23,21 @@ This list can and will certainly change over time to ensure that the quality of 
             ** New Scratch Pad
             ** Does not show current Scratch Pad
             ** Can show hidden pads
+
         * Text
             ** Clear/Undo Clear
             ** Spell Check triggers spell checking
+
         * Spell Check
         * Chunks
             ** Copy options copy correctly
+
         * View History
+            ** Reload Pad State
+            ** Copy Text To Clipboard
+            ** Delete
+            ** Delete All
+            
         * Thesaurus
         * Settings
         * Help
@@ -54,6 +62,8 @@ This list can and will certainly change over time to ensure that the quality of 
 # Settings
     [ ] Aliases
         * Able to create new aliases
+            ** Tell target is case sensitive
+
         * Able to delete old aliases
 
     [ ] All settings affect expected parts of plugin

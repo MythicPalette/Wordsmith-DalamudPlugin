@@ -103,7 +103,7 @@ internal sealed class DebugUI : Window
                 ImGui.EndDisabled();            
         }
     }
-    private void DrawClassData( object? obj, object id, params string[]? excludes )
+    private static void DrawClassData( object? obj, object id, params string[]? excludes )
     {
         if ( obj == null )
             return;

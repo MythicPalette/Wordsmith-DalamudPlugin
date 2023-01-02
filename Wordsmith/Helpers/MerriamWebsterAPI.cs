@@ -210,10 +210,10 @@ internal sealed class MerriamWebsterAPI : IDisposable
             {
                 AddHistoryEntry( result );
                 this.State = ApiState.Idle;
+                return;
             }
-            else
-                this.State = ApiState.Failed;
         }
+        this.State = ApiState.Failed;
     }
 
     /// <summary>
