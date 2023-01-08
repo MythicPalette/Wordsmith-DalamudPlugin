@@ -108,7 +108,7 @@ internal static class Extensions
             {
                 if ( i > 0 )
                     result += ", \"";
-                result += pairs[i] ?? string.Empty;
+                result += pairs![i] ?? string.Empty;
             }
 
             // End the JSON wrapper
