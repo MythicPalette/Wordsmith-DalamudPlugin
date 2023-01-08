@@ -137,11 +137,6 @@ public sealed class Configuration : IPluginConfiguration
     public bool AutomaticallyClearAfterLastCopy { get; set; } = false;
 
     /// <summary>
-    /// Decides behavior when hitting enter in Scratch Pad text entry.
-    /// </summary>
-    public Enums.EnterKeyAction ScratchPadTextEnterBehavior { get; set; } = Enums.EnterKeyAction.NewLine;
-
-    /// <summary>
     /// Maximum length of input on ScratchPads
     /// </summary>
     public int ScratchPadMaximumTextLength { get; set; } = 4096;

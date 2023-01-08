@@ -8,10 +8,7 @@ namespace Wordsmith.Gui;
 
 internal sealed class SettingsUI : Window
 {
-    /// <summary>
-    /// The maximum length of scratch text.
-    /// </summary>
-    private const int MAX_SCRATCH_LENGTH = 16384;
+    private const int MAX_MARKER_FRAME_Y = 10;
 
     /// <summary>
     /// Gets the available size for tab pages while leaving room for the footer.
@@ -19,6 +16,7 @@ internal sealed class SettingsUI : Window
     /// <returns>Returns a float representing the available canvas height for settings tabs.</returns>
     private float GetCanvasSize() => ImGui.GetContentRegionMax().Y - ImGui.GetCursorPosY() - (Wordsmith.BUTTON_Y*ImGuiHelpers.GlobalScale) - (this._style.FramePadding.Y * 2);
 
+    private bool _newMarkerHeaderOpen = false;
 
     // General settings.
     private bool _showAdvancedSettings = Wordsmith.Configuration.ShowAdvancedSettings;
@@ -45,7 +43,6 @@ internal sealed class SettingsUI : Window
     private string _continuationMarker = Wordsmith.Configuration.ContinuationMarker;
     private bool _markLastChunk = Wordsmith.Configuration.ContinuationMarkerOnLast;
     private int _scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
-    private int _scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
     private int _scratchInputLineHeight = Wordsmith.Configuration.ScratchPadInputLineHeight;
 
     // Alias Settings
@@ -74,63 +71,8 @@ internal sealed class SettingsUI : Window
 
     private ImGuiStylePtr _style = ImGui.GetStyle();
 
-    internal string GetDebugString()
-    {
-        string result = "Settings UI:";
-        result += $"Thesaurus Settings\n";
-        result += $"\tSearch History Limit: {this._searchHistoryCountChange}\n";
-        result += $"\tMove Re-searches to top: {this._researchToTopChange}\n\n";
-
-        result += $"Scratch Pad Settings:\n";
-        result += $"\tDelete Closed Pads: {this._deleteClosed}\n";
-        result += $"\tConfirm Delete Pads: {this._confirmDeleteClosed}\n";
-        result += $"\tIgnore Hyphen Terminated: {this._ignoreHypen}\n";
-        result += $"\tShow Text in Chunks: {this._showChunks}\n";
-        result += $"\tBreak on Sentence: {this._onSentence}\n";
-        result += $"\tParse Header: {this._detectHeader}\n";
-        result += $"\tOOC Opening: {this._oocOpening}\n";
-        result += $"\tOOC Closing: {this._oocClosing}\n";
-        result += $"\tSentence Terminators: {this._sentenceTerminators}\n";
-        result += $"\tEncap Terminators: {this._encapTerminators}\n";
-        result += $"\tMark Last Chunk: {this._markLastChunk}\n";
-        result += $"\tAuto Clear Pads: {this._autoClear}\n";
-        result += $"\tMax Text Length: {this._scratchMaxTextLen}\n";
-        result += $"\tCtrl+Enter Action: {this._scratchEnter}\n\n";
-
-        result += $"Alias Settings:\n";
-        result += $"\tNew Alias: {this._newAlias}\n";
-        result += $"\tNew Alias Selection: {this._newAliasSelection}\n";
-        result += $"\tAliases:\n";
-        result += $"\t]\n";
-        foreach ( (int i, string s, object? o) in this._headerAliases )
-            result += $"\t\t{i}: {s}, {(o is null ? "NULL" : o)}\n";
-
-        result += $"\t]\n\n";
-
-        result += $"Spellcheck Settings:\n";
-        result += $"\tFix Double Spaces: {this._fixDoubleSpace}\n";
-        result += $"\tMax Suggestions: {this._maxSuggestions}\n";
-        result += $"\tDictionary Filename: {this._dictionaryFilename}\n\n";
-
-        result += $"Linkshell Settings:\n";
-        result += $"\tLinkshell Names:\n\t[\n";
-        result += $"\t\t{string.Join( "\n\t\t", this._linkshells )}";
-        result += $"\t]\n";
-        result += $"\tCross-World Linkshell Names:\n[\n";
-        result += $"\t\t{string.Join( "\n\t\t", this._cwlinkshells )}";
-        result += $"\t]\n\n";
-
-        result += $"Color Settings:\n";
-        result += $"\tBackup Color: {this._backupColor}";
-        result += $"\tEnable Text Color: {this._enableTextColor}";
-        result += $"\tSpelling Error Color: {this._spellingErrorColor}";
-        result += $"\tHeader Colors:\n\t[\n";
-        foreach ( KeyValuePair<int, Vector4> kv in this._headerColors )
-            result += $"\t\t<{kv.Value.X}, {kv.Value.Y}, {kv.Value.Z}, {kv.Value.W}>";
-        result += $"\t]";
-        return result;
-    }
     internal static string GetWindowName() => $"{Wordsmith.AppName} - Settings";
+
     public SettingsUI() : base( GetWindowName() )
     {
         this._searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
@@ -208,7 +150,7 @@ internal sealed class SettingsUI : Window
                 //ImGui.DragInt("Search History Size", ref _searchHistoryCountChange, 0.1f, 1, 50);
                 ImGui.SetNextItemWidth( ImGui.GetContentRegionMax().X - this._style.WindowPadding.X - ImGui.CalcTextSize("Thesaurus History Size").X );
                 ImGui.DragInt( "Thesaurus History Size", ref this._searchHistoryCountChange, 1, 1, 100 );
-                ImGuiExt.SetHoveredTooltip( "This is the number of searches to keep in memory at one time.\nNote: The more you keep, them more memory used." );
+                ImGuiExt.SetHoveredTooltip( "This is the number of searches to keep in memory at one time. Setting to 0 is unlimited.\nNote: The more you keep, them more memory used." );
 
                 //Re-search to top
                 ImGui.Checkbox( "Move repeated search to top of history.", ref this._researchToTopChange );
@@ -294,12 +236,6 @@ internal sealed class SettingsUI : Window
                                     enterKeyActions[i] = enterKeyActions[i].SpaceByCaps();
 
                                 ImGui.TableNextColumn();
-                                ImGui.SetNextItemWidth( ImGui.GetColumnWidth() - ImGui.CalcTextSize( "Ctrl+Enter Action" ).X );
-                                ImGui.Combo( "Ctrl+Enter Action##SettingsUI", ref this._scratchEnter, enterKeyActions, enterKeyActions.Length );//new string[] { "Do nothing", "Spell Check", "Copy" }, 3);
-                                ImGuiExt.SetHoveredTooltip( "Defines what action to take when the user hits enter in the text entry." );
-
-
-                                ImGui.TableNextColumn();
                                 // Sentence terminators
                                 ImGui.SetNextItemWidth( ImGui.GetColumnWidth() - ImGui.CalcTextSize( "Sentence Terminators" ).X );
                                 ImGui.InputText( "Sentence Terminators##ScratchPadSplitCharsText", ref this._sentenceTerminators, 32 );
@@ -352,19 +288,21 @@ internal sealed class SettingsUI : Window
                     if ( Wordsmith.Configuration.ShowAdvancedSettings )
                     {
                         ImGui.Separator();
-                        float size_y = ImGui.GetContentRegionAvail().Y - Wordsmith.BUTTON_Y.Scale() * 2 - this._style.FramePadding.Y * 4;
-                        if ( size_y > Wordsmith.BUTTON_Y.Scale() * 16 )
-                            size_y = Wordsmith.BUTTON_Y.Scale() * 16;
 
-                        if ( ImGui.BeginChild( "MarkersChildObject", new Vector2( -1, size_y > Wordsmith.BUTTON_Y.Scale() * 2 ? size_y : Wordsmith.BUTTON_Y.Scale() * 2 ), true ) )
+                        float size_y = this._newMarkerHeaderOpen ? (Wordsmith.BUTTON_Y.Scale() + this._style.FramePadding.Y) * 6 : 0;
+
+                        int size_scaler = MAX_MARKER_FRAME_Y - this._chunkMarkers.Count >= 3 ? this._chunkMarkers.Count + 3 : MAX_MARKER_FRAME_Y;
+                        size_y += (Wordsmith.BUTTON_Y.Scale() + this._style.FramePadding.Y) * size_scaler;
+
+                        if ( ImGui.BeginChild( "MarkersChildObject", new Vector2( -1, size_y ), true ) )
                         {
                             if ( ImGui.BeginTable( "MarkersChildTable", 7, ImGuiTableFlags.RowBg ) )
                             {
                                 ImGui.TableSetupColumn( "MarkerMoveColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y.Scale() * 2 );
                                 ImGui.TableSetupColumn( "MarkerTextColumn", ImGuiTableColumnFlags.WidthStretch );
-                                ImGui.TableSetupColumn( "MarkerPositionColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize( "Before Body" ).X + Wordsmith.BUTTON_Y.Scale() );
-                                ImGui.TableSetupColumn( "MarkerChunkCountColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize( "With Chunk# " ).X + Wordsmith.BUTTON_Y.Scale() );
-                                ImGui.TableSetupColumn( "MarkerOOCColumn", ImGuiTableColumnFlags.WidthStretch);
+                                ImGui.TableSetupColumn( "MarkerPositionColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize( "After Continuation" ).X );
+                                ImGui.TableSetupColumn( "MarkerChunkCountColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize( "With Chunk# " ).X );
+                                ImGui.TableSetupColumn( "MarkerOOCColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize( "When OOC is ").X );
                                 ImGui.TableSetupColumn( "MarkerShowOnColumn", ImGuiTableColumnFlags.WidthStretch);
                                 ImGui.TableSetupColumn( "MarkerDeleteColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y.Scale() );
 
@@ -465,6 +403,7 @@ internal sealed class SettingsUI : Window
                             ImGui.Separator();
                             if ( ImGui.CollapsingHeader( "Create New Marker##SettingHeader" ) )
                             {
+                                this._newMarkerHeaderOpen = true;
                                 ImGui.Indent();
                                 string sTemp = this._newMarker.Text;
                                 ImGui.SetNextItemWidth( -1 );
@@ -641,7 +580,12 @@ internal sealed class SettingsUI : Window
                                     if ( this._newMarker.DisplayMode == 0 )
                                     {
                                         this.IsOpen = false;
-                                        WordsmithUI.ShowMessageBox( "Invalid Settings", "Unable to add marker.\nMarkers must have at least one display option selected", MessageBox.ButtonStyle.Ok, ( o ) => { this.IsOpen = true; } );
+                                        WordsmithUI.ShowMessageBox(
+                                            "Invalid Settings",
+                                            "Unable to add marker.\nMarkers must have at least one display option selected",
+                                            MessageBox.ButtonStyle.Ok,
+                                            ( o ) => { this.IsOpen = true; } 
+                                            );
                                     }
                                     else
                                     {
@@ -652,6 +596,8 @@ internal sealed class SettingsUI : Window
                                 }
                                 ImGui.Unindent();
                             }
+                            else
+                                this._newMarkerHeaderOpen = false;
                         }
                         ImGui.EndChild();
                     }
@@ -665,12 +611,15 @@ internal sealed class SettingsUI : Window
                     // Max Text Length
                     float dragWidth = ImGui.GetContentRegionAvail().X - (125 * ImGuiHelpers.GlobalScale);
                     ImGui.SetNextItemWidth( dragWidth );
-                    ImGui.SliderInt( "Max Text Length##ScratchPadSettingsSlider", ref this._scratchMaxTextLen, 512, MAX_SCRATCH_LENGTH );
-                    ImGuiExt.SetHoveredTooltip( $"This is the buffer size for text input.\nThe higher this value is the more\nmemory consumed up to a maximum of\n{MAX_SCRATCH_LENGTH / 1024}KB per Scratch Pad." );
+                    ImGui.DragInt( "Max Text Length##ScratchPadSettingsSlider", ref this._scratchMaxTextLen, 8f, 512, Wordsmith.MAX_SCRATCH_LENGTH );
+                    if ( this._scratchMaxTextLen > Wordsmith.MAX_SCRATCH_LENGTH )
+                        this._scratchMaxTextLen = Wordsmith.MAX_SCRATCH_LENGTH;
+
+                    ImGuiExt.SetHoveredTooltip( $"This is the buffer size for text input.\nThe higher this value is the more\nmemory consumed up to a maximum of\n{Wordsmith.MAX_SCRATCH_LENGTH / 1024}KB per Scratch Pad." );
 
                     ImGui.Separator();
                     ImGui.SetNextItemWidth( dragWidth );
-                    ImGui.SliderInt( "Input Height##ScratchPadInputLineHeight", ref this._scratchInputLineHeight, 3, 25 );
+                    ImGui.DragInt( "Input Height##ScratchPadInputLineHeight", ref this._scratchInputLineHeight, 0.1f, 3, 25 );
                     ImGuiExt.SetHoveredTooltip( "This is the maximum height of the text input (in lines).\nThe text input will grow up to the maximum size as\nlong as there is room for it to do so." );
 
                     ImGui.Unindent();
@@ -1378,7 +1327,6 @@ internal sealed class SettingsUI : Window
         this._continuationMarker = Wordsmith.Configuration.ContinuationMarker;
         this._markLastChunk = Wordsmith.Configuration.ContinuationMarkerOnLast;
         this._scratchMaxTextLen = Wordsmith.Configuration.ScratchPadMaximumTextLength;
-        this._scratchEnter = (int)Wordsmith.Configuration.ScratchPadTextEnterBehavior;
         this._scratchInputLineHeight = Wordsmith.Configuration.ScratchPadInputLineHeight;
 
         // Alias Settings
@@ -1428,7 +1376,6 @@ internal sealed class SettingsUI : Window
         Wordsmith.Configuration.ContinuationMarker = this._continuationMarker;
         Wordsmith.Configuration.ContinuationMarkerOnLast = this._markLastChunk;
         Wordsmith.Configuration.ScratchPadMaximumTextLength = this._scratchMaxTextLen;
-        Wordsmith.Configuration.ScratchPadTextEnterBehavior = (EnterKeyAction)this._scratchEnter;
         Wordsmith.Configuration.ScratchPadInputLineHeight = this._scratchInputLineHeight;
 
         // Alias Settings

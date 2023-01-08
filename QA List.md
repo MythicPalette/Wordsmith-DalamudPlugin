@@ -22,15 +22,18 @@ This list can and will certainly change over time to ensure that the quality of 
         * Scratch Pads
             ** New Scratch Pad
             ** Does not show current Scratch Pad
-            ** Can show hidden pads
+            ** Shows hidden pads
 
         * Text
             ** Clear/Undo Clear
             ** Spell Check triggers spell checking
+            ** Properly copies text to clipboard.
 
         * Spell Check
         * Chunks
             ** Copy options copy correctly
+            ** Refresh on header change
+            ** Refresh on OOC change
 
         * View History
             ** Reload Pad State

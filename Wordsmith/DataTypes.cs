@@ -5,7 +5,7 @@ using Wordsmith.Gui;
 
 namespace Wordsmith;
 
-public enum MarkerPosition { BeforeBody, BeforeOOC, AfterBody, AfterOOC, AfterContinuationMarker }
+public enum MarkerPosition { BeforeOOC, BeforeBody, AfterBody, AfterOOC, AfterContinuationMarker }
 public enum RepeatMode { All, AllExceptFirst, AllExceptLast, OnlyOnFirst, OnlyOnLast, EveryNth }
 
 [Flags]

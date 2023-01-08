@@ -72,6 +72,10 @@ public sealed class Wordsmith : IDalamudPlugin
     /// </summary>
     private const string THES_CMD_STRING = "/thesaurus";
 
+    /// <summary>
+    /// The maximum length of scratch text.
+    /// </summary>
+    internal const int MAX_SCRATCH_LENGTH = 32768 ;
     #endregion
 
     /// <summary>

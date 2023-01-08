@@ -1,6 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
-using Wordsmith.Gui;
+﻿using Wordsmith.Gui;
 
 namespace Wordsmith.Helpers;
 
@@ -105,7 +103,7 @@ internal sealed class Console
 
         // Add the the command to the log.
         if ( !Log.Keys.Contains( pad ) )
-            Log[pad] = new() { s };
+            Log[pad] = new() { $"{m.Groups["option"].Value} = {m.Groups["value"].Value}" };
         else
             Log[pad].Add( s );
 
