@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.8.3</Version>
+    <Version>1.9.0</Version>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
     <LangVersion>latest</LangVersion>
     <TargetFramework>net7.0-windows</TargetFramework>
@@ -27,6 +27,10 @@
     <RepositoryUrl>https://github.com/LadyDefile/Wordsmith</RepositoryUrl>
     <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\.editorconfig" Link=".editorconfig" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DalamudPackager" Version="2.1.10" />

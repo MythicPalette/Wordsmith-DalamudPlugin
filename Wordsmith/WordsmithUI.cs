@@ -217,12 +217,14 @@ internal static class WordsmithUI
             _removal_queue.Add( w );
     }
 
+#if DEBUG
     /// <summary>
     /// Shows the DebugUI Gui. This is for dev and troubleshooting purposes only.
     /// </summary>
-    internal static void ShowDebugUI() { if ( Wordsmith.Configuration.EnableDebug ) AddWindow( new DebugUI() { IsOpen = true } ); }
+    internal static void ShowDebugUI() { AddWindow( new DebugUI() { IsOpen = true } ); }
+#endif
 
-    #region Alerts and Messages
+#region Alerts and Messages
     /// <summary>
     /// Show an error window to the user while also disposing of any other error windows.
     /// </summary>
@@ -284,7 +286,7 @@ internal static class WordsmithUI
         }
         return false;
     }
-    #endregion
+#endregion
 
     /// <summary>
     /// Shows a new ScratchPad.

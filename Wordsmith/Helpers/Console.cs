@@ -1,4 +1,5 @@
-﻿using Wordsmith.Gui;
+﻿#if DEBUG
+using Wordsmith.Gui;
 
 namespace Wordsmith.Helpers;
 
@@ -16,12 +17,6 @@ internal sealed class Console
         // Enable debug
         switch (m.Groups["option"].Value.ToLower())
         {
-            case "dbg":
-            case "debug":
-                Wordsmith.Configuration.EnableDebug = m.Groups["value"].Value == "on";
-                Wordsmith.Configuration.Save();
-                break;
-
             case "config":
                 if ( m.Groups["value"].Value.ToLower() == "reset" )
                     Wordsmith.ResetConfig();
@@ -113,3 +108,4 @@ internal sealed class Console
         return true;
     }
 }
+#endif

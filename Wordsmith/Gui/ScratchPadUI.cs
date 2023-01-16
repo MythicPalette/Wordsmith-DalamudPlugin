@@ -243,6 +243,7 @@ internal sealed class ScratchPadUI : Window
 
         // If the configuration wasn't saved recently then check if spell check is required
         // iSpellcheckMode 2 disables the need to edit the text.
+#if DEBUG
         else if ( this._do_spell_check || Helpers.Console.iSpellcheckMode == 2 )
         {
             this._rest_time -= WordsmithUI.Clock.Delta;
@@ -250,10 +251,11 @@ internal sealed class ScratchPadUI : Window
             if ( this._rest_time < 0 || Helpers.Console.iSpellcheckMode > 0 )
                 DoSpellCheck();
         }
+#endif
     }
-    #endregion
+#endregion
 
-    #region Top
+#region Top
     /// <summary>
     /// Draws the menu bar at the top of the window.
     /// </summary>
@@ -271,7 +273,8 @@ internal sealed class ScratchPadUI : Window
                         WordsmithUI.ShowScratchPad();
 
                     // For each of the existing scratch pads, add a button that opens that specific one.
-                    foreach ( ScratchPadUI pad in WordsmithUI.Windows.Where( x => x is ScratchPadUI && x != this ) )
+                    List<ScratchPadUI> padList = new(WordsmithUI.Windows.Where( x => x is ScratchPadUI && x != this).Cast<ScratchPadUI>());
+                    foreach ( ScratchPadUI pad in padList )
                         if ( ImGui.MenuItem( $"{pad.WindowName}" ) )
                             WordsmithUI.ShowScratchPad( pad.ID );
 
@@ -282,7 +285,7 @@ internal sealed class ScratchPadUI : Window
                 // Text menu
                 if ( ImGui.BeginMenu( $"Text##ScratchPad{this.ID}TextMenu" ) )
                 {
-                    #region Clear
+#region Clear
                     if ( !this._canUndo || this._text_history.Count == 0 )
                     {
                         // Show the clear text option.
@@ -295,13 +298,13 @@ internal sealed class ScratchPadUI : Window
                         if ( ImGui.MenuItem( $"Undo Clear##ScratchPad{this.ID}TextUndoClearMenuItem" ) )
                             UndoClearText();
                     }
-                    #endregion
+#endregion
 
                     // Spell Check
                     if ( ImGui.MenuItem( $"Spell Check##ScratchPad{this.ID}SpellCheckMenuItem", this.ScratchString.Length > 0 ) )
                         DoSpellCheck();
 
-                    #region Chunks
+#region Chunks
                     bool bNoChunks = this._chunks.Count == 0;
                     if ( bNoChunks )
                         ImGui.BeginDisabled();
@@ -319,9 +322,9 @@ internal sealed class ScratchPadUI : Window
 
                     if ( bNoChunks )
                         ImGui.EndDisabled();
-                    #endregion
+#endregion
 
-                    #region History
+#region History
                     // View/Close history
                     if ( !this._view_history )
                     {
@@ -333,7 +336,7 @@ internal sealed class ScratchPadUI : Window
                         if ( ImGui.MenuItem( $"Close History##ScratchPad{this.ID}MenuItem" ) )
                             this._view_history = false;
                     }
-                    #endregion
+#endregion
 
                     // End Text menu
                     ImGui.EndMenu();
@@ -352,9 +355,10 @@ internal sealed class ScratchPadUI : Window
                 if ( ImGui.MenuItem( $"Help##ScratchPad{this.ID}HelpMenu" ) )
                     WordsmithUI.ShowScratchPadHelp();
 
-                if ( Wordsmith.Configuration.EnableDebug )
-                    if ( ImGui.MenuItem( $"Debug UI##ScratchPad{this.ID}DebugMenu" ) )
-                        WordsmithUI.ShowDebugUI();
+#if DEBUG
+                if ( ImGui.MenuItem( $"Debug UI##ScratchPad{this.ID}DebugMenu" ) )
+                    WordsmithUI.ShowDebugUI();
+#endif
             }
             catch ( Exception e ) { DumpError( e ); }
         }
@@ -392,7 +396,7 @@ internal sealed class ScratchPadUI : Window
                 this._header_parse = !this._header_parse;
             ImGuiExt.SetHoveredTooltip( $"{(this._header_parse ? "Locks" : "Unlocks")} header parsing on this pad." );
 
-            #region Header Selection
+#region Header Selection
             // Get the header options.
             string[] options = Enum.GetNames(typeof(ChatType));
             int ctype = (int)this._header.ChatType;
@@ -436,7 +440,7 @@ internal sealed class ScratchPadUI : Window
                 ImGuiExt.SetHoveredTooltip( "Enter a custom target here such as /cwls1." );
                 this._header.Linkshell = l;
             }
-            #endregion
+#endregion
 
             ImGui.TableNextColumn();
 
@@ -449,9 +453,9 @@ internal sealed class ScratchPadUI : Window
             ImGui.EndTable();
         }
     }
-    #endregion
+#endregion
 
-    #region Body
+#region Body
     /// <summary>
     /// Draws the text chunk display.
     /// </summary>
@@ -602,8 +606,9 @@ internal sealed class ScratchPadUI : Window
             else
                 ImGui.Text( text.Replace( "%", "%%" ) );
 
-            if ( Wordsmith.Configuration.EnableDebug )
-                ImGuiExt.SetHoveredTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}, HyphenTerminated: {word.HyphenTerminated}" );
+#if DEBUG
+            ImGuiExt.SetHoveredTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}, HyphenTerminated: {word.HyphenTerminated}" );
+#endif
         }
         DrawMarkers( lMarkers.Where( x => x.Position == MarkerPosition.AfterBody ).ToList() );
 
@@ -766,9 +771,9 @@ internal sealed class ScratchPadUI : Window
                 OnAddToDictionary( 0 );
         }
     }
-    #endregion
+#endregion
 
-    #region Bottom
+#region Bottom
     /// <summary>
     /// Draws the buttons at the foot of the window.
     /// </summary>
@@ -906,9 +911,9 @@ internal sealed class ScratchPadUI : Window
         if ( !Lang.Enabled )
             ImGui.PopStyleVar();        
     }
-    #endregion
+#endregion
 
-    #region History
+#region History
     /// <summary>
     /// Draws the user's message history.
     /// </summary>
@@ -1083,9 +1088,9 @@ internal sealed class ScratchPadUI : Window
         }
         catch ( Exception e ) { DumpError( e ); }
     }
-    #endregion
+#endregion
 
-    #region Button Backend
+#region Button Backend
     /// <summary>
     /// Gets the next chunk of text and copies it to the player's clipboard.
     /// </summary>
@@ -1187,9 +1192,9 @@ internal sealed class ScratchPadUI : Window
             DumpError( e );
         }
     }
-    #endregion
+#endregion
 
-    #region Callbacks
+#region Callbacks
     /// <summary>
     /// Adds the word to the dictionary and removes any subsequent correction requestions with
     /// the same word in it.
@@ -1242,9 +1247,10 @@ internal sealed class ScratchPadUI : Window
             // update the text.
             if ( this._replaceText.Length > 0 && index < this._corrections.Count )
             {
+#if DEBUG
                 if ( Helpers.Console.ProcessCommand( this, _replaceText ) )
                     return;
-
+#endif
                 // Get the first object
                 Word word = this._corrections[index];
 
@@ -1429,9 +1435,9 @@ internal sealed class ScratchPadUI : Window
         // Return 0 to signal no errors.
         return 0;
     }
-    #endregion
+#endregion
 
-    #region General Methods
+#region General Methods
     /// <summary>
     /// Checks to see if the width of the window has changed and rewraps text if it has.
     /// </summary>
@@ -1641,5 +1647,5 @@ internal sealed class ScratchPadUI : Window
         // Exit history.
         this._view_history = false;
     }
-    #endregion
+#endregion
 }
