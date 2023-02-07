@@ -3,9 +3,9 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.7.7</Version>
+    <Version>1.8.0</Version>
     <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
-    <LangVersion>preview</LangVersion>
+    <LangVersion>latest</LangVersion>
     <TargetFramework>net6.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
@@ -30,8 +30,6 @@
 
   <ItemGroup>
     <PackageReference Include="DalamudPackager" Version="2.1.8" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
-    <PackageReference Include="SharpDX.Direct2D1" Version="4.2.0" />
     <Reference Include="FFXIVClientStructs">
       <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
       <Private>false</Private>

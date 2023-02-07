@@ -19,11 +19,6 @@ public static class Lang
         set
         {
             _enabled = value;
-            try
-            {
-                PluginLog.LogVerbose($"Lang {(value ? "enabled" : "disabled")}.");
-            }
-            catch (Exception) { } // Silently fail to log.
         }
     }
 

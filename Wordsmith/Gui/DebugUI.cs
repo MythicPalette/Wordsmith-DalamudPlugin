@@ -5,6 +5,7 @@ using ImGuiNET;
 namespace Wordsmith.Gui;
 internal sealed class DebugUI : Window
 {
+    internal static bool bOverrideSpellcheckLimited = false;
     public DebugUI() : base( $"{Wordsmith.AppName} - Debug" )
     {
         this.SizeConstraints = new()
@@ -20,6 +21,11 @@ internal sealed class DebugUI : Window
 
     public override void Draw()
     {
+        ImGui.Text( $"Delta: {WordsmithUI.Clock.Delta}" );
+        ImGui.Text( $"Longest Delta: {WordsmithUI.Clock.LongestFrame}" );
+        if ( ImGui.Button( $"Reset Delta##DebugButton", new( -1, Wordsmith.BUTTON_Y.Scale() ) ) )
+            WordsmithUI.Clock.ResetLongest();
+
         if ( ImGui.CollapsingHeader( $"Wordsmith Configuration##DebugUIHeDebugUICollapsingHeaderader" ) )
             DrawClassData( Wordsmith.Configuration, $"Configuration" );
 

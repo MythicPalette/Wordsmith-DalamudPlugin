@@ -13,6 +13,7 @@ internal class MessageBox: Window
 
     internal enum DialogResult { None, Ok, Canceled, Closed, Aborted, Yes, No, NeverAgain }
     [Flags]
+
     internal enum ButtonStyle { None=0, Ok=1, Cancel=2, OkCancel=3, Abort=4, OkAbort=5, Yes=8, No=16, YesNo=24, NeverAgain=32 }
 
     internal DialogResult Result = DialogResult.None;
@@ -78,18 +79,22 @@ internal class MessageBox: Window
         if ( (this._buttonStyle & ButtonStyle.No) != 0 )        btn_count++;
         if ( (this._buttonStyle & ButtonStyle.NeverAgain) != 0 )btn_count++;
 
+        // Do not let the code pass this point if there are no buttons.
+        if ( btn_count == 0 )
+            return;
+
         float fAvailableWidth = ImGui.GetWindowWidth();
         fAvailableWidth -= (ImGui.GetStyle().WindowPadding.X * 2);
 
         // For button width, Get the available width and subtract the spacing then divide by button
-        // count.
+        // count. The *2 is for the spacing on each side of the buttons.
         float fButtonSpacing = btn_count * ImGui.GetStyle().ItemSpacing.Y * 2;
 
-        float fButtonWidth = (fAvailableWidth - fButtonSpacing) / 2;
+        float fButtonWidth = (fAvailableWidth - fButtonSpacing) / btn_count;
 
         if ( (this._buttonStyle & ButtonStyle.Ok) == ButtonStyle.Ok )
         {
-            if ( ImGui.Button( $"Ok##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
+            if ( ImGui.Button( $"Ok##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Ok;
                 if ( this._callback != null ) this._callback( this );
@@ -100,7 +105,7 @@ internal class MessageBox: Window
 
         if ( (this._buttonStyle & ButtonStyle.Cancel) == ButtonStyle.Cancel )
         {
-            if ( ImGui.Button( $"Cancel##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
+            if ( ImGui.Button( $"Cancel##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Canceled;
                 if ( this._callback != null )
@@ -113,7 +118,7 @@ internal class MessageBox: Window
 
         if ( (this._buttonStyle & ButtonStyle.Abort) == ButtonStyle.Abort )
         {
-            if ( ImGui.Button( $"Abort##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
+            if ( ImGui.Button( $"Abort##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Aborted;
                 if ( this._callback != null )
@@ -125,7 +130,7 @@ internal class MessageBox: Window
 
         if ( (this._buttonStyle & ButtonStyle.Yes) == ButtonStyle.Yes )
         {
-            if ( ImGui.Button( $"Yes##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
+            if ( ImGui.Button( $"Yes##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Yes;
                 if ( this._callback != null )
@@ -137,7 +142,7 @@ internal class MessageBox: Window
             
         if (( this._buttonStyle & ButtonStyle.No) == ButtonStyle.No )
         { 
-            if ( ImGui.Button( $"No##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
+            if ( ImGui.Button( $"No##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.No;
                 if ( this._callback != null )
@@ -149,7 +154,7 @@ internal class MessageBox: Window
 
         if ( (this._buttonStyle & ButtonStyle.NeverAgain) == ButtonStyle.NeverAgain )
         {
-            if ( ImGui.Button( $"Never Show Again##MessageBoxButton", new( fButtonWidth, Global.BUTTON_Y_SCALED ) ) )
+            if ( ImGui.Button( $"Never Show Again##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.NeverAgain;
                 if ( this._callback != null )

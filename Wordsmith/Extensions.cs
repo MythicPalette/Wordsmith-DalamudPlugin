@@ -1,6 +1,7 @@
-﻿using System.Reflection;
-using System.Text.RegularExpressions;
+﻿using System.Collections;
+using System.Reflection;
 using Dalamud.Interface;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 
 namespace Wordsmith;
@@ -10,10 +11,262 @@ internal static class Extensions
     private const string SPACED_WRAP_MARKER = "\r\r";
     private const string NOSPACE_WRAP_MARKER = "\r";
 
+    internal static float Scale( this int i ) => i * ImGuiHelpers.GlobalScale;
+
+    #region Collections
+    internal static Dictionary<int, Vector4> Clone( this Dictionary<int, Vector4> dict )
+    {
+        Dictionary<int, Vector4> result = new();
+        foreach ( int key in dict.Keys )
+            result[key] = new Vector4( dict[key].X, dict[key].Y, dict[key].Z, dict[key].W );
+        return result;
+    }
+    #endregion
+
+    #region Object
     /// <summary>
-    /// Capitalizes the first letter in a string.
+    /// Gets the properties and fields of the <see cref="object"/> and creates a list
+    /// of them with their type and value
     /// </summary>
-    /// <param name="s">The string to capitalize the first letter of.</param>
+    /// <param name="obj">The <see cref="object"/> to get the properties from.</param>
+    /// <param name="excludes">A list of properties to exclude by name.</param>
+    /// <returns><see cref="IReadOnlyList{T}"/> of <see cref="Tuple{T1, T2, T3}"/> with <see cref="int"/> type, <see cref="string"/> name, <see cref="string"/> value</returns>
+    internal static IReadOnlyList<(int Type, string Name, string Value)> GetProperties( this object obj, params string[]? excludes )
+    {
+        // Get the object's type
+        Type t = obj.GetType();
+
+        // Create the resulting list
+        List<(int Type, string Name, string Value)> result = new();
+
+        // Get properties of the object and skip any that are in the exclude list.
+        foreach ( PropertyInfo p in t.GetProperties().Where( x => !excludes?.Contains( x.Name ) ?? true ) )
+            result.Add( new( 0, p.Name, GetValueString( p.GetValue( obj ) ) ) );
+
+        // Get fields of the object and skip any that are in the exclude list.
+        foreach ( FieldInfo f in t.GetFields( BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public ).Where( x => !excludes?.Contains( x.Name ) ?? true ) )
+            result.Add( new( 1, f.Name, GetValueString( f.GetValue( obj ) ) ) );
+
+        return result;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <returns></returns>
+    private static string GetValueString( object? obj )
+    {
+        // If the object is null return an emtpy string.
+        if ( obj is null )
+            return string.Empty;
+
+        // If the object is a list
+        else if ( obj.IsGenericList() )
+        {
+            // Cast it to an array list
+            ArrayList? arrayList = ReflectListObjectToList( obj );
+
+            // If the cast failed then return an empty string
+            if ( arrayList is null )
+                return string.Empty;
+
+            // Start the resulting string with necessary JSON wrapper
+            string result = "{ \"";
+
+            // Convert each item in the list to string
+            for ( int i = 0; i < arrayList.Count; ++i )
+            {
+                if ( i > 0 )
+                    result += ", \"";
+                result += arrayList[i]?.ToString() ?? string.Empty;
+            }
+
+            // End the JSON wrapper
+            result += "\" }";
+
+            // Return the result
+            return result;
+        }
+
+        // If the object is a dictionary
+        else if ( obj.IsGenericDictionary() )
+        {
+            // Cast the dictionary to a list of string
+            List<string>? pairs = ReflectDictionaryObjectToList( obj );
+
+            // If the cast fails then return an empty string
+            if ( pairs is null )
+                return string.Empty;
+
+
+            // Start the resulting string with necessary JSON wrapper
+            string result = "{ \"";
+
+            // Convert each item in the list to string
+            for ( int i = 0; i < (pairs?.Count ?? 0); ++i )
+            {
+                if ( i > 0 )
+                    result += ", \"";
+                result += pairs[i] ?? string.Empty;
+            }
+
+            // End the JSON wrapper
+            result += "\" }";
+
+            // Return the result
+            return result;
+        }
+
+        // If the object is an array
+        else if ( obj.GetType().IsArray )
+        {
+            // Convert it to an array of objects
+            if ( obj is object[] objects )
+            {
+                // Convert all of the objects to strings inside of an array wrapper
+                string result = "[ \"";
+                for ( int i = 0; i < objects.Length; ++i )
+                {
+                    if ( i > 0 )
+                        result += ", \"";
+                    result += objects[i].ToString();
+                }
+                result += "\" ]";
+                return result;
+            }
+            // In the case that we can't operate on it as an array of object then return
+            // just the string "Enumerable" as a last resort.
+            return "Enumerable";
+        }
+        // Lastly, in this case the object seems to not be a collection type so simply
+        // return it in its string form or an empty string if that turns out to be null.
+        return obj.ToString() ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Detects if an <see cref="object"/> is a generic list.
+    /// </summary>
+    /// <param name="o">the <see cref="object"/> to test.</param>
+    /// <returns><see langword="true"/> if the object is a list; otherwise <see langword="false"/></returns>
+    internal static bool IsGenericList( this object o )
+    {
+        var oType = o.GetType();
+        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( List<> )));
+    }
+
+    /// <summary>
+    /// Detects if an <see cref="object"/> is a generic Dictionary.
+    /// </summary>
+    /// <param name="o">the <see cref="object"/> to test.</param>
+    /// <returns><see langword="true"/> if the object is a Dictionary; otherwise <see langword="false"/></returns>
+    internal static bool IsGenericDictionary( this object o )
+    {
+        var oType = o.GetType();
+        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( Dictionary<,> )));
+    }
+
+    /// <summary>
+    /// Detects if an <see cref="object"/> is an Enumerable.
+    /// </summary>
+    /// <param name="o">the <see cref="object"/> to test.</param>
+    /// <returns><see langword="true"/> if the object is an Enumerable; otherwise <see langword="false"/></returns>
+    internal static bool IsGenericEnumerable( this object o )
+    {
+        var oType = o.GetType();
+        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( IEnumerable<> )));
+    }
+
+    /// <summary>
+    /// Cast a reflected list as <see cref="object"/> to an ArrayList.
+    /// </summary>
+    /// <param name="o">The <see cref="object"/> to cast.</param>
+    /// <returns>An <see cref="ArrayList"/> if the object can be cast; otherwise <see langword="null"/></returns>
+    private static ArrayList? ReflectListObjectToList( object o )
+    {
+        Type t = o.GetType();
+        MethodInfo? mi = t.GetMethod("ToArray");
+        Array? array = (Array?)mi?.Invoke( o, null );
+        return array is null ? null : new( array );
+    }
+
+    /// <summary>
+    /// Cast a reflected Dictionary as <see cref="object"/> to a list of string.
+    /// </summary>
+    /// <param name="o">The <see cref="object"/> to cast.</param>
+    /// <returns>A <see cref="List{T}"/> of <see cref="string"/> if the object can be cast; otherwise <see langword="null"/></returns>
+    private static List<string>? ReflectDictionaryObjectToList( object o )
+    {
+        Type t = o.GetType();
+
+        // Get the keys
+        var keys = t.GetProperty("Keys")?.GetValue(o);
+
+        // Return null if unable to get keys.
+        if ( keys is null )
+            return null;
+
+        // Convert the keys to an array.
+        Type keyCollectionType = keys.GetType();
+        MethodInfo? keyToArray = keyCollectionType.GetMethod("ToArray");
+        Array? keyArray = (Array?)keyToArray?.Invoke( keys, null );
+
+        // Return null if the array is null or empty
+        if ( keyArray is null || keyArray.Length == 0 )
+            return null;
+
+        // Get the values
+        var values = t.GetProperty("Values")?.GetValue(o);
+
+        // Return null if unable to get values.
+        if ( values is null )
+            return null;
+
+        // Convert the values to an array.
+        Type valueCollectionType = values.GetType();
+        MethodInfo? valueToArray = valueCollectionType.GetMethod("ToArray");
+        Array? valueArray = (Array?)valueToArray?.Invoke( values, null );
+
+
+        List<string> result = new();
+        for ( int i = 0; i < keyArray.Length; ++i )
+        {
+            result.Add( $"{keyArray.GetValue( i )}: {valueArray?.GetValue( i )}" );
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Copies all accessible field and property names and values to a dictionary.
+    /// </summary>
+    /// <param name="obj">The <see cref="object"/> to dump</param>
+    /// <returns><see cref="Dictionary{TKey, TValue}"/> of <see cref="string"/>, <see cref="object"/> containing all data.</returns>
+    internal static Dictionary<string, object> Dump( this object obj )
+    {
+        // Get the list of results
+        IReadOnlyList<(int Type, string Name, string Value) > data = obj.GetProperties();
+
+        Dictionary<string, object> result = new Dictionary<string, object>();
+
+        result["Type"] = obj.GetType().ToString();
+
+        // Get Properties
+        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
+            result[Name] = Value;
+
+        // Get Fields
+        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
+            result[Name] = Value;
+
+        return result;
+    }
+    #endregion
+
+    #region String
+    /// <summary>
+    /// Capitalizes the first letter in a <see cref="string"/>.
+    /// </summary>
+    /// <param name="s">The <see cref="string"/> to capitalize the first letter of.</param>
     /// <returns>A <see cref="string"/> with the first letter capitalized.</returns>
     internal static string CaplitalizeFirst( this string s )
     {
@@ -31,9 +284,9 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Spaces a string by capital letters. Useful for adding spaces to PascalCasing
+    /// Spaces a <see cref="string"/> by capital letters. Useful for adding spaces to PascalCasing
     /// </summary>
-    /// <param name="s">String to space.</param>
+    /// <param name="s"><see cref="string"/> to space.</param>
     /// <returns>A properly spaced <see cref="string"/></returns>
     internal static string SpaceByCaps( this string s )
     {
@@ -60,9 +313,9 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Removes all double spaces from a string.
+    /// Removes all double spaces from a <see cref="string"/>.
     /// </summary>
-    /// <param name="s">The string to remove double spaces from.</param>
+    /// <param name="s">The <see cref="string"/> to remove double spaces from.</param>
     /// <returns><see cref="string"/> with double-spacing fixed.</returns>
     internal static string FixSpacing( this string s )
     {
@@ -83,9 +336,9 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Removes all double spaces from a string.
+    /// Removes all double spaces from a <see cref="string"/>.
     /// </summary>
-    /// <param name="s">The string to remove double spaces from.</param>
+    /// <param name="s">The <see cref="string"/> to remove double spaces from.</param>
     /// <param name="cursorPos">A reference to a text cursor to be manipulated.</param>
     /// <returns><see cref="string"/> with double-spacing fixed.</returns>
     internal static string FixSpacing( this string s, ref int cursorPos )
@@ -122,25 +375,58 @@ internal static class Extensions
 
         return s;
     }
-
-    internal static string CleanMarkers( this string s ) => s.Replace( SPACED_WRAP_MARKER, " " ).Replace( NOSPACE_WRAP_MARKER, "" );
+    
+    /// <summary>
+    /// Replaces any placeholders in the text with the given values.
+    /// </summary>
+    /// <param name="s">the <see cref="string"/> to replace text in.</param>
+    /// <param name="c">the value to replace #c with.</param>
+    /// <param name="m">the value to replace #m with.</param>
+    /// <remarks>
+    /// #c expects the current number in the collection (one-based)
+    /// #m expects the total number of items in the collection
+    /// </remarks>
+    /// <returns><see cref="string"/> with the placeholders replaced.</returns>
+    internal static string ReplacePlaceholders(this string s, int c, int m)
+    {
+        return s.Replace( "#C", $"{c}" )
+            .Replace( "#c", $"{c}" )
+            .Replace( "#M", $"{m}" )
+            .Replace( "#m", $"{m}" )
+            .Replace( "#R", $"{m - c}" )
+            .Replace( "#r", $"{m - c}" );
+    }
 
     /// <summary>
-    /// Unwraps the text string using the spaced and no space markers.
+    /// Unwraps the text <see cref="string"/> using the spaced and no space markers.
     /// </summary>
     /// <param name="s">The <see cref="string"/> to be unwrapped.</param>
     /// <returns><see cref="string"/> with all wrap markers replaced.</returns>
-    internal static string Unwrap( this string s ) => s.Trim().Replace( SPACED_WRAP_MARKER + "\n", " " ).Replace( NOSPACE_WRAP_MARKER + "\n", "" );
+    internal static string Unwrap( this string s )
+    {
+        // Replace the markers with the correct information
+        s = s.Trim().Replace( SPACED_WRAP_MARKER + "\n", " " ).Replace( NOSPACE_WRAP_MARKER + "\n", "" );
 
+        // Before sending the string back, replace all stray return carriage characters with nothing
+        // prevent the text from being poisoned by broken markers.
+        return s.Replace( "\r", "" );
+    }
+
+    /// <summary>
+    /// Wraps the <see cref="string"/> based on the given width.
+    /// </summary>
+    /// <param name="text">The <see cref="string"/> to be wrapped.</param>
+    /// <param name="width">The width of the space the <see cref="string"/> is to be wrapped in.</param>
+    /// <returns></returns>
     internal static string Wrap( this string text, float width )
     {
         int _ = 0;
         return text.Wrap( width, ref _ );
     }
     /// <summary>
-    /// Wraps the text string based on the current width of the window.
+    /// Wraps the <see cref="string"/> based on the given width and offsets the given cursor position
     /// </summary>
-    /// <param name="text">The string to be wrapped.</param>
+    /// <param name="text">The <see cref="string"/> to be wrapped.</param>
     /// <returns></returns>
     internal static string Wrap( this string text, float width, ref int cursorPos )
     {
@@ -243,13 +529,12 @@ internal static class Extensions
     }
 
     /// <summary>
-    /// Takes a string and attempts to collect all of the words inside of it.
+    /// Takes a <see cref="string"/> and attempts to collect all of the words inside of it.
     /// </summary>
-    /// <param name="s">The string to parse.</param>
-    /// <returns><see cref="Word"/> array containing all words in the string.</returns>
+    /// <param name="s">The <see cref="string"/> to parse.</param>
+    /// <returns><see cref="Word"/> array containing all words in the <see cref="string"/>.</returns>
     internal static List<Word> Words( this string s )
     {
-        s = s.Unwrap();
         if ( s.Length == 0 )
             return new();
 
@@ -319,6 +604,11 @@ internal static class Extensions
         return words;
     }
 
+    /// <summary>
+    /// Parses a chat target from the <see cref="string"/>.
+    /// </summary>
+    /// <param name="s">the <see cref="string"/> to parse</param>
+    /// <returns>A <see cref="string"/> containing the target if able; otherwise <see langword="null"/></returns>
     internal static string? GetTarget( this string s )
     {
         // Check for a placeholder
@@ -327,216 +617,50 @@ internal static class Extensions
             return match.Groups["target"].Value;
 
         // Check for user name@world
-        match = Regex.Match( s, @"^(?:/tell|/t) ((?<target><\w+>)|(?<target>[\w']+ [\w']+@\w+))$" );
+        match = Regex.Match( s, @"^(?:/tell|/t) (?<target>[A-Z][a-zA-Z']{1,14} [A-Z][a-zA-Z']{1,14}@[A-Z][a-z]{3,13})$" );
         if ( match.Success )
                 return match.Groups["target"].Value;
         
         return null;
     }
 
+    /// <summary>
+    /// Determines if the <see cref="string"/> is a valid target for /Tell
+    /// </summary>
+    /// <param name="s"></param>
+    /// <returns></returns>
     internal static bool isTarget( this string s )
     {
         // No valid target has less than 3 characters.
         if ( s.Length < 3 )
             return false;
 
-        if ( s.StartsWith( "<" ) && s.EndsWith( ">" ) && !s.Contains( ' ' ) )
+        // If the target is a valid User Name@World
+        if ( Regex.Match( s, @"^[A-Z][a-zA-Z']{1,14} [A-Z][a-zA-Z']{1,14}@[A-Z][a-z]{3,13}$" ).Success )
             return true;
 
-        // Split the string up.
-        if ( s.Split( " " ).Length == 2 && s.Split( ' ' )[1].Contains( '@' ) )
+        // If the target is a placeholder.
+        if ( Regex.Match(s, @"^\<\w+\>$").Success )
             return true;
 
+        // Return false when matches fail.
         return false;
     }
+    #endregion
+}
 
+/// <summary>
+/// A class for ImGuiNET wrappers and extensions.
+/// </summary>
+internal static class ImGuiExt
+{
     /// <summary>
-    /// Returns the index of an item in an array.
+    /// Wraps <see cref="ImGui.SetTooltip(string)"/> in an <see langword="if"/> <see cref="ImGui.IsItemHovered()"/> check
     /// </summary>
-    /// <typeparam name="T">Generic Type</typeparam>
-    /// <param name="array">The array to find the object in.</param>
-    /// <param name="obj">The object to locate within the array.</param>
-    /// <returns><see cref="int"/> index of <typeparamref name="T"/> in array or -1 if not found.</returns>
-    internal static int IndexOf<T>( this T[] array, T obj )
+    /// <param name="tooltip"><see cref="string"/> tooltip message.</param>
+    internal static void SetHoveredTooltip( string tooltip )
     {
-        // Iterate and compare each item and return the index if
-        // a match is found.
-        for ( int i = 0; i < array.Length; ++i )
-            if ( array[i]?.Equals( obj ) ?? false )
-                return i;
-
-        // If no match is found, return -1 to signal that it isn't in
-        // the array.
-        return -1;
-    }
-
-    internal static IReadOnlyList<(int Type, string Name, string Value)> GetProperties( this object obj, params string[]? excludes )
-    {
-        Type t = obj.GetType();
-
-        List<(int Type, string Name, string Value)> result = new();
-
-        // Get properties
-        foreach ( PropertyInfo p in t.GetProperties().Where( x => !excludes?.Contains( x.Name ) ?? true ) )
-            result.Add( new( 0, p.Name, GetValueString( p.GetValue( obj ) ) ) );
-
-        // Get fields
-        foreach ( FieldInfo f in t.GetFields( BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public ).Where( x => !excludes?.Contains( x.Name ) ?? true ) )
-            result.Add( new( 1, f.Name, GetValueString( f.GetValue( obj ) ) ) );
-
-        return result;
-    }
-
-    private static string GetValueString( object? obj )
-    {
-        if ( obj is null )
-            return "NULL";
-
-        else if ( obj.IsGenericList() )
-        {
-            System.Collections.ArrayList? arrayList = ReflectListToArrayList( obj );
-            if ( arrayList is null )
-                return "NULL";
-
-            string result = "{ \"";
-            for ( int i = 0; i < arrayList.Count; ++i )
-            {
-                if ( i > 0 )
-                    result += ", \"";
-                result += arrayList[i]?.ToString() ?? "NULL";
-            }
-            result += "\" }";
-            return result;
-        }
-
-        else if ( obj.IsGenericDictionary())
-        {
-            List<string>? pairs = ReflectDictionaryToArrayList( obj );
-            if ( pairs is not null )
-                return "NULL";
-
-            string result = "{ \"";
-            for ( int i = 0; i < (pairs?.Count ?? 0); ++i )
-            {
-                if ( i > 0 )
-                    result += ", \"";
-                result += pairs?[i] ?? "NULL";
-            }
-            result += "\" }";
-            return result;
-        }
-
-        else if ( obj.GetType().IsArray )
-        {
-            if ( obj is object[] objects)
-            {
-                string result = "[ \"";
-                for ( int i = 0; i < objects.Length; ++i )
-                {
-                    if ( i > 0 )
-                        result += ", \"";
-                    result += objects[i].ToString();
-                }
-                result += "\" ]";
-                return result;
-            }
-            return "Enumerable";
-        }
-        return obj.ToString() ?? "NULL";
-    }
-
-    internal static bool IsGenericList( this object o )
-    {
-        var oType = o.GetType();
-        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( List<> )));
-    }
-
-    internal static bool IsGenericDictionary( this object o )
-    {
-        var oType = o.GetType();
-        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( Dictionary<,> )));
-    }
-
-    internal static bool IsGenericEnumerable( this object o )
-    {
-        var oType = o.GetType();
-        return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( IEnumerable<> )));
-    }
-
-    private static System.Collections.ArrayList? ReflectListToArrayList( object o )
-    {
-        Type t = o.GetType();
-        MethodInfo? mi = t.GetMethod("ToArray");
-        Array? array = (Array?)mi?.Invoke( o, null );
-        return array is null ? null : new(array);
-    }
-
-    private static List<string>? ReflectDictionaryToArrayList( object o)
-    {
-        Type t = o.GetType();
-
-        // Get the keys
-        var keys = t.GetProperty("Keys")?.GetValue(o);
-
-        // Return null if unable to get keys.
-        if ( keys is null )
-            return null;
-
-        // Convert the keys to an array.
-        Type keyCollectionType = keys.GetType();
-        MethodInfo? keyToArray = keyCollectionType.GetMethod("ToArray");
-        Array? keyArray = (Array?)keyToArray?.Invoke( keys, null );
-
-        // Return null if the array is null or empty
-        if ( keyArray is null || keyArray.Length == 0)
-            return null;
-
-        // Get the values
-        var values = t.GetProperty("Values")?.GetValue(o);
-
-        // Return null if unable to get values.
-        if ( values is null )
-            return null;
-
-        // Convert the values to an array.
-        Type valueCollectionType = values.GetType();
-        MethodInfo? valueToArray = valueCollectionType.GetMethod("ToArray");
-        Array? valueArray = (Array?)valueToArray?.Invoke( values, null );
-
-
-        List<string> result = new();
-        for ( int i = 0; i < keyArray.Length; ++i )
-        {
-            result.Add( $"{ keyArray.GetValue( i ) }: { valueArray?.GetValue( i ) }" );
-        }
-        return result;
-    }
-
-    internal static Dictionary<string, object> Dump(this object obj)
-    {
-        // Get the list of results
-        IReadOnlyList<(int Type, string Name, string Value) > data = obj.GetProperties();
-
-        Dictionary<string, object> result = new Dictionary<string, object>();
-
-        result["Type"] = obj.GetType().ToString();
-
-        // Get Properties
-        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
-            result[Name] = Value;
-
-        // Get Fields
-        foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 1 ) )
-            result[Name] = Value;
-
-        return result;
-    }
-
-    internal static Dictionary<int, Vector4> Clone(this Dictionary<int, Vector4> dict)
-    {
-        Dictionary<int, Vector4> result = new();
-        foreach ( int key in dict.Keys )
-            result[key] = new Vector4( dict[key].X, dict[key].Y, dict[key].Z, dict[key].W );
-        return result;
+        if ( ImGui.IsItemHovered() )
+            ImGui.SetTooltip( tooltip );
     }
 }

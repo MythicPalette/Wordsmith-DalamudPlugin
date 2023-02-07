@@ -1,10 +1,241 @@
 ﻿using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
 using Wordsmith.Enums;
 using Wordsmith.Gui;
 
 namespace Wordsmith;
+
+public enum MarkerPosition { BeforeBody, BeforeOOC, AfterBody, AfterOOC, AfterContinuationMarker }
+public enum RepeatMode { All, AllExceptFirst, AllExceptLast, OnlyOnFirst, OnlyOnLast, EveryNth }
+
+[Flags]
+public enum DisplayMode { WithMultipleChunks = 1, WithSingleChunk = 2, WithAnyChunkCount = 3, WithOOC = 4, WithoutOOC = 8, AnyOOC = 12, Always = 15}
+
+public sealed class ChunkMarker
+{
+    /// <summary>
+    /// Designates which <see cref="MarkerPosition"/> within the final <see cref="string"/> to place the text.
+    /// </summary>
+    public MarkerPosition Position { get { return this._position; } set { this._position = value; } }
+    private MarkerPosition _position = MarkerPosition.AfterOOC;
+
+    /// <summary>
+    /// The <see cref="RepeatMode"/> designates how to determine which <see cref="string"/> results will
+    /// use this marker.
+    /// </summary>
+    public RepeatMode RepeatMode { get { return this._repeatMode; } set { this._repeatMode = value; } }
+    private RepeatMode _repeatMode = RepeatMode.All;
+
+    /// <summary>
+    /// The <see cref="DisplayMode"/> flags for how and when this marker will be displayed.
+    /// </summary>
+    public DisplayMode DisplayMode { get { return this._displayMode; } set { this._displayMode = value; } }
+    private DisplayMode _displayMode = DisplayMode.WithMultipleChunks | DisplayMode.AnyOOC;
+
+    /// <summary>
+    /// <see cref="uint"/> iterative number specificing how often to repeat.
+    /// </summary>
+    public uint Nth
+    {
+        get { return this._nth; }
+        set
+        {
+            // nth can't be zero.
+            if ( value == 0 )
+                this._nth = 1;
+            else
+                this._nth = value;
+        }
+    }
+    private uint _nth = 1;
+
+    /// <summary>
+    /// <see cref="uint"/> chunk number for the first iteration to appear on (one-based, not zero-based)
+    /// </summary>
+    public uint StartPosition { get { return this._offset; } set { this._offset = value; } }
+    private uint _offset = 1;
+
+    /// <summary>
+    /// <see cref="string"/> seed for the final text. This may contain placeholders to be replaced.
+    /// </summary>
+    public string Text { get { return this._text;} set { this._text = value; } }
+    private string _text = "";
+
+    public ChunkMarker() { }
+    public ChunkMarker( string text, MarkerPosition position, RepeatMode repeat, DisplayMode display) : this( text, position, repeat, display, 1, 0 ) { }
+    public ChunkMarker(string text, MarkerPosition position, RepeatMode repeat, DisplayMode display, uint nth, uint offset)
+    {
+        this.Text = text;
+        this.Position = position;
+        this.DisplayMode = display;
+
+        // If the display mode is single chunk the repeat mode can only be "All"
+        this.RepeatMode = (display & DisplayMode.WithAnyChunkCount) == DisplayMode.WithSingleChunk ? RepeatMode.All : repeat;
+        this.Nth = nth;
+        this.StartPosition = offset;
+    }
+    
+    /// <summary>
+    /// Determines if <see langword="this"/> <see cref="ChunkMarker"/> applies to the <see cref="string"/>
+    /// based on the current <see cref="RepeatMode"/>
+    /// </summary>
+    /// <param name="chunkNumber">The one-based chunk number to test for.</param>
+    /// <param name="chunkCount">The total count of chunks in the set.</param>
+    /// <returns><see cref="true"/> if <see langword="this"/> <see cref="ChunkMarker"/> applies.</returns>
+    internal bool AppliesTo(int chunkNumber, int chunkCount)
+    {
+        // If the repeat mode is All then every other check can be skipped.
+        if ( this.RepeatMode != RepeatMode.All )
+        {
+            if ( this.RepeatMode == RepeatMode.AllExceptFirst && chunkNumber == 0 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.AllExceptLast && chunkNumber == chunkCount - 1 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.OnlyOnFirst && chunkNumber != 0 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.OnlyOnLast && chunkNumber != chunkCount - 1 )
+                return false;
+
+            else if ( this.RepeatMode == RepeatMode.EveryNth )
+            {
+                int startpos = (int)(this.StartPosition - 1);
+
+                if ( chunkNumber < startpos )
+                    return false;
+                if ( (chunkNumber - startpos) % this.Nth != 0 )
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Determines if the <see cref="ChunkMarker"/> should be visible in the string based on
+    /// the current <see cref="DisplayMode"/>
+    /// </summary>
+    /// <param name="UseOOC"><see cref="bool"/> indicating the OOC state of the text.</param>
+    /// <param name="chunkCount"><see cref="int"/> count of all chunks in the collection.</param>
+    /// <returns><see cref="true"/> if the <see cref="ChunkMarker"/> should be visible in the string.</returns>
+    internal bool Visible(bool UseOOC, int chunkCount)
+    {
+        // DisplayMode should never be 0 but in any case that it is
+        // consider this an immeditate false. This is to future-proof
+        // in the case that a disabling mode is added.
+        if ( this.DisplayMode == 0 )
+            return false;
+
+        // If DisplayMode is not Always then we need to begin filtering  
+        if ( this.DisplayMode != DisplayMode.Always )
+        {
+            // If there is an OOC specifier
+            if ( (this.DisplayMode & DisplayMode.AnyOOC) != DisplayMode.AnyOOC)
+            {
+                // If only showing with OOC and OOC is off then skip
+                if ( (this.DisplayMode & DisplayMode.WithOOC) == DisplayMode.WithOOC && !UseOOC )
+                    return false;
+
+                // If not showing with OOC and OOC is on then skip
+                else if ( (this.DisplayMode & DisplayMode.WithoutOOC) == DisplayMode.WithoutOOC && UseOOC )
+                    return false;
+            }
+
+            // If there is a chunk count specifier
+            if ( (this.DisplayMode & DisplayMode.WithAnyChunkCount) != DisplayMode.WithAnyChunkCount )
+            {
+                // If only displaying with single chunk and there is more than one then skip
+                if ( (this.DisplayMode & DisplayMode.WithSingleChunk) == DisplayMode.WithSingleChunk && chunkCount > 1 )
+                    return false;
+
+                // If only displaying with multiple chunks and there is only one then skip
+                if ( (this.DisplayMode & DisplayMode.WithMultipleChunks) == DisplayMode.WithMultipleChunks && chunkCount == 1 )
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    public override string ToString()
+    {
+        // Dump the object then covert the resulting dictionary to a string.
+        Dictionary<string, object> dict = this.Dump();
+        List<string> lResults = new();
+        foreach ( string key in dict.Keys )
+            lResults.Add($"{{\"{key}\", {dict[key]}}}");
+        return $"{{{string.Join(", ", lResults)}}}";
+    }
+
+    /// <summary>
+    /// Sorts a list of markers based on their position in the string.
+    /// </summary>
+    /// <param name="list">The list of markers</param>
+    /// <returns>A <see cref="List{ChunkMarker}"/> of sorted markers.</returns>
+    public static List<ChunkMarker> SortList(List<ChunkMarker> list )
+    {
+        List<ChunkMarker> result = new();
+        foreach ( MarkerPosition mp in Enum.GetValues( typeof( MarkerPosition ) ) )
+            foreach ( ChunkMarker cm in list.Where( x => x.Position == mp ) )
+                result.Add( cm );
+        return result;
+    }
+}
+
+/// <summary>
+/// A class designed for tracking delta.
+/// </summary>
+internal sealed class Clock
+{
+    // A C# DateTime tick is 1/10,000,000 of a second.
+    private const float TICKS_PER_SECOND = 10000000f;
+
+    // The last frame time.
+    private DateTime _lastTick = DateTime.MinValue;
+
+    /// <summary>
+    /// The time it took from the last call to <see cref="Tick()"/>
+    /// to the most recent.
+    /// </summary>
+    internal float Delta { get; private set; }
+
+    /// <summary>
+    /// The longest recorded <see cref="Delta"/> since the
+    /// </summary>
+    internal float LongestFrame { get; private set; }
+    public Clock()
+    {
+        this._lastTick = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Calculates the new <see cref="Delta"/> value from
+    /// the current time and sets <see cref="LongestFrame"/> if
+    /// the current delta is the longest.
+    /// </summary>
+    internal void Tick()
+    {
+        // Get the current tick
+        DateTime tick = DateTime.UtcNow;
+
+        // Compare that the last tick to find the difference and convert it to seconds.
+        float delta = (tick.Ticks - this._lastTick.Ticks) / TICKS_PER_SECOND;
+
+        // If the delta is longer than any others and this is not the first tick then
+        // apply this to the longest frame.
+        if ( delta > this.LongestFrame && _lastTick > DateTime.MinValue)
+            this.LongestFrame = delta;
+
+        // Set Delta and _lastTick
+        this.Delta = delta;
+        this._lastTick = tick;
+    }
+
+    /// <summary>
+    /// Sets <see cref="LongestFrame"/> to the current Delta.
+    /// </summary>
+    internal void ResetLongest() => this.LongestFrame = this.Delta;
+}
 
 internal sealed class HeaderData
 {
@@ -204,12 +435,24 @@ internal sealed class HeaderData
 }
 
 /// <summary>
-/// A class used for comparing multiple pad state elements at once.
+/// A class used for comparing the states of a <see cref="ScratchPadUI"/>
 /// </summary>
-internal class PadState
+internal sealed class PadState
 {
+    /// <summary>
+    /// The <see cref="string"/> of the <see cref="ScratchPadUI"/>
+    /// </summary>
     internal string ScratchText;
+
+    /// <summary>
+    /// A <see cref="bool"/> that indicates whether the <see cref="ScratchPadUI"/>
+    /// is/was using OOC.
+    /// </summary>
     internal bool UseOOC;
+
+    /// <summary>
+    /// The <see cref="HeaderData"/> that is/was used by the <see cref="ScratchPadUI"/>
+    /// </summary>
     internal HeaderData? Header = null;
 
     public PadState()
@@ -256,12 +499,12 @@ internal sealed class TextChunk
     /// <summary>
     /// Chat header to put at the beginning of each chunk when copied.
     /// </summary>
-    internal string Header = "";
+    internal string Header { get; set; } = "";
 
     /// <summary>
     /// Original text.
     /// </summary>
-    internal string Text = "";
+    internal string Text { get; set; } = "";
 
     /// <summary>
     /// Text split into words.
@@ -273,86 +516,191 @@ internal sealed class TextChunk
     /// </summary>
     internal int WordCount => Words.Count();
 
-    /// <summary>
-    /// Assembles the complete chunk with header, OOC tags, continuation markers, and user-defined text.
-    /// </summary>
-    internal string CompleteText => $"{(Header.Length > 0 ? $"{Header} " : "")}{OutOfCharacterStartTag}{Text.CleanMarkers().Replace("\n", "").Trim()}{OutOfCharacterEndTag}{(ContinuationMarker.Length > 0 ? $" {ContinuationMarker}" : "")}";
-
-    /// <summary>
-    /// The continuation marker to append to the end of the Complete Text value.
-    /// </summary>
     internal string ContinuationMarker = "";
 
     /// <summary>
     /// The OOC starting tag to insert into the Complete Text value before Text.
     /// </summary>
-    internal string OutOfCharacterStartTag = "";
+    internal string OutOfCharacterStartTag { get; set; } = "";
 
     /// <summary>
     /// The OOC ending tag to insert into the Complete Text value after Text.
     /// </summary>
-    internal string OutOfCharacterEndTag = "";
+    internal string OutOfCharacterEndTag { get; set; } = "";
 
+    /// <summary>
+    /// The continuation marker to append to the end of the Complete Text value.
+    /// </summary>
     /// <summary>
     /// The index where this chunk starts within the original text.
     /// </summary>
-    internal int StartIndex = -1;
+    internal int StartIndex { get; set; } = -1;
 
     /// <summary>
     /// Default constructor.
     /// </summary>
     /// <param name="text">The text that forms the chunk.</param>
-    internal TextChunk(string text) => Text = text;
-
-    public override string ToString() => $"{{ StartIndex: {StartIndex}, Header: \"{Header}\", Text: \"{Text}\", Words: {Words}, Marker: {ContinuationMarker}, OOC Start: \"{OutOfCharacterStartTag}\", OOC End: \"{OutOfCharacterEndTag}\" }}";
+    internal TextChunk( string text ) { Text = text; }
 }
 
 internal sealed class ThesaurusEntry : WordEntry
 {
-    // Synonyms
+    #region Synonyms
+    /// <summary>
+    /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all synonyms.
+    /// </summary>
+    public IReadOnlyList<string> Synonyms { get => _syn; }
     private List<string> _syn = new List<string>();
-    public string[] Synonyms { get => _syn.ToArray(); }
+
+    /// <summary>
+    /// Adds a synonym to the list.
+    /// </summary>
+    /// <param name="word"><see cref="string"/> synonym.</param>
     public void AddSynonym(string word) => _syn.Add(word);
+
+    /// <summary>
+    /// Adds a collection of synonyms to the list.
+    /// </summary>
+    /// <param name="words">An <see cref="IEnumerable{T}"/> of synonyms</param>
     public void AddSynonyms(IEnumerable<string> words) => _syn.AddRange(words);
+
+    /// <summary>
+    /// Returns all synonyms joined into a comma-separated <see cref="string"/>
+    /// </summary>
     public string SynonymString => string.Join(", ", Synonyms ?? new string[] { });
+    #endregion
 
-    // Related words
+    #region Related
+    /// <summary>
+    /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all related words.
+    /// </summary>
+    public IReadOnlyList<string> Related { get => _rel; }
     private List<string> _rel = new List<string>();
-    public string[] Related { get => _rel.ToArray(); }
+
+    /// <summary>
+    /// Adds a related word to the list.
+    /// </summary>
+    /// <param name="word"><see cref="string"/> synonym.</param>
     public void AddRelatedWord(string word) => _rel.Add(word);
+
+    /// <summary>
+    /// Adds a collection of related words to the list.
+    /// </summary>
+    /// <param name="words">An <see cref="IEnumerable{T}"/> of related words</param>
     public void AddRelatedWords(IEnumerable<string> words) => _rel.AddRange(words);
+
+    /// <summary>
+    /// Returns all related words joined into a comma-separated <see cref="string"/>
+    /// </summary>
     public string RelatedString => string.Join(", ", Related ?? new string[] { });
+    #endregion
 
-    // Near antonyms
+    #region Near Antonyms
+    /// <summary>
+    /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all near antonyms.
+    /// </summary>
+    public IReadOnlyList<string> NearAntonyms { get => _near; }
     private List<string> _near = new List<string>();
-    public string[] NearAntonyms { get => _near.ToArray(); }
-    public void AddNearAntonym(string word) => _near.Add(word);
-    public void AddNearAntonyms(IEnumerable<string> words) => _near.AddRange(words);
-    public string NearAntonymString => string.Join(", ", NearAntonyms ?? new string[] { });
 
-    // Antonyms
+    /// <summary>
+    /// Adds a near antonyms to the list.
+    /// </summary>
+    /// <param name="word"><see cref="string"/> near antonym.</param>
+    public void AddNearAntonym(string word) => _near.Add(word);
+
+    /// <summary>
+    /// Adds a collection of near antonyms to the list.
+    /// </summary>
+    /// <param name="words">An <see cref="IEnumerable{T}"/> of near antonyms</param>
+    public void AddNearAntonyms(IEnumerable<string> words) => _near.AddRange(words);
+
+    /// <summary>
+    /// Returns all near antonyms joined into a comma-separated <see cref="string"/>
+    /// </summary>
+    public string NearAntonymString => string.Join(", ", NearAntonyms ?? new string[] { });
+    #endregion
+
+    #region Antonyms
+    /// <summary>
+    /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all antonyms.
+    /// </summary>
+    public IReadOnlyList<string> Antonyms { get => _ant; }
     private List<string> _ant = new List<string>();
-    public string[] Antonyms { get => _ant.ToArray(); }
+
+    /// <summary>
+    /// Adds a antonym to the list.
+    /// </summary>
+    /// <param name="word"><see cref="string"/> antonym.</param>
     public void AddAntonym(string word) => _ant.Add(word);
+
+    /// <summary>
+    /// Adds a collection of antonyms to the list.
+    /// </summary>
+    /// <param name="words">An <see cref="IEnumerable{T}"/> of antonyms</param>
     public void AddAntonyms(IEnumerable<string> words) => _ant.AddRange(words);
+
+    /// <summary>
+    /// Returns all antonyms joined into a comma-separated <see cref="string"/>
+    /// </summary>
     public string AntonymString => string.Join(", ", Antonyms ?? new string[] { });
+    #endregion
 }
 
 [StructLayout( LayoutKind.Sequential )]
 internal struct Rect
 {
-    public int Left;        // x position of upper-left corner
-    public int Top;         // y position of upper-left corner
-    public int Right;       // x position of lower-right corner
-    public int Bottom;      // y position of lower-right corner
+    /// <summary>
+    /// <see cref="int"/> X coordinate of upper left corner
+    /// </summary>
+    public int Left;
+
+    /// <summary>
+    /// <see cref="int"/> Y Coordinate of upper left corner
+    /// </summary>
+    public int Top;
+
+    /// <summary>
+    /// <see cref="int"/> X Coordinate of bottom right corner
+    /// </summary>
+    public int Right;
+
+    /// <summary>
+    /// <see cref="int"/> Y Coordinate of bottom right corner
+    /// </summary>
+    public int Bottom;
+
+    /// <summary>
+    /// Returns the <see cref="Vector2"/> coordinates of the
+    /// upper left corner of the rectangle
+    /// </summary>
     public Vector2 Position => new Vector2( Left, Top );
+
+    /// <summary>
+    /// Returns the size of the rectangle as a <see cref="Vector2"/>
+    /// where X is width and Y is height.
+    /// </summary>
     public Vector2 Size => new Vector2( Right - Left, Bottom - Top );
 
-    internal bool Contains(Vector2 v) => v.X > Position.X && v.X < Position.X + Size.X && v.Y > Position.Y && v.Y < Position.Y + Size.Y;
+    /// <summary>
+    /// Determines whether or not a <see cref="Vector2"/> coordinate is within
+    /// the bounds of this rect
+    /// </summary>
+    /// <param name="v">The <see cref="Vector2"/> coordinate to test</param>
+    /// <returns><see langword="true"/> if the coordinate is within the bounds.</returns>
+    internal bool Contains( Vector2 v )
+    {
+        if ( v.X < this.Left || v.Y < this.Top || v.X > this.Right || v.Y > this.Bottom )
+            return false;
+        return true;
+    }
 }
 
 internal sealed class WebManifest
 {
+    /// <summary>
+    /// A <see cref="bool"/> value that indicates whether the manifest was
+    /// successfully loaded or not.
+    /// </summary>
     internal bool IsLoaded { get; set; } = false;
     public string[] Dictionaries = Array.Empty<string>();
     public string[] Notice = Array.Empty<string>();
@@ -376,6 +724,10 @@ internal sealed class Word
     /// </summary>
     internal int WordLength = -1;
 
+    /// <summary>
+    /// The index where the word ends. This can be different
+    /// from EndIndex when the text ends with punctuation.
+    /// </summary>
     internal int WordEndIndex => WordIndex + WordLength;
 
     /// <summary>
@@ -395,20 +747,74 @@ internal sealed class Word
     /// </summary>
     internal bool HyphenTerminated = false;
 
+    /// <summary>
+    /// This is a list of suggest word replacements for spelling errors.
+    /// </summary>
     internal List<string>? Suggestions;
 
     public Word() { }
 
+    /// <summary>
+    /// Attempts to collect the text from start index to end index in a given string.
+    /// NOTE: If a different string is used to get the word than was used to create it then
+    /// create it then incorrect data may be returned.
+    /// </summary>
+    /// <param name="s">The <see cref="string"/> to get the text from.</param>
+    /// <returns><see cref="string"/> containing the matching text.</returns>
     internal string GetString(string s) => GetString(s, 0);
+
+    /// <summary>
+    /// Attempts to collect the text from start index to end index in a given string.
+    /// NOTE: If a different string is used to get the word than was used to create it then
+    /// incorrect data may be returned.
+    /// </summary>
+    /// <param name="s">The <see cref="string"/> to get the text from.</param>
+    /// <param name="offset">The <see cref="int"/> offset position to begin looking for the text.</param>
+    /// <returns><see cref="string"/> containing the matching text.</returns>
     internal string GetString(string s, int offset) => StartIndex + offset >= 0 && StartIndex < EndIndex && EndIndex + offset <= s.Length ? s[(StartIndex + offset)..(EndIndex + offset)] : "";
+
+    /// <summary>
+    /// Attempts to collect the word from word index to word end index in a given string.
+    /// NOTE: If a different string is used to get the word than was used to create it then
+    /// incorrect data may be returned.
+    /// </summary>
+    /// <param name="s">The <see cref="string"/> to get the text from.</param>
+    /// <returns><see cref="string"/> containing the matching text.</returns>
     internal string GetWordString(string s) => GetWordString(s, 0);
+
+    /// <summary>
+    /// Attempts to collect the text from word index to word end index in a given string.
+    /// NOTE: If a different string is used to get the word than was used to create it then
+    /// incorrect data may be returned.
+    /// </summary>
+    /// <param name="s">The <see cref="string"/> to get the text from.</param>
+    /// <param name="offset">The <see cref="int"/> offset position to begin looking for the word.</param>
+    /// <returns><see cref="string"/> containing the matching text.</returns>
     internal string GetWordString(string s, int offset) => WordIndex + offset >= 0 && WordLength > 0 && WordIndex + WordLength + offset <= s.Length ? s[(WordIndex + offset)..(WordIndex + WordLength + offset)] : "";
-    internal void Offset(int value)
+
+    /// <summary>
+    /// Offset the starting and ending indices for the whole text and word.
+    /// </summary>
+    /// <param name="offset"><see cref="int"/> value to move the indices.</param>
+    /// <exception cref="IndexOutOfRangeException"/>
+    internal void Offset(int offset)
     {
-        StartIndex += value;
-        WordIndex += value;
-        EndIndex += value;
+        if ( this.StartIndex + offset < 0 )
+            throw new IndexOutOfRangeException();
+        if ( this.WordEndIndex + offset < 0 )
+            throw new IndexOutOfRangeException();
+        if ( this.EndIndex + offset < 0 )
+            throw new IndexOutOfRangeException();
+
+        StartIndex += offset;
+        WordIndex += offset;
+        EndIndex += offset;
     }
+
+    /// <summary>
+    /// Asynchronously gets word suggestions for the given word.
+    /// </summary>
+    /// <param name="wordText">Text to generate suggestions based on.</param>
     internal void GenerateSuggestions(string wordText)
     {
         this.Suggestions = new();
@@ -485,7 +891,7 @@ internal sealed class WordSearchResult
     /// <summary>
     /// An array of all word variant entries.
     /// </summary>
-    public WordEntry[] Entries { get => _entries.ToArray(); }
+    public IReadOnlyList<WordEntry> Entries { get => _entries; }
 
     /// <summary>
     /// Adds a single entry to the collection.

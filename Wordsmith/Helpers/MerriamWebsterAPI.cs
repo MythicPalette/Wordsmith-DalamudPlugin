@@ -16,7 +16,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
 
     private List<WordSearchResult> _history = new List<WordSearchResult>();
 
-    public WordSearchResult[] History => _history.ToArray();
+    public List<WordSearchResult> History => _history;
 
     /// <summary>
     /// Adds a searched item to the history.
@@ -69,7 +69,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
 
     private void SearchWorkerDoWork(object? sender, DoWorkEventArgs e)
     {
-        if ( sender is BackgroundWorker worker )
+        if ( sender is BackgroundWorker )
         {
             if ( e.Argument == null )
                 return;
@@ -80,7 +80,6 @@ internal sealed class MerriamWebsterAPI : IDisposable
             // Check if the search already exists
             if ( !SearchHistory( query ) )
             {
-                //TODO Actually make reqeusts.
                 string request = $"https://dictionaryapi.com/api/v3/references/thesaurus/json/{query.ToLower().Trim()}?key={Wordsmith.Configuration.MwApiKey}";
                 string html = _client.GetStringAsync( request ).Result;
 
@@ -207,7 +206,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
         // Add the result to the history
         if ( e.Result is WordSearchResult result )
         {
-            if ( result.Entries.Length > 0 )
+            if ( result.Entries.Count > 0 )
             {
                 AddHistoryEntry( result );
                 this.State = ApiState.Idle;
@@ -227,7 +226,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
         try
         {
             // If there is no history return false.
-            if (History.Length == 0)
+            if (History.Count == 0)
                 return false;
 
             PluginLog.LogDebug($"Checking History for {query}");

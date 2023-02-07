@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Gui;
 using static Wordsmith.Gui.MessageBox;
@@ -7,6 +8,8 @@ namespace Wordsmith;
 
 internal static class WordsmithUI
 {
+    internal static Clock Clock { get; private set; } = new();
+
     /// <summary>
     /// Returns a readonly list containing all currently registered windows.
     /// </summary>
@@ -126,35 +129,42 @@ internal static class WordsmithUI
     /// </summary>
     internal static void Draw()
     {
+        // Check if the configuration was recently saved before drawing. This is to prevent
+        // resetting the RecentlySaved bool to "false" if the state changed in the middle of
+        // the draw function.
+        bool bResetConfigSaved = Wordsmith.Configuration.RecentlySaved;
         try
         {
+            // Tick the delta timer
+            Clock.Tick();
+
             // Lock the window list.
             _window_lock = true;
-
-            // Check if the configuration was recently saved before drawing. This is to prevent
-            // resetting the RecentlySaved bool to "false" if the state changed in the middle of
-            // the draw function.
-            bool resetConfigSaved = Wordsmith.Configuration.RecentlySaved;
 
             if ( _windowSystem.Windows.Count > 0 )
                 ShowNotice();
 
             // Draw all windows.
-            _windowSystem.Draw();
-
-            // Set RecentlySaved to false after having gone a full draw cycle in the recently saved
-            // state. This ensures all applicable objects have had opportunity to read the new changes.
-            if ( resetConfigSaved )
-                Wordsmith.Configuration.RecentlySaved = false;
+            _windowSystem?.Draw();
         }
-        catch ( InvalidOperationException e )
+        catch ( Exception e )
         {
-            // If the message isn't about collection being modified, log it. Otherwise
-            // Discard the error.
-            if ( !e.Message.StartsWith( "Collection was modified" ) )
-                PluginLog.LogError( $"{e.Message}" );
+            // When a drawing error is encountered, hide all windows to prevent it from continuing to
+            // create the same error in a loop.
+            foreach ( Window w in _windowSystem.Windows )
+            {
+                if ( w is ScratchPadUI pad )
+                    pad.Hide();
+                else
+                    w.IsOpen = false;
+            }
+            // Log the error.
+            PluginLog.LogError( $"There was an exception in the WindowSystem draw process. All windows have been hidden for now.\nError: {e}\nMessage: {e.Message}" );
+
+            // Attempt to add an error window to be displayed. If it fails to draw we'll end up back here anyway.
+            if ( !Contains("WordsmithUI Error") )
+                ShowErrorWindow( new() { { "Exception", new Dictionary<string, object>() { { "Error", e }, { "Message", e.Message } } } } );
         }
-        catch ( Exception e ) { PluginLog.LogError( $"{e} :: {e.Message}" ); }
 
         // After everything, unlock and clean the window list.
         finally
@@ -163,6 +173,11 @@ internal static class WordsmithUI
             _window_lock = false;
             // Clean any queued windows.
             CleanWindowList();
+
+            // Set RecentlySaved to false after having gone a full draw cycle in the recently saved
+            // state. This ensures all applicable objects have had opportunity to read the new changes.
+            if ( bResetConfigSaved )
+                Wordsmith.Configuration.RecentlySaved = false;
         }
     }
 
@@ -179,22 +194,18 @@ internal static class WordsmithUI
         {
             try
             {
-                try
-                {
-                    // If the Window can be disposed do it.
-                    if ( w is IDisposable disposable )
-                        disposable.Dispose();
-                }
-                // If the object is already disposed silently
-                // drop the exception
-                catch ( ObjectDisposedException ) { }
-
-
+                // If the Window can be disposed do it.
+                if ( w is IDisposable disposable )
+                    disposable.Dispose();
+                
                 // Remove from the WindowSystem
                 if ( _windowSystem.Windows.Contains(w) )
                     _windowSystem.RemoveWindow( w );
             }
-            catch ( Exception e ) { PluginLog.LogFatal( $"FATAL ERROR: {e.Message}\n{e}" ); }
+            catch ( Exception e )
+            {
+                PluginLog.LogError( $"ERROR: {e.Message}\n{e}" );
+            }
         }
         // If the windows are locked queue deletion for next cycle
         else
@@ -208,11 +219,19 @@ internal static class WordsmithUI
 
     #region Alerts and Messages
     /// <summary>
-    /// Show an error window to the user.
+    /// Show an error window to the user while also disposing of any other error windows.
     /// </summary>
     /// <param name="d"><see cref="Dictionary{TKey, TValue}"/> data packet for sending to clipboard.</param>
     /// <param name="name"><see cref="string"/> error/Window name.</param>
-    internal static void ShowErrorWindow( Dictionary<string, object> d, string name ) => AddWindow( new ErrorWindow( d ) { IsOpen = true } );
+    internal static void ShowErrorWindow( Dictionary<string, object> d )
+    {
+        // Remove all other error windows
+        foreach ( ErrorWindow ew in _windowSystem.Windows.Where(x => x is ErrorWindow) )
+            RemoveWindow( ew );
+
+        // Add the new error window.
+        AddWindow( new ErrorWindow( d ) { IsOpen = true } );
+    }
 
     /// <summary>
     /// Show a message box to the user.
