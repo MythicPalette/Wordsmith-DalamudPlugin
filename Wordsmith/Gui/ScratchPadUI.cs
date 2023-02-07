@@ -251,6 +251,14 @@ internal sealed class ScratchPadUI : Window
             if ( this._rest_time < 0 || Helpers.Console.iSpellcheckMode > 0 )
                 DoSpellCheck();
         }
+#else
+        else if ( this._do_spell_check )
+        {
+            this._rest_time -= WordsmithUI.Clock.Delta;
+            // iSpellcheckModes 1 and 2 ignore timer
+            if ( this._rest_time < 0 )
+                DoSpellCheck();
+        }
 #endif
     }
 #endregion
