@@ -45,7 +45,7 @@ internal sealed class ScratchPadHelpUI : Window
                 ImGui.TextWrapped("To use OOC or \"Out Of Character\" markers, all you have to do is check the box at the top right of the scratch pad. It will automatically wrap all text you type in double parenthesis (( like this )). It's a simple toggle that you can easily turn on and off at any time.\n\n Note: It even works with text already entered.");
                 ImGui.Separator();
                 ImGui.Spacing();
-                ImGui.TextWrapped("/Tell is a little different than other headers because it requires a target. Your target can be User Name@World or any usual placehold.\n\nSome placeholders you can use:");
+                ImGui.TextWrapped("/Tell is a little different than other headers because it requires a target. Your target can be User Name@World or any usual placehold.\n\nMore information on Placeholders in the Placeholders tab.");
                 ImGui.EndTabItem();
             }
 
@@ -126,8 +126,8 @@ internal sealed class ScratchPadHelpUI : Window
                 ImGui.TextWrapped($"Some useful terms to know about roleplaying.");
                 if (ImGui.BeginTable("##RoleplayTermsHelpTable", 2))
                 {
-                    ImGui.TableSetupColumn("RoleplayHelpTermColumn");
-                    ImGui.TableSetupColumn("RoleplayHelpDescriptionColumn");
+                    ImGui.TableSetupColumn("RoleplayHelpTermColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("God Modding").X);
+                    ImGui.TableSetupColumn("RoleplayHelpDescriptionColumn", ImGuiTableColumnFlags.WidthStretch);
 
                     ImGui.TableNextColumn();
                     ImGui.TableHeader("Term");
@@ -143,7 +143,7 @@ internal sealed class ScratchPadHelpUI : Window
                         "MRP",
                         "ERP",
                         "WU",
-                        "Godmod",
+                        "God Modding",
                         "Metagaming",
                     };
 
@@ -159,7 +159,7 @@ internal sealed class ScratchPadHelpUI : Window
                         "This is when you use information your character doesn't know in character. (i.e. someone tells you \"My character hates cheese\" OOC and then your character mentions knowing that the other character hates cheese even though it was impossible for them to know that."
                     };
 
-                    for (int i = 0; i < terms.Length; ++i)
+                    for (int i = 0; i < terms.Length && i < desc.Length; ++i)
                     {
                         ImGui.TableNextColumn();
                         ImGui.TextWrapped(terms[i]);

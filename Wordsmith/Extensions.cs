@@ -108,7 +108,7 @@ internal static class Extensions
             {
                 if ( i > 0 )
                     result += ", \"";
-                result += pairs[i] ?? string.Empty;
+                result += pairs![i] ?? string.Empty;
             }
 
             // End the JSON wrapper
@@ -572,7 +572,7 @@ internal static class Extensions
                     if ( s[start + len - wordlenoffset - 1] == '-' )
                         hyphen = true;
 
-                    // If the character is not a hyphen, flat it as false.
+                    // If the character is not a hyphen, flag it as false.
                     else
                         hyphen = false;
 

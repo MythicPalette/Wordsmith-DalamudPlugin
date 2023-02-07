@@ -4,6 +4,8 @@ internal sealed class SpellChecker
 {
     private const string NUMERIC_QUERY = @"^[0-9\-\.\,]+(?:st|nd|rd|th)?$";
 
+    private const string ROMAN_NUMERAL_QUERY = @"^[IVXLCDM]+(?:st|nd|rd|th)?$";
+
     private const string DATE_QUERY = @"^\d{0,4}[\\\/\-\.]\d{0,4}[\\\/\-\.]\d{0,4}$";
 
     private const string WORD_QUERY = @"^(?<word>\S+)(?:'(?:ll|m|em|d|s))$|^(?<word>\S+)$";
@@ -42,6 +44,10 @@ internal sealed class SpellChecker
                 if ( Regex.Match( text, NUMERIC_QUERY ).Success )
                     continue;
 
+                // If it's a roman numeral, skip it
+                if ( Regex.Match( text, ROMAN_NUMERAL_QUERY ).Success )
+                    continue;
+
                 // If it is a date, skip it.
                 if ( Regex.Match( text, DATE_QUERY ).Success )
                     continue;
@@ -61,11 +67,11 @@ internal sealed class SpellChecker
                 }
 
                 // If the match data is not a known word
-                else if ( !Lang.isWord(text))
+                else if ( !Lang.isWord( m.Groups["word"].Value ))
                 {
                     // Try to segment the word into subwords and match those. This is for cases where
                     // words are slashed/hyphened (i.e.: heavy/large)
-                    foreach ( Match sub in Regex.Matches( m.Value, @"[^\s\-\\/]+" ) )
+                    foreach ( Match sub in Regex.Matches( m.Groups["word"].Value, @"[^\s\-\\/]+" ) )
                     {
                         if ( !Lang.isWord( sub.Value, true ) )
                         {

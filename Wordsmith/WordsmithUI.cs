@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Dalamud.Interface.Windowing;
+using ImGuiNET;
 using Wordsmith.Gui;
 using static Wordsmith.Gui.MessageBox;
 
@@ -9,6 +10,8 @@ namespace Wordsmith;
 internal static class WordsmithUI
 {
     internal static Clock Clock { get; private set; } = new();
+
+    internal static float LineHeight { get; private set; }
 
     /// <summary>
     /// Returns a readonly list containing all currently registered windows.
@@ -129,6 +132,8 @@ internal static class WordsmithUI
     /// </summary>
     internal static void Draw()
     {
+        LineHeight = ImGui.CalcTextSize( "A" ).Y;
+
         // Check if the configuration was recently saved before drawing. This is to prevent
         // resetting the RecentlySaved bool to "false" if the state changed in the middle of
         // the draw function.
@@ -212,12 +217,14 @@ internal static class WordsmithUI
             _removal_queue.Add( w );
     }
 
+#if DEBUG
     /// <summary>
     /// Shows the DebugUI Gui. This is for dev and troubleshooting purposes only.
     /// </summary>
-    internal static void ShowDebugUI() { if ( Wordsmith.Configuration.EnableDebug ) AddWindow( new DebugUI() { IsOpen = true } ); }
+    internal static void ShowDebugUI() { AddWindow( new DebugUI() { IsOpen = true } ); }
+#endif
 
-    #region Alerts and Messages
+#region Alerts and Messages
     /// <summary>
     /// Show an error window to the user while also disposing of any other error windows.
     /// </summary>
@@ -279,7 +286,7 @@ internal static class WordsmithUI
         }
         return false;
     }
-    #endregion
+#endregion
 
     /// <summary>
     /// Shows a new ScratchPad.

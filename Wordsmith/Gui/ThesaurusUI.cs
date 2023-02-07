@@ -9,7 +9,6 @@ namespace Wordsmith.Gui;
 internal sealed class ThesaurusUI : Window, IDisposable
 {
     private string _query = "";
-    private int _searchMinLength = 3;
 
     private MerriamWebsterAPI SearchHelper;
 
@@ -45,8 +44,17 @@ internal sealed class ThesaurusUI : Window, IDisposable
             if ( ImGui.BeginChild( "SearchResultWindow" ) )
             {
                 DrawSearchErrors();
-                foreach ( WordSearchResult result in SearchHelper.History )
-                    DrawSearchResult( result );
+                for ( int i = 0, c = SearchHelper.History.Count; i < c; )
+                {
+                    WordSearchResult result = SearchHelper.History[i];
+                    if ( DrawSearchResult( result ) )
+                        i++;
+                    else
+                    {
+                        c--;
+                        SearchHelper.DeleteResult(result);
+                    }
+                }
 
                 // End the child element.
                 ImGui.EndChild();
@@ -100,23 +108,25 @@ internal sealed class ThesaurusUI : Window, IDisposable
     /// Draws one search result item to the UI.
     /// </summary>
     /// <param name="result">The search result to be drawn</param>
-    private void DrawSearchResult(WordSearchResult result)
+    /// <returns><see langword="true"/> if visible; otherwise <see langword="false"/>.</returns>
+    private bool DrawSearchResult(WordSearchResult result)
     {
         if (result != null)
         {
+            // Default to visible.
             bool vis = true;
             if (ImGui.CollapsingHeader($"{result.Query.Trim().CaplitalizeFirst()}##{result.ID}", ref vis, ImGuiTreeNodeFlags.DefaultOpen))
             {
                 ImGui.Indent();
                 foreach (ThesaurusEntry entry in result?.Entries ?? Array.Empty<ThesaurusEntry>())
                     DrawEntry(entry);
-
-                if(!vis)
-                    SearchHelper.DeleteResult(result);
-                
                 ImGui.Unindent();
             }
+
+            // return the visibility state.
+            return vis;
         }
+        return false;
     }
 
     /// <summary>
@@ -164,20 +174,6 @@ internal sealed class ThesaurusUI : Window, IDisposable
         }
     }
     #endregion
-
-    /// <summary>
-    /// Moves the search string into the query to search for it.
-    /// </summary>
-    /// <returns>Returns true if the search string passes the minimum length.</returns>
-    private bool ScheduleSearch(string query)
-    {
-        if ( query.Length >= _searchMinLength )
-        { 
-            SearchHelper.SearchThesaurus( query );
-            return true;
-        }
-        return false;
-    }
 
     /// <summary>
     ///  Disposes of the SearchHelper child.

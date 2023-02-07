@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
+﻿#if DEBUG
 using Wordsmith.Gui;
 
 namespace Wordsmith.Helpers;
@@ -7,6 +6,8 @@ namespace Wordsmith.Helpers;
 internal sealed class Console
 {
     internal static int iSpellcheckMode = 0;
+    internal static Dictionary<ScratchPadUI, List<string>> Log = new();
+
     internal static bool ProcessCommand(ScratchPadUI pad, string s)
     {
         Match m = Regex.Match(s, @"(?<=^devx(?:\s*))(?<option>\S+)(?:\s*=\s*)(?<value>\S+)$");
@@ -16,12 +17,6 @@ internal sealed class Console
         // Enable debug
         switch (m.Groups["option"].Value.ToLower())
         {
-            case "dbg":
-            case "debug":
-                Wordsmith.Configuration.EnableDebug = m.Groups["value"].Value == "on";
-                Wordsmith.Configuration.Save();
-                break;
-
             case "config":
                 if ( m.Groups["value"].Value.ToLower() == "reset" )
                     Wordsmith.ResetConfig();
@@ -92,9 +87,25 @@ internal sealed class Console
                     iSpellcheckMode = 1;
                 break;
 
+            case "ex":
+                if ( m.Groups["value"].Value.ToLower() == "ffxivify" )
+                    pad.FFXIVify();
+                break;
+
             default:
                 return false;
         }
+
+        // Add the the command to the log.
+        if ( !Log.Keys.Contains( pad ) )
+            Log[pad] = new() { $"{m.Groups["option"].Value} = {m.Groups["value"].Value}" };
+        else
+            Log[pad].Add( s );
+
+        while ( Log[pad].Count > 15 )
+            Log[pad].RemoveAt( 0 );
+
         return true;
     }
 }
+#endif

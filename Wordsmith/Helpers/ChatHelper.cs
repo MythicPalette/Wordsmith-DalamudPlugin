@@ -57,11 +57,18 @@ internal sealed class ChatHelper
         int index = 0;
         while ( offset < text.Length )
         {
+            // Increase the offset when the starting character is not usable.
+            if ( " \r\n".Contains( text[offset] ) )
+            {
+                offset++;
+                continue;
+            }
+
             // Get all of the default marker width
             int iMarkerWidth = 0;
 
             // If this is the first chunk then include all first chunk markers.
-            if ( offset == 0 )
+            if ( results.Count == 0 )
                 iMarkerWidth += GetMarkerByteLength( dMarkers[RepeatMode.OnlyOnFirst] ) - GetMarkerByteLength( dMarkers[RepeatMode.AllExceptFirst] );
 
             // Get a list of nth markers that apply to this marker and go from there.
@@ -86,7 +93,7 @@ internal sealed class ChatHelper
 
             // Add the string to the list with the header and, if offset is not at
             // the end of the string yet, add the continuation marker for the player.
-            if ( str.Trim().Length > 0 )
+            if ( str != "\n" && str.Trim().Length > 0 )
                 results.Add( new( str.Trim() )
                 {
                     // The StartIndex is adjusted here because if there was white space
@@ -128,12 +135,29 @@ internal sealed class ChatHelper
         // Create a variable to hold the last known space and last known sentence marker
         int lastSpace = -1;
         int lastSentence = -1;
-
+        
         // Start with a character length of 1 and try increasing lengths.
         for ( int length = 1; length + startIndex < text.Length; ++length )
         {
+            string substring = text.Substring( startIndex, length );
+
+            // If the current character is a new line.
+            if ( text[startIndex + length] == '\n' )
+                return substring;
+
+            // Check if the current character is a space.
+            if ( text[startIndex + length] == ' ' )
+            {
+                // If it is, lastSpace is at the current length
+                lastSpace = length;
+
+                // If the previous character is a sentence terminator mark the last sentence.
+                if ( Wordsmith.Configuration.SentenceTerminators.Contains( text[startIndex + length - 1] ) )
+                    lastSentence = length;
+            }
+
             // If the current length would be over the byte limit
-            if ( encoder.GetByteCount( text.Substring( startIndex, length ) ) > byteLimit )
+            if ( encoder.GetByteCount( substring ) > byteLimit )
             {
                 // reduce the length by one as we've officially crossed the maximum byte count.
                 --length;
@@ -142,39 +166,12 @@ internal sealed class ChatHelper
                 if ( lastSpace == -1 )
                     lastSpace = length;
 
-                if ( Wordsmith.Configuration.SplitTextOnSentence && lastSentence > 0 && lastSentence > startIndex )
+                if ( Wordsmith.Configuration.SplitTextOnSentence && lastSentence > 0 )
                     return text.Substring( startIndex, lastSentence );
                 else
                     // get the substring starting from offset. If the character at offset+length is a space,
                     // split there. If not, go back to the last space found.
                     return text.Substring( startIndex, (text[startIndex + length] == ' ' ? length : lastSpace) );
-            }
-
-            // If the current character is a new line.
-            else if ( text[startIndex + length] == '\n' )
-                return text.Substring( startIndex, length );
-
-            // Check if the current character is a space.
-            if ( text[startIndex + length] == ' ' )
-            {
-                // If it is, take note of it.
-                lastSpace = length;
-
-                // If the character is a split point 
-                if ( Wordsmith.Configuration.SentenceTerminators.Contains( text[startIndex + length - 1] ) )
-                    lastSentence = length;
-
-                // If there are more characters previous
-                else if ( startIndex + length - 2 >= 0 )
-                {
-                    // Check if we have a case of encapsulation like (Hello.)
-                    if ( Wordsmith.Configuration.EncapsulationTerminators.Contains( text[startIndex + length - 1] ) )
-                    {
-                        // If the character is a split point 
-                        if ( Wordsmith.Configuration.SentenceTerminators.Contains( text[startIndex + length - 2] ) )
-                            lastSentence = length;
-                    }
-                }
             }
         }
 

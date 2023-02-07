@@ -23,20 +23,24 @@ public sealed class Configuration : IPluginConfiguration
     public string MwApiKey { get; set; } = "690d3d0f-785a-4403-8075-001258483181";
 
     /// <summary>
-    /// A setting that enables the hidden debug UI.
-    /// </summary>
-    public bool EnableDebug { get; set; } = false;
-
-    /// <summary>
     /// This is enabled when a save is performed to notify that changes
     /// have been commited to the configuration file.
     /// </summary>
     internal bool RecentlySaved { get; set; } = false;
 
+    /// <summary>
+    /// The <see cref="string"/> guid of the last notice the user saw
+    /// </summary>
     public string LastNoticeRead { get; set; } = "";
 
+    /// <summary>
+    /// If <see langword="true"/> disables all future notices
+    /// </summary>
     public bool NeverShowNotices { get; set; } = false;
 
+    /// <summary>
+    /// If <see langword="true"/> enables viewing of advanced settings
+    /// </summary>
     public bool ShowAdvancedSettings { get; set; } = false;
     #endregion
 
@@ -126,11 +130,6 @@ public sealed class Configuration : IPluginConfiguration
     /// If true, scratch pads will automatically clear their text after copying the last block.
     /// </summary>
     public bool AutomaticallyClearAfterLastCopy { get; set; } = false;
-
-    /// <summary>
-    /// Decides behavior when hitting enter in Scratch Pad text entry.
-    /// </summary>
-    public Enums.EnterKeyAction ScratchPadTextEnterBehavior { get; set; } = Enums.EnterKeyAction.NewLine;
 
     /// <summary>
     /// Maximum length of input on ScratchPads

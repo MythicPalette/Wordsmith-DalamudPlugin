@@ -1,6 +1,5 @@
 ﻿
 using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Wordsmith.Helpers;
@@ -229,7 +228,7 @@ public static class Lang
 
         // Generate all of the possible suggestions. We start the GenerateAway thread first as it
         // is by far the longest process.
-        Task<List<string>> aways = new(() => { return GenerateAway(word, 2, isCapped, false); });
+        Task<List<string>> aways = new(() => { return GenerateAway(word, 2, isCapped, true); });
         aways.Start();
 
         Task<List<string>> transpose = new(() => { return GenerateTranspose(word, isCapped, true); } );
@@ -241,33 +240,29 @@ public static class Lang
         Task<List<string>> deletes = new(() => { return GenerateDeletes(word, isCapped, true); });
         deletes.Start();
 
-        // TODO implement a word frequency selection.
-
         List<string> results = new();
-        int index = 0;
 
-        // Collect the transpose suggestions
+        void AddResults(Task<List<string>> t)
+        {
+            int index = 0;
+            while ( results.Count() <= Wordsmith.Configuration.MaximumSuggestions && index < t.Result.Count() && isWord( t.Result[index] ) )
+                results.Add( t.Result[index++] );
+        }
+        // Collect the transposes.
         transpose.Wait();
-        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < transpose.Result.Count() && isWord( transpose.Result[index]) )
-            results.Add( transpose.Result[index++] );
+        AddResults( transpose );
 
-        // Collect the splits suggestions.
-        index = 0;
-        splits.Wait();
-        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < splits.Result.Count() && isWord( splits.Result[index] ) )
-            results.Add( splits.Result[index++] );
-
-        // Collect the deleted character suggestions
-        index = 0;
-        deletes.Wait();
-        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < deletes.Result.Count() && isWord( deletes.Result[index] ) )
-            results.Add( deletes.Result[index++] );
-
-        // Collect the aways. Collect this last to allow it the most time to process.
-        index = 0;
+        // Collect the aways.
         aways.Wait();
-        while ( results.Count() < Wordsmith.Configuration.MaximumSuggestions && index < aways.Result.Count() && isWord( aways.Result[index] ) )
-            results.Add( aways.Result[index++] );
+        AddResults( aways );
+
+        // Collect the splits.
+        splits.Wait();
+        AddResults( splits );
+
+        // Collect the deleted characters.
+        deletes.Wait();
+        AddResults( deletes );
 
         return results;
     }
@@ -335,54 +330,26 @@ public static class Lang
     {
         string letters = "abcdefghijklmnopqrstuvwxyz";
         List<string> results = new();
-
-        for (int z = 0; z < 2; ++z)
+        try
         {
-            for (int x = -1; x <= word.Length; ++x)
+            // This will toggle between vowel and consonant generation
+            for ( int z = 0; z < 2; z++ )
             {
-                // Insert letter at the start of the word
-                if (x == -1)
+                for ( int x = 0; x < word.Length; ++x )
                 {
-                    // If z == 0 we skip this iteration.
-                    if (z == 0)
-                        continue;
-
-                    for (int y = 0; y < letters.Length; ++y)
-                    {
-                        string test = $"{letters[y]}{word}";
-                        if (!filter || isWord(test) && !results.Contains(test))
-                            results.Add(test);
-                    }
-                }
-                // Append letter to the end.
-                else if (x == word.Length)
-                {
-                    // If z == 0 we skip this iteration.
-                    if (z == 0)
-                        continue;
-                    for (int y = 0; y < letters.Length; ++y)
-                    {
-                        string test = $"{word}{letters[y]}";
-                        if (!filter || isWord(test) && !results.Contains(test))
-                            results.Add(test);
-                    }
-                }
-                // x will make the code switch between overwritting vowels and consenants.
-                else
-                {
-                    for (int y = 0; y < letters.Length; ++y)
+                    for ( int y = 0; y < letters.Length; ++y )
                     {
                         char[] chars = word.ToCharArray();
 
                         // Start with vowel replacements, these are more common than
                         // consonant mistakes.
-                        if ("aAeEiIoOuUyY".Contains(chars[x]) == (z == 0))
+                        if ( "aAeEiIoOuUyY".Contains( chars[x] ) == (z == 0) )
                         {
                             chars[x] = letters[y];
                             string test = new string(chars);
 
-                            if ((!filter || isWord(test)) && !results.Contains(test))
-                                results.Add(isCapped ? test.CaplitalizeFirst() : test);
+                            if ( (!filter || isWord( test )) && !results.Contains( test ) )
+                                results.Add( isCapped ? test.CaplitalizeFirst() : test );
                         }
 
                         // For optimization break out of the y loop to avoid checking this
@@ -393,13 +360,36 @@ public static class Lang
                     }
                 }
             }
-        }
 
-        if (depth > 1)
+            for ( int y = 0; y < letters.Length; ++y )
+            {
+                // Insert a character before the word
+                string foretest = $"{letters[y]}{word}";
+
+                // If the inserted character makes a word or not filtering then add it if
+                // it is not already in the results.
+                if ( (!filter || isWord( foretest )) && !results.Contains( foretest ) )
+                    results.Add( foretest );
+
+                // Append a character to the word
+                string afttest = $"{word}{letters[y]}";
+
+                // If the appended character makes a word or not filtering then add it if
+                // it is not already in the results.
+                if ( (!filter || isWord( afttest )) && !results.Contains( afttest ) )
+                    results.Add( afttest );
+            }
+
+            if ( depth > 1 )
+            {
+                List<string> parents = new List<string>(results);
+                foreach ( string s in parents )
+                    results.AddRange( GenerateAway( s, depth - 1, isCapped, depth > 2 ) );
+            }
+        }
+        catch ( Exception e )
         {
-            List<string> parents = new List<string>(results);
-            foreach (string s in parents)
-                results.AddRange(GenerateAway(s, depth - 1, isCapped, depth > 2));
+            PluginLog.LogError( e.ToString() );
         }
         return results;
     }

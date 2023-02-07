@@ -19,18 +19,36 @@ internal sealed class MerriamWebsterAPI : IDisposable
     public List<WordSearchResult> History => _history;
 
     /// <summary>
+    /// The client used by Wordsmith Thesaurus to get the web pages for scraping.
+    /// </summary>
+    private HttpClient _client;
+
+    /// <summary>
+    /// Instantiates a new SearchHelper object
+    /// </summary>
+    public MerriamWebsterAPI() { _client = new HttpClient(); }
+
+    /// <summary>
     /// Adds a searched item to the history.
     /// </summary>
     /// <param name="entry">The entry to add to the history.</param>
     private void AddHistoryEntry(WordSearchResult entry)
     {
+        // Don't re-add the same item to history.
+        if ( FindSearchResult( entry.Query ) >= 0 )
+            return;
+
         // Add the latest to the history
-        _history.Insert(0, entry);
+        this._history.Insert(0, entry);
         PluginLog.LogDebug($"Added {entry.Query} to history.");
 
+        // Setting search history length to zero will just make it unlimited.
+        if ( Wordsmith.Configuration.SearchHistoryCount == 0 )
+            return;
+
         // If over allowed amount remove oldest.
-        while (_history.Count >= Wordsmith.Configuration.SearchHistoryCount)
-            _history.RemoveAt(_history.Count - 1);
+        while ( this._history.Count > Wordsmith.Configuration.SearchHistoryCount)
+            this._history.RemoveAt( this._history.Count - 1);
     }
 
     /// <summary>
@@ -42,19 +60,19 @@ internal sealed class MerriamWebsterAPI : IDisposable
         if (entry == null)
             return;
 
-        else if (_history.Contains(entry))
-            _history.Remove(entry);
+        else if ( this._history.Contains(entry))
+            this._history.Remove(entry);
     }
 
-    /// <summary>
-    /// The client used by Wordsmith Thesaurus to get the web pages for scraping.
-    /// </summary>
-    private HttpClient _client;
-
-    /// <summary>
-    /// Instantiates a new SearchHelper object
-    /// </summary>
-    public MerriamWebsterAPI() {  _client = new HttpClient(); }
+    public int FindSearchResult(string query)
+    {
+        for ( int i = 0; i < this._history.Count; i++ )
+        {
+            if ( this._history[i].Query.ToLower() == query.ToLower() )
+                return i;
+        }
+        return -1;
+    }
 
     public void SearchThesaurus( string query )
     {
@@ -76,12 +94,11 @@ internal sealed class MerriamWebsterAPI : IDisposable
 
             // Get the search data
             string query = (string) e.Argument;
-
             // Check if the search already exists
             if ( !SearchHistory( query ) )
             {
                 string request = $"https://dictionaryapi.com/api/v3/references/thesaurus/json/{query.ToLower().Trim()}?key={Wordsmith.Configuration.MwApiKey}";
-                string html = _client.GetStringAsync( request ).Result;
+                string html = this._client.GetStringAsync( request ).Result;
 
                 try
                 {
@@ -197,6 +214,8 @@ internal sealed class MerriamWebsterAPI : IDisposable
                     PluginLog.LogError( ex.Message );
                 }
             }
+            else
+                e.Result = History.FirstOrDefault( w => w.Query.ToLower() == query.ToLower() );
         }
     }
 
@@ -210,10 +229,10 @@ internal sealed class MerriamWebsterAPI : IDisposable
             {
                 AddHistoryEntry( result );
                 this.State = ApiState.Idle;
+                return;
             }
-            else
-                this.State = ApiState.Failed;
         }
+        this.State = ApiState.Failed;
     }
 
     /// <summary>
@@ -226,36 +245,32 @@ internal sealed class MerriamWebsterAPI : IDisposable
         try
         {
             // If there is no history return false.
-            if (History.Count == 0)
+            if ( this.History.Count == 0)
                 return false;
 
             PluginLog.LogDebug($"Checking History for {query}");
 
-            _progress = 0f;
+            this._progress = 0f;
             // If searching the same thing twice, return
-            if (History[0].Query == query)
+            if ( this.History[0].Query.ToLower() == query.ToLower())
                 return true;
 
             // Check if current query is in the history
-            WordSearchResult? result = History.FirstOrDefault(r => r.Query == query);
+            int idx = FindSearchResult(query);
 
             // If a match is found
-            if (result != null)
+            if (idx >= 0 )
             {
                 // If the user doesn't want to move results to the top return
                 if (Wordsmith.Configuration.ResearchToTop)
                 {
-                    // Get the current index of the object.
-                    int idx = _history.IndexOf(result);
+                    // Get the search result
+                    WordSearchResult result = this._history[idx];
 
-                    // If the object is already at index 0 we can skip
-                    // this step.
-                    if ( idx > 0 )
-                    {
-                        // Remove the object
-                        _history.Remove( result );
-                        _history.Insert( 0, result );
-                    }
+                    // Remove the object
+                    this._history.RemoveAt( idx );
+                    this._history.Insert( 0, result );
+                    
                 }
                 return true;
             }
@@ -274,7 +289,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
     {
         try
         {
-            _client?.Dispose();
+            this._client?.Dispose();
         }
         catch ( Exception e )
         {
