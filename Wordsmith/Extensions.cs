@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Reflection;
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 
@@ -11,7 +12,7 @@ internal static class Extensions
     private const string SPACED_WRAP_MARKER = "\r\r";
     private const string NOSPACE_WRAP_MARKER = "\r";
 
-    internal static float Scale( this int i ) => i * ImGuiHelpers.GlobalScale;
+    internal static float Scale( this int i ) => i * Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale;
 
     #region Collections
     internal static Dictionary<int, Vector4> Clone( this Dictionary<int, Vector4> dict )

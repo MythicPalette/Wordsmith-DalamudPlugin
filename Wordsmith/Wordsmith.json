@@ -1,8 +1,8 @@
 {
   "Author": "Lady Defile",
-  "Name": "Wordsmith",
+  "Name": "Wordsmith (Unofficial)",
   "Punchline": "A roleplay thesaurus and scratch pad.",
-  "Description": "Wordsmith is a text editor with roleplayers in mind. It automatically breaks your text up for easy copy/paste, has advanced features, spellcheck, and even a thesaurus.",
+  "Description": "An unofficial fork of Wordsmith for Patch 6.5, the Text Editor built with roleplayers in mind. It automatically breaks your text up for easy copy/paste, has advanced features, spellcheck, and even a thesaurus.",
   "InternalName": "Wordsmith",
   "ApplicableVersion": "any",
   "Tags": [

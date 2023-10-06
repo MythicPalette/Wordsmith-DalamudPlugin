@@ -1,12 +1,12 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
-
+using Dalamud.Interface.Utility;
 namespace Wordsmith.Gui;
 
 internal sealed class ScratchPadHelpUI : Window
 {
-    internal static ImGuiScene.TextureWrap? MerriamWebsterLogo = null;
+    internal static Dalamud.Interface.Internal.IDalamudTextureWrap? MerriamWebsterLogo = null;
 
     internal ScratchPadHelpUI() : base($"{Wordsmith.AppName} - Help")
     {

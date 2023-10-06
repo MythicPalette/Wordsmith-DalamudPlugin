@@ -3,7 +3,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Wordsmith.Helpers;
 using Wordsmith;
-
+using Dalamud.Interface.Utility;
 namespace Wordsmith.Gui;
 
 internal sealed class ThesaurusUI : Window, IDisposable

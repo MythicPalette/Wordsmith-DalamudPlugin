@@ -3,7 +3,7 @@ using Dalamud.Interface.Windowing;
 using ImGuiNET;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
-
+using Dalamud.Interface.Utility;
 namespace Wordsmith.Gui;
 
 internal sealed class ScratchPadUI : Window

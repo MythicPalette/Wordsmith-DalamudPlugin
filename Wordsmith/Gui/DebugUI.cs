@@ -1,6 +1,5 @@
 ﻿
 #if DEBUG
-using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using ImGuiNET;
 namespace Wordsmith.Gui;
@@ -11,8 +10,8 @@ internal sealed class DebugUI : Window
     {
         this.SizeConstraints = new()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(200, 200),
-            MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
+            MinimumSize = Dalamud.Interface.Utility.ImGuiHelpers.ScaledVector2(200, 200),
+            MaximumSize = Dalamud.Interface.Utility.ImGuiHelpers.ScaledVector2(9999, 9999)
         };
 
         this.Flags |= ImGuiWindowFlags.HorizontalScrollbar;

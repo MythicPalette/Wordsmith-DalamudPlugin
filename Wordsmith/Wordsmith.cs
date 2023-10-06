@@ -41,7 +41,7 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 using Wordsmith.Gui;
 using Wordsmith.Helpers;
-
+using Dalamud.Plugin.Services;
 namespace Wordsmith;
 
 public sealed class Wordsmith : IDalamudPlugin
@@ -90,10 +90,10 @@ public sealed class Wordsmith : IDalamudPlugin
     internal static DalamudPluginInterface PluginInterface { get; private set; } = null!;
 
     [PluginService]
-    internal static CommandManager CommandManager { get; private set; } = null!;
+    internal static ICommandManager CommandManager { get; private set; } = null!;
 
     [PluginService]
-    internal static DataManager DataManager { get; private set; } = null!;
+    internal static IDataManager DataManager { get; private set; } = null!;
     #endregion
 
     /// <summary>
