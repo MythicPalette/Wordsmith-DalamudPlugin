@@ -1,13 +1,13 @@
 ﻿
 #if DEBUG
-using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility;
 using ImGuiNET;
 namespace Wordsmith.Gui;
 internal sealed class DebugUI : Window
 {
     internal static bool bOverrideSpellcheckLimited = false;
-    public DebugUI() : base( $"{Wordsmith.AppName} - Debug" )
+    public DebugUI() : base( $"{Wordsmith.APPNAME} - Debug" )
     {
         this.SizeConstraints = new()
         {
@@ -17,7 +17,7 @@ internal sealed class DebugUI : Window
 
         this.Flags |= ImGuiWindowFlags.HorizontalScrollbar;
 
-        PluginLog.LogDebug( $"DebugUI created." );
+        Wordsmith.PluginLog.Debug( $"DebugUI created." );
     }
     private static string _consoleInput = "";
     private static int _consolePadNumber = 0;

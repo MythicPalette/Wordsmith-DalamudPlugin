@@ -133,14 +133,14 @@ public static class Lang
         catch (HttpRequestException e)
         {
             if (e.StatusCode != System.Net.HttpStatusCode.OK)
-                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}");
+                Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}");
             else
-                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+                Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
         catch (Exception e)
         {
-            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+            Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
     }
@@ -177,7 +177,7 @@ public static class Lang
         }
         catch (Exception e)
         {
-            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+            Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
         }
         return false;
     }
@@ -245,7 +245,7 @@ public static class Lang
         void AddResults(Task<List<string>> t)
         {
             int index = 0;
-            while ( results.Count() <= Wordsmith.Configuration.MaximumSuggestions && index < t.Result.Count() && isWord( t.Result[index] ) )
+            while ( results.Count <= Wordsmith.Configuration.MaximumSuggestions && index < t.Result.Count && isWord( t.Result[index] ) )
                 results.Add( t.Result[index++] );
         }
         // Collect the transposes.
@@ -346,7 +346,7 @@ public static class Lang
                         if ( "aAeEiIoOuUyY".Contains( chars[x] ) == (z == 0) )
                         {
                             chars[x] = letters[y];
-                            string test = new string(chars);
+                            string test = new(chars);
 
                             if ( (!filter || isWord( test )) && !results.Contains( test ) )
                                 results.Add( isCapped ? test.CaplitalizeFirst() : test );
@@ -382,14 +382,14 @@ public static class Lang
 
             if ( depth > 1 )
             {
-                List<string> parents = new List<string>(results);
+                List<string> parents = new(results);
                 foreach ( string s in parents )
                     results.AddRange( GenerateAway( s, depth - 1, isCapped, depth > 2 ) );
             }
         }
         catch ( Exception e )
         {
-            PluginLog.LogError( e.ToString() );
+            Wordsmith.PluginLog.Error( e.ToString() );
         }
         return results;
     }

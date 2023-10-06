@@ -15,7 +15,7 @@ internal sealed class Git
     {
         // Download the manifest to a string.
         WebManifest result = new();
-        using ( HttpClient client = new HttpClient() )
+        using ( HttpClient client = new() )
         {
             int tries = 3;
             // Force refresh
@@ -43,7 +43,7 @@ internal sealed class Git
                 {
                     // Disable the IfModifiedSince header to avoid a 304 response error.
                     client.DefaultRequestHeaders.IfModifiedSince = null;
-                    PluginLog.LogError( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}\nRaw: {raw}" );
+                    Wordsmith.PluginLog.Error( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}\nRaw: {raw}" );
                 }
             }
         }
@@ -54,7 +54,7 @@ internal sealed class Git
     {
         // Load the dictionary file as a string
         string result = "";
-        using ( HttpClient client = new HttpClient() )
+        using ( HttpClient client = new() )
         {
             // Force refresh
             client.DefaultRequestHeaders.IfModifiedSince = DateTimeOffset.Now;
@@ -71,7 +71,7 @@ internal sealed class Git
                 {
                     // Disable refresh request.
                     client.DefaultRequestHeaders.IfModifiedSince = null;
-                    PluginLog.LogError( $"Error loading dictionary from web: {e.Message}" );
+                    Wordsmith.PluginLog.Error( $"Error loading dictionary from web: {e.Message}" );
                 }
             }            
         }

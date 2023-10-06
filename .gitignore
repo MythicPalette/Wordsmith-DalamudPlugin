@@ -4,3 +4,4 @@ bin/
 patchnotes/
 *.user
 checklist.txt
+build/

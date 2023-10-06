@@ -1,5 +1,6 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility;
 using ImGuiNET;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
@@ -71,7 +72,7 @@ internal sealed class SettingsUI : Window
 
     private ImGuiStylePtr _style = ImGui.GetStyle();
 
-    internal static string GetWindowName() => $"{Wordsmith.AppName} - Settings";
+    internal static string GetWindowName() => $"{Wordsmith.APPNAME} - Settings";
 
     public SettingsUI() : base( GetWindowName() )
     {
@@ -95,7 +96,7 @@ internal sealed class SettingsUI : Window
         if (!this.IsOpen)
             WordsmithUI.RemoveWindow(this);
         if ( Wordsmith.Configuration.RecentlySaved )
-            this.ResetValues();
+            ResetValues();
     }
 
     public override void Draw()
@@ -707,7 +708,6 @@ internal sealed class SettingsUI : Window
                                         OnException( e );
                                     }
                                 }
-
                             }
                             ImGui.EndTable();
                         }
@@ -976,7 +976,7 @@ internal sealed class SettingsUI : Window
 
                 // Dictionaries
 
-                List<string> dictionaries = new List<string>();
+                List<string> dictionaries = new();
 
                 // Add the dictionaries from the web manifest.
                 foreach ( string s in Wordsmith.WebManifest.Dictionaries )
@@ -1044,7 +1044,7 @@ internal sealed class SettingsUI : Window
                     ImGui.TableNextColumn();
                     if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, Wordsmith.BUTTON_Y.Scale() ) ))
                         WordsmithUI.ShowMessageBox(
-                            $"{Wordsmith.AppName} - Reset Dictionary",
+                            $"{Wordsmith.APPNAME} - Reset Dictionary",
                             "This will delete all entries that you added to the\ndictionary.This cannot be undone.\nProceed?",
                             MessageBox.ButtonStyle.OkCancel,
                             ( mb ) => {
@@ -1259,7 +1259,7 @@ internal sealed class SettingsUI : Window
             // Reset settings to default.
             if (ImGui.Button("Defaults", ImGuiHelpers.ScaledVector2(-1, Wordsmith.BUTTON_Y.Scale() ) ))
             {
-                WordsmithUI.ShowMessageBox( $"{Wordsmith.AppName} - Restore Default Settings",
+                WordsmithUI.ShowMessageBox( $"{Wordsmith.APPNAME} - Restore Default Settings",
                     "Restoring defaults resets all settings to their original values\n(not including words added to your dictionary).\nProceed?",
                     buttonStyle: MessageBox.ButtonStyle.OkCancel,
                     ( mb ) =>
@@ -1289,7 +1289,7 @@ internal sealed class SettingsUI : Window
 
     public void OnException(Exception e)
     {
-        PluginLog.LogError( e.ToString() );
+        Wordsmith.PluginLog.Error( e.ToString() );
         this.IsOpen = false;
         Dictionary<string, object> dump = this.Dump();
         dump["Exception"] = new Dictionary<string, object>()

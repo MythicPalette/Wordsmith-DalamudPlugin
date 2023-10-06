@@ -5,6 +5,8 @@ After having several releases with blatant issues that were quickly noticed, ide
 
 This list can and will certainly change over time to ensure that the quality of Wordsmith remains to its highest standard when and where possible.
 
+To ensure quality for the end user, all testing should be done a RELEASE build of Wordsmith NOT a DEBUG build. This is to ensure that the version shipped to users works properly and not just the testing version.
+
 # General
     [ ] Performance test
 

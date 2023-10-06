@@ -97,7 +97,7 @@ internal sealed class Console
         }
 
         // Add the the command to the log.
-        if ( !Log.Keys.Contains( pad ) )
+        if ( !Log.ContainsKey( pad ) )
             Log[pad] = new() { $"{m.Groups["option"].Value} = {m.Groups["value"].Value}" };
         else
             Log[pad].Add( s );

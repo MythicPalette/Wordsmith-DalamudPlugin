@@ -1,6 +1,6 @@
 ﻿using ImGuiNET;
-using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility;
 using Wordsmith.Helpers;
 using Wordsmith;
 
@@ -10,24 +10,24 @@ internal sealed class ThesaurusUI : Window, IDisposable
 {
     private string _query = "";
 
-    private MerriamWebsterAPI SearchHelper;
+    private MerriamWebsterAPI _searchHelper;
 
-    internal static string GetWindowName() => $"{Wordsmith.AppName} - Thesaurus";
+    internal static string GetWindowName() => $"{Wordsmith.APPNAME} - Thesaurus";
     /// <summary>
     /// Instantiates a new ThesaurusUI object.
     /// </summary>
     public ThesaurusUI() : base(GetWindowName())
     {
-        SearchHelper = new MerriamWebsterAPI();
+        this._searchHelper = new MerriamWebsterAPI();
 
-        SizeConstraints = new WindowSizeConstraints()
+        this.SizeConstraints = new WindowSizeConstraints()
         {
             MinimumSize = ImGuiHelpers.ScaledVector2(375, 330),
             MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
         };
 
-        Flags |= ImGuiWindowFlags.NoScrollbar;
-        Flags |= ImGuiWindowFlags.NoScrollWithMouse;
+        this.Flags |= ImGuiWindowFlags.NoScrollbar;
+        this.Flags |= ImGuiWindowFlags.NoScrollWithMouse;
         //Flags |= ImGuiWindowFlags.MenuBar;
     }
 
@@ -44,15 +44,15 @@ internal sealed class ThesaurusUI : Window, IDisposable
             if ( ImGui.BeginChild( "SearchResultWindow" ) )
             {
                 DrawSearchErrors();
-                for ( int i = 0, c = SearchHelper.History.Count; i < c; )
+                for ( int i = 0, c = this._searchHelper.History.Count; i < c; )
                 {
-                    WordSearchResult result = SearchHelper.History[i];
+                    WordSearchResult result = this._searchHelper.History[i];
                     if ( DrawSearchResult( result ) )
                         i++;
                     else
                     {
                         c--;
-                        SearchHelper.DeleteResult(result);
+                        this._searchHelper.DeleteResult(result);
                     }
                 }
 
@@ -73,14 +73,14 @@ internal sealed class ThesaurusUI : Window, IDisposable
 
         if ( ImGui.InputTextWithHint( "###ThesaurusSearchBar", "Search...", ref _query, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
         {
-            SearchHelper.SearchThesaurus( this._query );
+            this._searchHelper.SearchThesaurus( this._query );
             this._query = "";
         }
 
         ImGui.SameLine();
         if ( ImGui.Button( "Search##ThesaurusSearchButton", new( btnWidth, 0 ) ) )
         {
-            SearchHelper.SearchThesaurus( this._query );
+            this._searchHelper.SearchThesaurus( this._query );
             this._query = "";
         }
 
@@ -92,12 +92,12 @@ internal sealed class ThesaurusUI : Window, IDisposable
     /// </summary>
     private void DrawSearchErrors()
     {
-        if ( SearchHelper.State == ApiState.Failed )
+        if ( this._searchHelper.State == ApiState.Failed )
         {
             ImGui.TextColored( new Vector4( 255, 0, 0, 255 ), $"Search failed. Try again or use a different word." );
             ImGui.Separator();
         }
-        else if ( SearchHelper.State == ApiState.Searching )
+        else if ( this._searchHelper.State == ApiState.Searching )
         {
             ImGui.Text( "Searching..." );
             ImGui.Separator();
@@ -178,5 +178,5 @@ internal sealed class ThesaurusUI : Window, IDisposable
     /// <summary>
     ///  Disposes of the SearchHelper child.
     /// </summary>
-    public void Dispose() => this.SearchHelper.Dispose();
+    public void Dispose() => this._searchHelper.Dispose();
 }

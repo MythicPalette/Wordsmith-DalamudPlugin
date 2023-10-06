@@ -58,8 +58,7 @@ internal class MessageBox: Window
             return;
 
         // Get the game window rectangle
-        Rect rGameWindow;
-        GetWindowRect( new( null, hWnd ), out rGameWindow );
+        GetWindowRect( new( null, hWnd ), out Rect rGameWindow );
 
         // Get the size of the current window.
         Vector2 vThisSize = ImGui.GetWindowSize();
@@ -97,7 +96,7 @@ internal class MessageBox: Window
             if ( ImGui.Button( $"Ok##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Ok;
-                if ( this._callback != null ) this._callback( this );
+                this._callback?.Invoke( this );
                 WordsmithUI.RemoveWindow( this );
             }
             ImGui.SameLine();
@@ -108,8 +107,7 @@ internal class MessageBox: Window
             if ( ImGui.Button( $"Cancel##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Canceled;
-                if ( this._callback != null )
-                    this._callback( this );
+                this._callback?.Invoke( this );
                 WordsmithUI.RemoveWindow( this );
             }
 
@@ -121,8 +119,7 @@ internal class MessageBox: Window
             if ( ImGui.Button( $"Abort##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Aborted;
-                if ( this._callback != null )
-                    this._callback( this );
+                this._callback?.Invoke( this );
                 WordsmithUI.RemoveWindow( this );
             }
             ImGui.SameLine();
@@ -133,8 +130,7 @@ internal class MessageBox: Window
             if ( ImGui.Button( $"Yes##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.Yes;
-                if ( this._callback != null )
-                    this._callback( this );
+                this._callback?.Invoke( this );
                 WordsmithUI.RemoveWindow( this );
             }
             ImGui.SameLine();
@@ -145,8 +141,7 @@ internal class MessageBox: Window
             if ( ImGui.Button( $"No##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.No;
-                if ( this._callback != null )
-                    this._callback( this );
+                this._callback?.Invoke( this );
                 WordsmithUI.RemoveWindow( this );
             }
             ImGui.SameLine();
@@ -157,8 +152,7 @@ internal class MessageBox: Window
             if ( ImGui.Button( $"Never Show Again##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
             {
                 this.Result = DialogResult.NeverAgain;
-                if ( this._callback != null )
-                    this._callback( this );
+                this._callback?.Invoke( this );
                 WordsmithUI.RemoveWindow( this );
             }
             ImGui.SameLine();
@@ -171,8 +165,7 @@ internal class MessageBox: Window
     {
         base.OnClose();
         this.Result = DialogResult.Aborted;
-        if ( this._callback != null )
-            this._callback( this );
+        this._callback?.Invoke( this );
         WordsmithUI.RemoveWindow( this );
     }
 }

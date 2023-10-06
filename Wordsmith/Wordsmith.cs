@@ -12,7 +12,6 @@
 //          initialization of the plugin and text commands.
 // *    WordsmithUI.cs manages the creation, showing/hiding, and disposal of GUI windows.
 // *    Extensions.cs has several extension methods.
-// *    Global.cs has plugin-wide constants and global usings
 //
 // Files in the Helpers namespace are processing code removed from the file that uses them.
 // This was done to help cut down on file bloat and separate functions from UI where possible.
@@ -39,6 +38,7 @@ using Dalamud.Game.Command;
 using Dalamud.Data;
 using Dalamud.IoC;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using Wordsmith.Gui;
 using Wordsmith.Helpers;
 
@@ -50,7 +50,7 @@ public sealed class Wordsmith : IDalamudPlugin
     /// <summary>
     /// Plugin name.
     /// </summary>
-    internal const string AppName = "Wordsmith";
+    internal const string APPNAME = "Wordsmith";
 
     /// <summary>
     /// The default height of a button.
@@ -81,7 +81,7 @@ public sealed class Wordsmith : IDalamudPlugin
     /// <summary>
     /// Plugin name interface property.
     /// </summary>
-    public string Name => AppName;
+    public string Name => APPNAME;
 
     #region Plugin Services
     // All plugin services are automatically populated by Dalamud. These are important
@@ -90,11 +90,14 @@ public sealed class Wordsmith : IDalamudPlugin
     internal static DalamudPluginInterface PluginInterface { get; private set; } = null!;
 
     [PluginService]
-    internal static CommandManager CommandManager { get; private set; } = null!;
+    internal static ICommandManager CommandManager { get; private set; } = null!;
 
     [PluginService]
-    internal static DataManager DataManager { get; private set; } = null!;
+    internal static IDataManager DataManager { get; private set; } = null!;
     #endregion
+
+    [PluginService]
+    internal static IPluginLog PluginLog { get; private set; } = null!;
 
     /// <summary>
     /// <see cref="Configuration"/> holding all configurable data for the plugin.
@@ -124,7 +127,7 @@ public sealed class Wordsmith : IDalamudPlugin
         // Note that the first two use inline functions but scratch pads require a little text parsing.
         CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo( ( c, a ) => { WordsmithUI.ShowThesaurus(); } ) { HelpMessage = "Display the thesaurus window." });
         CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo( ( c, a ) => { WordsmithUI.ShowSettings(); }) { HelpMessage = "Display the configuration window." });
-        CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo( this.OnScratchCommand )
+        CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo( OnScratchCommand )
         {
             HelpMessage = "Opens or creates a scratch pad. Follow with a number or custom name if you like. (i.e. \"/scratchpad 5\" or \"/scratchpad Juliet\")"
         });
@@ -166,8 +169,7 @@ public sealed class Wordsmith : IDalamudPlugin
     #region Event Callbacks
     private void OnScratchCommand(string command, string args)
     {
-        int x;
-        if ( int.TryParse( args.Trim(), out x ) )
+        if ( int.TryParse( args.Trim(), out int x ) )
             WordsmithUI.ShowScratchPad( x );
         else if ( args.Trim().Length > 3 )
             WordsmithUI.ShowScratchPad( args );
