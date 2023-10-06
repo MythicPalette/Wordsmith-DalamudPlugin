@@ -1,4 +1,7 @@
 ﻿using System.Net.Http;
+using Dalamud.IoC;
+using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using Newtonsoft.Json;
 
 namespace Wordsmith.Helpers;
@@ -7,6 +10,7 @@ internal sealed class Git
 {
     private const string MANIFEST_JSON_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/manifest.json";
     private const string LIBRARY_FILE_URL = "https://raw.githubusercontent.com/LadyDefile/WordsmithDictionaries/main/library";
+    [PluginService] private static IPluginLog PluginLog { get; set; } = null!;
 
     internal class DictionaryDoesNotExistException : Exception
     { }
@@ -43,7 +47,7 @@ internal sealed class Git
                 {
                     // Disable the IfModifiedSince header to avoid a 304 response error.
                     client.DefaultRequestHeaders.IfModifiedSince = null;
-                    PluginLog.LogError( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}\nRaw: {raw}" );
+                    PluginLog.Error( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}\nRaw: {raw}" );
                 }
             }
         }
@@ -71,7 +75,7 @@ internal sealed class Git
                 {
                     // Disable refresh request.
                     client.DefaultRequestHeaders.IfModifiedSince = null;
-                    PluginLog.LogError( $"Error loading dictionary from web: {e.Message}" );
+                    PluginLog.Error( $"Error loading dictionary from web: {e.Message}" );
                 }
             }            
         }

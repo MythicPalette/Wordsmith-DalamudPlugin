@@ -4,10 +4,16 @@ using ImGuiNET;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
 using Dalamud.Interface.Utility;
+using Dalamud.IoC;
+using Dalamud.Plugin.Services;
+
 namespace Wordsmith.Gui;
 
 internal sealed class ScratchPadUI : Window
 {
+    [PluginService] private static IPluginLog PluginLog { get; set; } = null!;
+
+
     #region Constants
     internal const int CORRECTIONS_FOUND = -1;
     internal const int CHECKING_SPELLING = 1;
@@ -1312,7 +1318,7 @@ internal sealed class ScratchPadUI : Window
                     while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
                     {
                         data->CursorPos++;
-                        PluginLog.LogVerbose( $"Moved cursor to the right." );
+                        PluginLog.Verbose( $"Moved cursor to the right." );
                     }
                 }
                 if ( data->CursorPos > 0 )
@@ -1320,7 +1326,7 @@ internal sealed class ScratchPadUI : Window
                     while ( data->CursorPos > 0 && data->Buf[data->CursorPos - 1] == '\r' )
                     {
                         data->CursorPos--;
-                        PluginLog.LogVerbose( "Moved cursor to the left." );
+                        PluginLog.Verbose( "Moved cursor to the left." );
                     }
                 }
             }

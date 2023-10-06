@@ -2,6 +2,9 @@
 using System.ComponentModel;
 using Newtonsoft.Json;
 using System.Xml.Linq;
+using Dalamud.Logging;
+using Dalamud.Plugin.Services;
+using Dalamud.IoC;
 
 namespace Wordsmith.Helpers;
 
@@ -13,6 +16,8 @@ internal sealed class MerriamWebsterAPI : IDisposable
     public float Progress => _progress;
 
     internal ApiState State { get; private set; }
+
+    [PluginService] private IPluginLog PluginLog { get; set; } = null!;
 
     private List<WordSearchResult> _history = new List<WordSearchResult>();
 
@@ -40,7 +45,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
 
         // Add the latest to the history
         this._history.Insert(0, entry);
-        PluginLog.LogDebug($"Added {entry.Query} to history.");
+        PluginLog.Debug($"Added {entry.Query} to history.");
 
         // Setting search history length to zero will just make it unlimited.
         if ( Wordsmith.Configuration.SearchHistoryCount == 0 )
@@ -123,19 +128,19 @@ internal sealed class MerriamWebsterAPI : IDisposable
                                 {
                                     if ( id.Value.ToLower() != query.ToLower() )
                                     {
-                                        PluginLog.LogDebug( $"Element ID did not match query: {id}" );
+                                        PluginLog.Debug( $"Element ID did not match query: {id}" );
                                         continue;
                                     }
                                 }
                                 else
                                 {
-                                    PluginLog.LogDebug( $"Failed to get ID element: {meta}" );
+                                    PluginLog.Debug( $"Failed to get ID element: {meta}" );
                                     continue;
                                 }
                             }
                             else
                             {
-                                PluginLog.LogDebug( $"Failed to get meta: {entry}" );
+                                PluginLog.Debug( $"Failed to get meta: {entry}" );
                                 continue;
                             }
 
@@ -211,7 +216,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
                 }
                 catch ( Exception ex )
                 {
-                    PluginLog.LogError( ex.Message );
+                    PluginLog.Error( ex.Message );
                 }
             }
             else
@@ -248,7 +253,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
             if ( this.History.Count == 0)
                 return false;
 
-            PluginLog.LogDebug($"Checking History for {query}");
+            PluginLog.Debug($"Checking History for {query}");
 
             this._progress = 0f;
             // If searching the same thing twice, return
@@ -277,7 +282,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
         }
         catch (Exception ex)
         {
-            PluginLog.LogError(ex.Message);
+            PluginLog.Error(ex.Message);
         }
         return false;
     }
@@ -293,7 +298,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
         }
         catch ( Exception e )
         {
-            PluginLog.LogError( e.Message );
+            PluginLog.Error( e.Message );
         }
     }
 }

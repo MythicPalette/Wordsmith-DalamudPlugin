@@ -1,6 +1,8 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Dalamud.Interface.Windowing;
+using Dalamud.IoC;
+using Dalamud.Plugin.Services;
 using ImGuiNET;
 using Wordsmith.Gui;
 using static Wordsmith.Gui.MessageBox;
@@ -12,6 +14,9 @@ internal static class WordsmithUI
     internal static Clock Clock { get; private set; } = new();
 
     internal static float LineHeight { get; private set; }
+
+    [PluginService] private static IPluginLog PluginLog { get; set; } = null!;
+
 
     /// <summary>
     /// Returns a readonly list containing all currently registered windows.
@@ -44,7 +49,7 @@ internal static class WordsmithUI
     private static List<Window> _add_queue = new();
     #endregion
 
-    internal static Window GetWindowByName(String name)
+    internal static Window? GetWindowByName(String name)
     {
         foreach (Window w in _windowSystem.Windows)
         {
@@ -174,7 +179,7 @@ internal static class WordsmithUI
                     w.IsOpen = false;
             }
             // Log the error.
-            PluginLog.LogError( $"There was an exception in the WindowSystem draw process. All windows have been hidden for now.\nError: {e}\nMessage: {e.Message}" );
+            PluginLog.Error( $"There was an exception in the WindowSystem draw process. All windows have been hidden for now.\nError: {e}\nMessage: {e.Message}" );
 
             // Attempt to add an error window to be displayed. If it fails to draw we'll end up back here anyway.
             if ( !Contains("WordsmithUI Error") )
@@ -219,7 +224,7 @@ internal static class WordsmithUI
             }
             catch ( Exception e )
             {
-                PluginLog.LogError( $"ERROR: {e.Message}\n{e}" );
+                PluginLog.Error($"ERROR: {e.Message}\n{e}");
             }
         }
         // If the windows are locked queue deletion for next cycle

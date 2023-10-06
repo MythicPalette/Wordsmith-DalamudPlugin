@@ -1,10 +1,13 @@
-﻿using ImGuiNET;
+﻿using Dalamud.IoC;
+using Dalamud.Plugin.Services;
+using ImGuiNET;
 
 
 namespace Wordsmith.Gui;
 
 internal sealed class ErrorWindow : MessageBox
 {
+    [PluginService] private static IPluginLog PluginLog { get; set; } = null!;
     private const string message = "Wordsmith has encountered an error.\nCopy error dump to clipboard and open bug report page?\n\nWARNING: I WILL be able to see anything and everything\ntyped as part of the log.";
     internal Dictionary<string, object> ErrorDump = new Dictionary<string, object>();
     public ErrorWindow( Dictionary<string, object> dump ) : base( $"Wordsmith Error", message, ButtonStyle.YesNo, Callback) { this.ErrorDump = dump; }
@@ -28,7 +31,7 @@ internal sealed class ErrorWindow : MessageBox
             }
             catch ( Exception e )
             {
-                PluginLog.LogError( e.ToString() );
+                PluginLog.Error( e.ToString() );
             }
         }
         WordsmithUI.RemoveWindow( mb );

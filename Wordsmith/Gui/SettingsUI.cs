@@ -4,11 +4,18 @@ using ImGuiNET;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
 using Dalamud.Interface.Utility;
+using Dalamud.Logging;
+using Dalamud.IoC;
+using Dalamud.Plugin.Services;
+
 namespace Wordsmith.Gui;
 
 internal sealed class SettingsUI : Window
 {
     private const int MAX_MARKER_FRAME_Y = 10;
+
+    [PluginService] private static IPluginLog PluginLog { get; set; } = null!;
+
 
     /// <summary>
     /// Gets the available size for tab pages while leaving room for the footer.
@@ -1289,7 +1296,7 @@ internal sealed class SettingsUI : Window
 
     public void OnException(Exception e)
     {
-        PluginLog.LogError( e.ToString() );
+        PluginLog.Error( e.ToString() );
         this.IsOpen = false;
         Dictionary<string, object> dump = this.Dump();
         dump["Exception"] = new Dictionary<string, object>()

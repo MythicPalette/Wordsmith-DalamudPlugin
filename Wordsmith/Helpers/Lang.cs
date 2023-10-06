@@ -1,4 +1,7 @@
 ﻿
+using Dalamud.IoC;
+using Dalamud.Logging;
+using Dalamud.Plugin.Services;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -7,6 +10,9 @@ namespace Wordsmith.Helpers;
 public static class Lang
 {
     private static HashSet<string> _dictionary = new();
+
+    [PluginService] private static IPluginLog PluginLog { get; set; } = null!;
+
 
     private static bool _enabled = false;
     /// <summary>
@@ -133,14 +139,14 @@ public static class Lang
         catch (HttpRequestException e)
         {
             if (e.StatusCode != System.Net.HttpStatusCode.OK)
-                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}");
+                PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}");
             else
-                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+                PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
         catch (Exception e)
         {
-            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+            PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
     }
@@ -177,7 +183,7 @@ public static class Lang
         }
         catch (Exception e)
         {
-            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+            PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
         }
         return false;
     }
@@ -389,7 +395,7 @@ public static class Lang
         }
         catch ( Exception e )
         {
-            PluginLog.LogError( e.ToString() );
+            PluginLog.Error( e.ToString() );
         }
         return results;
     }
