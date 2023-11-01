@@ -244,7 +244,6 @@ internal sealed class ScratchPadUI : Window
 
         // If the configuration wasn't saved recently then check if spell check is required
         // iSpellcheckMode 2 disables the need to edit the text.
-#if DEBUG
         else if ( this._do_spell_check || Helpers.Console.iSpellcheckMode == 2 )
         {
             this._rest_time -= WordsmithUI.Clock.Delta;
@@ -252,7 +251,7 @@ internal sealed class ScratchPadUI : Window
             if ( this._rest_time < 0 || Helpers.Console.iSpellcheckMode > 0 )
                 DoSpellCheck();
         }
-#endif
+
     }
 #endregion
 
@@ -1248,10 +1247,9 @@ internal sealed class ScratchPadUI : Window
             // update the text.
             if ( this._replaceText.Length > 0 && index < this._corrections.Count )
             {
-#if DEBUG
                 if ( Helpers.Console.ProcessCommand( this, _replaceText ) )
                     return;
-#endif
+
                 // Get the first object
                 Word word = this._corrections[index];
 

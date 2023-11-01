@@ -1,5 +1,4 @@
-﻿#if DEBUG
-using Wordsmith.Gui;
+﻿using Wordsmith.Gui;
 
 namespace Wordsmith.Helpers;
 
@@ -25,6 +24,8 @@ internal sealed class Console
             case "dump":
                 if ( m.Groups["value"].Value.ToLower() == "all" )
                     WordsmithUI.ShowErrorWindow( pad.Dump() );
+                else if ( m.Groups["value"].Value.ToLower() == "config" )
+                    WordsmithUI.ShowErrorWindow(Wordsmith.Configuration.Dump());
                 break;
 
             case "addpads":
@@ -108,4 +109,3 @@ internal sealed class Console
         return true;
     }
 }
-#endif

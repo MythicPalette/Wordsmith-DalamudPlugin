@@ -47,15 +47,13 @@ public static class Lang
 
     private static void ValidateConfiguration()
     {
-        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^web: .+" );
+        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^(?:web|local):\s.+" );
+
+        // If the configuration does not have a web or local setting, set to default.
         if ( !m.Success )
         {
-            m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^local: .+" );
-            if ( !m.Success )
-            {
-                Wordsmith.Configuration.DictionaryFile = "web: lang_en";
-                Wordsmith.Configuration.Save();
-            }
+            Wordsmith.Configuration.DictionaryFile = "web: lang_en";
+            Wordsmith.Configuration.Save();
         }
     }
 
@@ -108,7 +106,10 @@ public static class Lang
     {
         Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:web: )*(.+)");
         if (!m.Success)
+        {
+            Wordsmith.PluginLog.Debug( $"Wordsmith is not configured for web dictionary file. Skipping LoadWebLanguage()" );
             return false;
+        }
 
         string title = m.Groups[1].Value;
 
@@ -151,8 +152,11 @@ public static class Lang
     private static bool LoadLanguageFile()
     {
         Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:local: )*(.+)");
-        if (!m.Success)
+        if ( !m.Success )
+        {
+            Wordsmith.PluginLog.Debug( $"Not configured for local language file. Skipping LoadLanguageFile()." );
             return false;
+        }
 
         string title = m.Groups[1].Value;
 
