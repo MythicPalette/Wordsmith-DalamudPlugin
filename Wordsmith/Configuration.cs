@@ -43,6 +43,11 @@ public sealed class Configuration : IPluginConfiguration
     /// If <see langword="true"/> enables viewing of advanced settings
     /// </summary>
     public bool ShowAdvancedSettings { get; set; } = false;
+
+    /// <summary>
+    /// If <see langword="true"/> enables trackng word usage.
+    /// </summary>
+    public bool TrackWordStatistics {  get; set; } = true;
     #endregion
 
     #region Scratch Pad Settings
