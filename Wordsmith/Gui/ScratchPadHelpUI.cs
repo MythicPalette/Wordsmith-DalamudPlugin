@@ -14,7 +14,7 @@ internal sealed class ScratchPadHelpUI : Window
         this.SizeConstraints = new()
         {
             MinimumSize = new( 300, 450 ),
-            MaximumSize = new(9999, 9999)
+            MaximumSize = new( 9999, 9999 )
         };
     }
     public override void Draw()

@@ -105,7 +105,7 @@ internal sealed class ScratchPadUI : Window
     private float _lastScale = ImGuiHelpers.GlobalScale;
     #endregion
 
-    #region Construction & Initialization
+#region Construction & Initialization
     internal static string CreateWindowName( int id ) => $"{Wordsmith.APPNAME} - Scratch Pad #{id}";
     internal static string CreateWindowName( string str ) => $"{Wordsmith.APPNAME} - Scratch Pad: {str.Replace("%", "%%")}";
 
