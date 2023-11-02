@@ -25,6 +25,7 @@ internal sealed class SettingsUI : Window
     private string _lastSeenNotice = Wordsmith.Configuration.LastNoticeRead;
     private int _searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
     private bool _researchToTopChange = Wordsmith.Configuration.ResearchToTop;
+    private bool _trackWordStats = Wordsmith.Configuration.TrackWordStatistics;
 
     // Scratch Pad settings.
     private bool _autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
@@ -134,8 +135,13 @@ internal sealed class SettingsUI : Window
             {
                 ImGui.Checkbox( $"Show Advanced Settings", ref this._showAdvancedSettings );
                 ImGui.SameLine();
+
                 ImGui.Checkbox( "Never Show Notices", ref this._neverShowNotices );
                 ImGuiExt.SetHoveredTooltip( "Enabling this will prevent Wordsmith from showing new notices upon opening.\nAlready seen notices don't repeat." );
+
+                ImGui.SameLine();
+                ImGui.Checkbox( "Track Word Usage.", ref this._trackWordStats );
+                ImGuiExt.SetHoveredTooltip( "This is a metric to help you avoid using the same words too often by counting each time you use a word." );
 
                 if ( Wordsmith.Configuration.ShowAdvancedSettings )
                 {
@@ -1311,6 +1317,7 @@ internal sealed class SettingsUI : Window
         this._lastSeenNotice = Wordsmith.Configuration.LastNoticeRead;
         this._searchHistoryCountChange = Wordsmith.Configuration.SearchHistoryCount;
         this._researchToTopChange = Wordsmith.Configuration.ResearchToTop;
+        this._trackWordStats = Wordsmith.Configuration.TrackWordStatistics;
 
         // Scratch Pad settings.
         this._autoClear = Wordsmith.Configuration.AutomaticallyClearAfterLastCopy;
@@ -1360,6 +1367,7 @@ internal sealed class SettingsUI : Window
         Wordsmith.Configuration.LastNoticeRead = this._lastSeenNotice;
         Wordsmith.Configuration.SearchHistoryCount = this._searchHistoryCountChange;
         Wordsmith.Configuration.ResearchToTop = this._researchToTopChange;
+        Wordsmith.Configuration.TrackWordStatistics = this._trackWordStats;
 
         // Scratch Pad settings.
         Wordsmith.Configuration.AutomaticallyClearAfterLastCopy = _autoClear;
