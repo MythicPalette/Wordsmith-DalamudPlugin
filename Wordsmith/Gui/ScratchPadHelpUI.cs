@@ -13,8 +13,8 @@ internal sealed class ScratchPadHelpUI : Window
     {
         this.SizeConstraints = new()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(300, 450),
-            MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
+            MinimumSize = new( 300, 450 ),
+            MaximumSize = new( 9999, 9999 )
         };
     }
     public override void Draw()

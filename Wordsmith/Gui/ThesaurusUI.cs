@@ -22,8 +22,8 @@ internal sealed class ThesaurusUI : Window, IDisposable
 
         this.SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(375, 330),
-            MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
+            MinimumSize = new( 375, 330 ),
+            MaximumSize = new( 9999, 9999 )
         };
 
         this.Flags |= ImGuiWindowFlags.NoScrollbar;

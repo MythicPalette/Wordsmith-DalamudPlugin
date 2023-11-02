@@ -11,8 +11,8 @@ internal sealed class DebugUI : Window
     {
         this.SizeConstraints = new()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(200, 200),
-            MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
+            MinimumSize = new(200, 200),
+            MaximumSize = new(9999, 9999)
         };
 
         this.Flags |= ImGuiWindowFlags.HorizontalScrollbar;

@@ -104,7 +104,7 @@ internal sealed class ScratchPadUI : Window
     private float _lastScale = ImGuiHelpers.GlobalScale;
     #endregion
 
-    #region Construction & Initialization
+#region Construction & Initialization
     internal static string CreateWindowName( int id ) => $"{Wordsmith.APPNAME} - Scratch Pad #{id}";
     internal static string CreateWindowName( string str ) => $"{Wordsmith.APPNAME} - Scratch Pad: {str.Replace("%", "%%")}";
 
@@ -122,7 +122,7 @@ internal sealed class ScratchPadUI : Window
         this.ID = id;
         this.SizeConstraints = new()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2( 375, 200 ),
+            MinimumSize = new( 375, 200 ),
             MaximumSize = new( float.MaxValue, float.MaxValue ) // Do not scale
         };
 
@@ -381,7 +381,7 @@ internal sealed class ScratchPadUI : Window
         if (ImGui.BeginTable($"##ScratchPad{this.ID}HeaderTable", columns))
         {
             // Setup the header lock and chat mode columns.
-            ImGui.TableSetupColumn( $"Scratchpad{this.ID}HeaderLockColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y );
+            ImGui.TableSetupColumn( $"Scratchpad{this.ID}HeaderLockColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y.Scale() );
 
             // If there is an extra column, insert it here.
             if ( columns > default_columns )
