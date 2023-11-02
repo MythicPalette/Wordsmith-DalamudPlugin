@@ -81,8 +81,8 @@ internal sealed class SettingsUI : Window
         //Size = new(375, 350);
         this.SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(510, 450),
-            MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
+            MinimumSize = new(510, 450),
+            MaximumSize = new( 9999, 9999 )
         };
 
         this.Flags |= ImGuiWindowFlags.NoScrollbar;

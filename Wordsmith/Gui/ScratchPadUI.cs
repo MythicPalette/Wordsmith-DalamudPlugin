@@ -14,7 +14,9 @@ internal sealed class ScratchPadUI : Window
     internal const int CHECKING_SPELLING = 1;
     internal const int CORRECTIONS_NOT_FOUND = 2;
     internal const int EDITING_TEXT = 0;
-    internal const int VIEWING_HISTORY = 1;
+    internal const int VIEW_MODE_PAD = 0;
+    internal const int VIEW_MODE_HISTORY = 1;
+    internal const int VIEW_MODE_STATS = 2;
     #endregion
 
     #region Identity
@@ -85,11 +87,10 @@ internal sealed class ScratchPadUI : Window
     #endregion
 
     #region History
-    /// <summary>
-    /// Editor state is the functional state of the editor.
-    /// </summary>
-    private bool _view_history = false;
     private List<PadState> _text_history = new();
+    private StatisticsTracker _statisticsTracker = new();
+
+    private string _stats_order_by = "usesdescending";
     #endregion
 
     #region Spell Check
@@ -122,7 +123,7 @@ internal sealed class ScratchPadUI : Window
         this.ID = id;
         this.SizeConstraints = new()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2( 375, 200 ),
+            MinimumSize = new( 375, 200 ),
             MaximumSize = new( float.MaxValue, float.MaxValue ) // Do not scale
         };
 
@@ -143,6 +144,8 @@ internal sealed class ScratchPadUI : Window
     }
     #endregion
 
+    private int _view_mode = VIEW_MODE_PAD;
+
     #region Overrides
     /// <summary>
     /// The Draw entry point for the <see cref="WindowSystem"/> to draw the window.
@@ -156,7 +159,7 @@ internal sealed class ScratchPadUI : Window
         if ( this._corrections?.Count > 0 )
             ImGui.TextColored( new( 1, 0, 0, 1 ), $"Found {this._corrections!.Count} spelling errors." );
 
-        if ( !this._view_history )
+        if ( this._view_mode == VIEW_MODE_PAD )
         {
             // Draw the form sections
             DrawHeader();
@@ -168,10 +171,15 @@ internal sealed class ScratchPadUI : Window
             // Rewrap text based on the width of the form.
             CheckWidth();
         }
-        else
+        else if ( this._view_mode == VIEW_MODE_HISTORY )
         {
             DrawHistory();
             DrawHistoryFooter();
+        }
+        else if ( this._view_mode == VIEW_MODE_STATS )
+        {
+            DrawStats();
+            DrawStatsFooter();
         }
 
         // Update the last scale used. This will be used to recalculate
@@ -326,15 +334,27 @@ internal sealed class ScratchPadUI : Window
 
 #region History
                     // View/Close history
-                    if ( !this._view_history )
+                    if ( this._view_mode != VIEW_MODE_HISTORY )
                     {
                         if ( ImGui.MenuItem( $"View History##ScratchPad{this.ID}MenuItem" ) )
-                            this._view_history = true;
+                            this._view_mode = VIEW_MODE_HISTORY;
                     }
                     else
                     {
                         if ( ImGui.MenuItem( $"Close History##ScratchPad{this.ID}MenuItem" ) )
-                            this._view_history = false;
+                            this._view_mode = VIEW_MODE_PAD;
+                    }
+
+                    // TODO Configuration track word statistics
+                    if ( this._view_mode != VIEW_MODE_STATS )
+                    {
+                        if ( ImGui.MenuItem( $"Word Statistics##ScratchPad{this.ID}MenuItem" ) )
+                            this._view_mode = VIEW_MODE_STATS;
+                    }
+                    else
+                    {
+                        if ( ImGui.MenuItem( $"Close Statistics##ScratchPad{this.ID}MenuItem" ) )
+                            this._view_mode = VIEW_MODE_PAD;
                     }
 #endregion
 
@@ -381,7 +401,7 @@ internal sealed class ScratchPadUI : Window
         if (ImGui.BeginTable($"##ScratchPad{this.ID}HeaderTable", columns))
         {
             // Setup the header lock and chat mode columns.
-            ImGui.TableSetupColumn( $"Scratchpad{this.ID}HeaderLockColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y );
+            ImGui.TableSetupColumn( $"Scratchpad{this.ID}HeaderLockColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y.Scale() );
 
             // If there is an extra column, insert it here.
             if ( columns > default_columns )
@@ -1051,14 +1071,14 @@ internal sealed class ScratchPadUI : Window
             ImGui.Unindent();
         }
     }
-    
+        
     /// <summary>
     /// Draws the footer for the History view.
     /// </summary>
     private void DrawHistoryFooter()
     {
         if ( ImGui.Button( $"Close##{this.ID}closehistorybutton", new( ImGui.GetWindowContentRegionMax().X - ImGui.GetStyle().FramePadding.X * 2, Wordsmith.BUTTON_Y.Scale() ) ) )
-            this._view_history = false;
+            this._view_mode = VIEW_MODE_PAD;
     }
 
     /// <summary>
@@ -1088,6 +1108,80 @@ internal sealed class ScratchPadUI : Window
         }
         catch ( Exception e ) { DumpError( e ); }
     }
+    #endregion
+
+#region Stats
+    /// <summary>
+    /// Draws the user's word usage statistics
+    /// </summary>
+    private void DrawStats()
+    {
+        Vector2 contentRegion = ImGui.GetContentRegionMax();
+        contentRegion.Y -= ImGui.GetCursorPosY() + GetFooterHeight();
+        if ( ImGui.BeginChild( $"HistoryChild", contentRegion ) )
+        {
+            ImGui.TextWrapped( $"The following is a list of all words used in this scratch pad. Note that this list is only words that were copied to the clipboard." );
+            // Display the stats as a table
+            if ( ImGui.BeginTable($"StatsTable{this.ID}", 2) )
+            {
+                ImGui.TableSetupColumn( $"StatsTableWordCol", ImGuiTableColumnFlags.WidthStretch );
+                ImGui.TableSetupColumn( $"StatsTableUsesCol", ImGuiTableColumnFlags.WidthStretch );
+
+                bool word = this._stats_order_by.StartsWith("word");
+                bool desc = this._stats_order_by.EndsWith("descending");
+
+                ImGui.TableNextColumn();
+                ImGui.TableHeader( $"Word {(word ? (desc ? "↓" : "↑") : "")}" );
+                if ( ImGui.IsItemClicked() )
+                {
+                    if ( this._stats_order_by == "word" )
+                        this._stats_order_by = "worddescending";
+                    else
+                        this._stats_order_by = "word";
+                }
+
+                ImGui.TableNextColumn();
+                ImGui.TableHeader( $"Uses {(!word ? (desc ? "↓" : "↑") : "")}" );
+                if ( ImGui.IsItemClicked() )
+                {
+                    if ( this._stats_order_by == "usesdescending" )
+                        this._stats_order_by = "uses";
+                    else
+                        this._stats_order_by = "usesdescending";
+                }
+
+                List<KeyValuePair<string, int>> wordUses = word
+                    ? this._statisticsTracker.ListWordsByWord( desc )
+                    : wordUses = this._statisticsTracker.ListWordsByCount( desc );
+
+                foreach ( KeyValuePair<string, int> kvp in  wordUses )
+                {
+                    ImGui.TableNextColumn();
+                    ImGui.Text( $"{kvp.Key}" );
+
+                    ImGui.TableNextColumn();
+                    ImGui.Text( $"{kvp.Value}" );
+                }
+
+                ImGui.EndTable();
+                }
+            ImGui.EndChild();
+        }
+    }
+
+    /// <summary>
+    /// Draws the footer for the statistics view.
+    /// </summary>
+    private void DrawStatsFooter()
+    {
+        if ( ImGui.Button( $"Clear Statistics##{this.ID}ClearStatisticsButton", new( ImGui.GetWindowContentRegionMax().X - ImGui.GetStyle().FramePadding.X * 2, Wordsmith.BUTTON_Y.Scale() ) ) )
+        {
+            this._statisticsTracker.Clear();
+            this._view_mode = VIEW_MODE_PAD;
+        }
+        if ( ImGui.Button( $"Close##{this.ID}closehistorybutton", new( ImGui.GetWindowContentRegionMax().X - ImGui.GetStyle().FramePadding.X * 2, Wordsmith.BUTTON_Y.Scale() ) ) )
+            this._view_mode = VIEW_MODE_PAD;
+    }
 #endregion
 
 #region Button Backend
@@ -1104,6 +1198,10 @@ internal sealed class ScratchPadUI : Window
 
             // Copy the next chunk over.
             ImGui.SetClipboardText( CreateCompleteTextChunk(this._chunks[this._nextChunk], this._useOOC, this._nextChunk, this._chunks.Count ) );
+
+            // Add the text to the tracker.
+            this._statisticsTracker.AddChunk( this._chunks[this._nextChunk] );
+
             this._nextChunk++;
 
             // If we're not at the last chunk, return.
@@ -1517,33 +1615,42 @@ internal sealed class ScratchPadUI : Window
             if ( cm.AppliesTo( index, count ) && cm.Visible( OOC, count ) )
                 markers.Add( cm );
 
+        // Add the before OOC marks.
         List<ChunkMarker> current = markers.Where(x => x.Position == MarkerPosition.BeforeOOC).ToList();
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c=> c.Text ));
 
+        // If using OOC then add the starting tag
         if ( OOC )
             result += chunk.OutOfCharacterStartTag;
 
+        // Insert custom markers before the body.
         current = markers.Where( x => x.Position == MarkerPosition.BeforeBody ).ToList();
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
+        // The text body is the chunk text.
         result += chunk.Text;
 
+        // Insert custom markers after the body.
         current = markers.Where( x => x.Position == MarkerPosition.AfterBody ).ToList();
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
+        // If using OOC then add the ending tag
         if ( OOC )
             result += chunk.OutOfCharacterEndTag;
 
+        // Insert the after OOC marks
         current = markers.Where( x => x.Position == MarkerPosition.AfterOOC ).ToList();
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
+        // Add the continuation marker
         if ( count > 1 && (index + 1 < count || Wordsmith.Configuration.ContinuationMarkerOnLast) )
             result += chunk.ContinuationMarker.ReplacePlaceholders( index + 1, count);
 
+        // Add the After Continuation marks.
         current = markers.Where( x => x.Position == MarkerPosition.AfterContinuationMarker ).ToList();
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
@@ -1586,7 +1693,7 @@ internal sealed class ScratchPadUI : Window
     /// <returns>Returns the height of footer elements as a <see langword="float"/></returns>
     private float GetFooterHeight( float inputSize = -1 )
     {
-        if ( !this._view_history )
+        if ( this._view_mode == VIEW_MODE_PAD )
         {
             // Text input size can either be given or calculated.
             float result = inputSize > 0 ? inputSize : GetDefaultInputHeight();
@@ -1615,8 +1722,10 @@ internal sealed class ScratchPadUI : Window
 
             return result;
         }
-        else if ( this._view_history )
+        else if ( this._view_mode == VIEW_MODE_HISTORY )
             return Wordsmith.BUTTON_Y.Scale() + ImGui.GetStyle().FramePadding.Y;
+        else if ( this._view_mode == VIEW_MODE_STATS )
+            return ( Wordsmith.BUTTON_Y.Scale() + ImGui.GetStyle().FramePadding.Y ) * 2;
 
         return 0;
     }
@@ -1641,7 +1750,7 @@ internal sealed class ScratchPadUI : Window
         this.ScratchString = state.ScratchText;
 
         // Exit history.
-        this._view_history = false;
+        this._view_mode = VIEW_MODE_PAD;
     }
 #endregion
 }
