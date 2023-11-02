@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 using System.Reflection;
-using Dalamud.Interface;
+using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
 
@@ -246,9 +246,10 @@ internal static class Extensions
         // Get the list of results
         IReadOnlyList<(int Type, string Name, string Value) > data = obj.GetProperties();
 
-        Dictionary<string, object> result = new Dictionary<string, object>();
-
-        result["Type"] = obj.GetType().ToString();
+        Dictionary<string, object> result = new()
+        {
+            ["Type"] = obj.GetType().ToString()
+        };
 
         // Get Properties
         foreach ( (int Type, string Name, string Value) in data.Where( d => d.Type == 0 ) )
@@ -277,7 +278,7 @@ internal static class Extensions
         // If the length is greater than 1, capitalize the first char and
         // get the remaining substring to lower.
         else if ( s.Length > 1 )
-            return char.ToUpper( s[0] ).ToString() + s.Substring( 1 ).ToLower();
+            return char.ToUpper( s[0] ).ToString() + s[1..].ToLower();
 
         // If we reach this return, the string is empty, return as-is.
         return s;

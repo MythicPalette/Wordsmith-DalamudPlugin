@@ -1,5 +1,6 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility;
 using ImGuiNET;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
@@ -56,7 +57,7 @@ internal sealed class ScratchPadUI : Window
         set
         {
             this._scratch = value;
-            this.OnTextChanged();
+            OnTextChanged();
         }
     }
     private string _scratch = "";
@@ -103,9 +104,9 @@ internal sealed class ScratchPadUI : Window
     private float _lastScale = ImGuiHelpers.GlobalScale;
     #endregion
 
-    #region Construction & Initialization
-    internal static string CreateWindowName( int id ) => $"{Wordsmith.AppName} - Scratch Pad #{id}";
-    internal static string CreateWindowName( string str ) => $"{Wordsmith.AppName} - Scratch Pad: {str.Replace("%", "%%")}";
+#region Construction & Initialization
+    internal static string CreateWindowName( int id ) => $"{Wordsmith.APPNAME} - Scratch Pad #{id}";
+    internal static string CreateWindowName( string str ) => $"{Wordsmith.APPNAME} - Scratch Pad: {str.Replace("%", "%%")}";
 
     /// <summary>
     /// Initializes a new <see cref="ScratchPadUI"/> object with the next available ID.
@@ -121,7 +122,7 @@ internal sealed class ScratchPadUI : Window
         this.ID = id;
         this.SizeConstraints = new()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2( 375, 200 ),
+            MinimumSize = new( 375, 200 ),
             MaximumSize = new( float.MaxValue, float.MaxValue ) // Do not scale
         };
 
@@ -130,7 +131,7 @@ internal sealed class ScratchPadUI : Window
         this.Flags |= ImGuiWindowFlags.MenuBar;
 
         //this._spellchecktimer.Elapsed += ( object? s, System.Timers.ElapsedEventArgs e ) => { this._spellchecktimer.Stop(); this.DoSpellCheck(); };
-        this.Header.DataChanged += this.OnDataChanged;
+        this.Header.DataChanged += OnDataChanged;
 
         //InitWorker();
     }
@@ -243,7 +244,6 @@ internal sealed class ScratchPadUI : Window
 
         // If the configuration wasn't saved recently then check if spell check is required
         // iSpellcheckMode 2 disables the need to edit the text.
-#if DEBUG
         else if ( this._do_spell_check || Helpers.Console.iSpellcheckMode == 2 )
         {
             this._rest_time -= WordsmithUI.Clock.Delta;
@@ -251,7 +251,7 @@ internal sealed class ScratchPadUI : Window
             if ( this._rest_time < 0 || Helpers.Console.iSpellcheckMode > 0 )
                 DoSpellCheck();
         }
-#endif
+
     }
 #endregion
 
@@ -381,7 +381,7 @@ internal sealed class ScratchPadUI : Window
         if (ImGui.BeginTable($"##ScratchPad{this.ID}HeaderTable", columns))
         {
             // Setup the header lock and chat mode columns.
-            ImGui.TableSetupColumn( $"Scratchpad{this.ID}HeaderLockColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y );
+            ImGui.TableSetupColumn( $"Scratchpad{this.ID}HeaderLockColumn", ImGuiTableColumnFlags.WidthFixed, Wordsmith.BUTTON_Y.Scale() );
 
             // If there is an extra column, insert it here.
             if ( columns > default_columns )
@@ -469,7 +469,7 @@ internal sealed class ScratchPadUI : Window
         if ( size_y < 1 )
             return;
 
-        if (ImGui.BeginChild($"{Wordsmith.AppName}##ScratchPad{this.ID}ChildFrame", new(-1, size_y) ))
+        if (ImGui.BeginChild($"{Wordsmith.APPNAME}##ScratchPad{this.ID}ChildFrame", new(-1, size_y) ))
         {
             // If the chunk data is null we abort the draw call and end the child.
             if ( this._chunks is null )
@@ -1057,7 +1057,7 @@ internal sealed class ScratchPadUI : Window
     /// </summary>
     private void DrawHistoryFooter()
     {
-        if ( ImGui.Button( $"Close##{ID}closehistorybutton", new( ImGui.GetWindowContentRegionMax().X - ImGui.GetStyle().FramePadding.X * 2, Wordsmith.BUTTON_Y.Scale() ) ) )
+        if ( ImGui.Button( $"Close##{this.ID}closehistorybutton", new( ImGui.GetWindowContentRegionMax().X - ImGui.GetStyle().FramePadding.X * 2, Wordsmith.BUTTON_Y.Scale() ) ) )
             this._view_history = false;
     }
 
@@ -1247,10 +1247,9 @@ internal sealed class ScratchPadUI : Window
             // update the text.
             if ( this._replaceText.Length > 0 && index < this._corrections.Count )
             {
-#if DEBUG
                 if ( Helpers.Console.ProcessCommand( this, _replaceText ) )
                     return;
-#endif
+
                 // Get the first object
                 Word word = this._corrections[index];
 
@@ -1312,7 +1311,7 @@ internal sealed class ScratchPadUI : Window
                     while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
                     {
                         data->CursorPos++;
-                        PluginLog.LogVerbose( $"Moved cursor to the right." );
+                        Wordsmith.PluginLog.Verbose( $"Moved cursor to the right." );
                     }
                 }
                 if ( data->CursorPos > 0 )
@@ -1320,7 +1319,7 @@ internal sealed class ScratchPadUI : Window
                     while ( data->CursorPos > 0 && data->Buf[data->CursorPos - 1] == '\r' )
                     {
                         data->CursorPos--;
-                        PluginLog.LogVerbose( "Moved cursor to the left." );
+                        Wordsmith.PluginLog.Verbose( "Moved cursor to the left." );
                     }
                 }
             }
@@ -1637,9 +1636,6 @@ internal sealed class ScratchPadUI : Window
     /// <param name="state"></param>
     private void LoadState(PadState state)
     {
-        // Get the current pad state
-        PadState snapshot = new( this );
-
         // Revert to given padstate
         this._header = state.Header!;
         this.ScratchString = state.ScratchText;

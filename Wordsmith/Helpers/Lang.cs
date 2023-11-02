@@ -47,15 +47,13 @@ public static class Lang
 
     private static void ValidateConfiguration()
     {
-        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^web: .+" );
+        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^(?:web|local):\s.+" );
+
+        // If the configuration does not have a web or local setting, set to default.
         if ( !m.Success )
         {
-            m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^local: .+" );
-            if ( !m.Success )
-            {
-                Wordsmith.Configuration.DictionaryFile = "web: lang_en";
-                Wordsmith.Configuration.Save();
-            }
+            Wordsmith.Configuration.DictionaryFile = "web: lang_en";
+            Wordsmith.Configuration.Save();
         }
     }
 
@@ -108,7 +106,10 @@ public static class Lang
     {
         Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:web: )*(.+)");
         if (!m.Success)
+        {
+            Wordsmith.PluginLog.Debug( $"Wordsmith is not configured for web dictionary file. Skipping LoadWebLanguage()" );
             return false;
+        }
 
         string title = m.Groups[1].Value;
 
@@ -133,14 +134,14 @@ public static class Lang
         catch (HttpRequestException e)
         {
             if (e.StatusCode != System.Net.HttpStatusCode.OK)
-                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}");
+                Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}. Http Status Code: {e.StatusCode}");
             else
-                PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+                Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
         catch (Exception e)
         {
-            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+            Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
             return false;
         }
     }
@@ -151,8 +152,11 @@ public static class Lang
     private static bool LoadLanguageFile()
     {
         Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:local: )*(.+)");
-        if (!m.Success)
+        if ( !m.Success )
+        {
+            Wordsmith.PluginLog.Debug( $"Not configured for local language file. Skipping LoadLanguageFile()." );
             return false;
+        }
 
         string title = m.Groups[1].Value;
 
@@ -177,7 +181,7 @@ public static class Lang
         }
         catch (Exception e)
         {
-            PluginLog.LogError($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
+            Wordsmith.PluginLog.Error($"Unable to load language from {Wordsmith.Configuration.DictionaryFile}.\n{e}");
         }
         return false;
     }
@@ -245,7 +249,7 @@ public static class Lang
         void AddResults(Task<List<string>> t)
         {
             int index = 0;
-            while ( results.Count() <= Wordsmith.Configuration.MaximumSuggestions && index < t.Result.Count() && isWord( t.Result[index] ) )
+            while ( results.Count <= Wordsmith.Configuration.MaximumSuggestions && index < t.Result.Count && isWord( t.Result[index] ) )
                 results.Add( t.Result[index++] );
         }
         // Collect the transposes.
@@ -346,7 +350,7 @@ public static class Lang
                         if ( "aAeEiIoOuUyY".Contains( chars[x] ) == (z == 0) )
                         {
                             chars[x] = letters[y];
-                            string test = new string(chars);
+                            string test = new(chars);
 
                             if ( (!filter || isWord( test )) && !results.Contains( test ) )
                                 results.Add( isCapped ? test.CaplitalizeFirst() : test );
@@ -382,14 +386,14 @@ public static class Lang
 
             if ( depth > 1 )
             {
-                List<string> parents = new List<string>(results);
+                List<string> parents = new(results);
                 foreach ( string s in parents )
                     results.AddRange( GenerateAway( s, depth - 1, isCapped, depth > 2 ) );
             }
         }
         catch ( Exception e )
         {
-            PluginLog.LogError( e.ToString() );
+            Wordsmith.PluginLog.Error( e.ToString() );
         }
         return results;
     }

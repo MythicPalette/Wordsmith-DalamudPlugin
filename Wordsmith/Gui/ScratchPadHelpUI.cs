@@ -1,24 +1,25 @@
-﻿using Dalamud.Interface;
+﻿using Dalamud.Interface.Internal;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility;
 using ImGuiNET;
 
 namespace Wordsmith.Gui;
 
 internal sealed class ScratchPadHelpUI : Window
 {
-    internal static ImGuiScene.TextureWrap? MerriamWebsterLogo = null;
+    internal static IDalamudTextureWrap? MerriamWebsterLogo = null;
 
-    internal ScratchPadHelpUI() : base($"{Wordsmith.AppName} - Help")
+    internal ScratchPadHelpUI() : base($"{Wordsmith.APPNAME} - Help")
     {
-        SizeConstraints = new()
+        this.SizeConstraints = new()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(300, 450),
-            MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
+            MinimumSize = new( 300, 450 ),
+            MaximumSize = new( 9999, 9999 )
         };
     }
     public override void Draw()
     {
-        if (ImGui.BeginTabBar($"{Wordsmith.AppName}HelpTabBar"))
+        if (ImGui.BeginTabBar($"{Wordsmith.APPNAME}HelpTabBar"))
         {
             // General tab.
             if (ImGui.BeginTabItem($"General##HelpTabBarItem"))

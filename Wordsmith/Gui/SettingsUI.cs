@@ -1,5 +1,6 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
+using Dalamud.Interface.Utility;
 using ImGuiNET;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
@@ -71,7 +72,7 @@ internal sealed class SettingsUI : Window
 
     private ImGuiStylePtr _style = ImGui.GetStyle();
 
-    internal static string GetWindowName() => $"{Wordsmith.AppName} - Settings";
+    internal static string GetWindowName() => $"{Wordsmith.APPNAME} - Settings";
 
     public SettingsUI() : base( GetWindowName() )
     {
@@ -80,8 +81,8 @@ internal sealed class SettingsUI : Window
         //Size = new(375, 350);
         this.SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = ImGuiHelpers.ScaledVector2(510, 450),
-            MaximumSize = ImGuiHelpers.ScaledVector2(9999, 9999)
+            MinimumSize = new( 510, 450 ),
+            MaximumSize = new( 9999, 9999 )
         };
 
         this.Flags |= ImGuiWindowFlags.NoScrollbar;
@@ -95,7 +96,7 @@ internal sealed class SettingsUI : Window
         if (!this.IsOpen)
             WordsmithUI.RemoveWindow(this);
         if ( Wordsmith.Configuration.RecentlySaved )
-            this.ResetValues();
+            ResetValues();
     }
 
     public override void Draw()
@@ -707,7 +708,6 @@ internal sealed class SettingsUI : Window
                                         OnException( e );
                                     }
                                 }
-
                             }
                             ImGui.EndTable();
                         }
@@ -820,7 +820,7 @@ internal sealed class SettingsUI : Window
                             this._headerAliases[i] = new( alias.ChatType, output.ToLower().Trim( '\'', '/', ' ', '\r', '\n' ), alias.Data );
 
                         ImGui.TableNextColumn();
-                        if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( Wordsmith.BUTTON_Y.Scale(), Wordsmith.BUTTON_Y.Scale() ) ))
+                        if ( ImGui.Button( $"X##{chatTypeName}Alias{alias}", ImGuiHelpers.ScaledVector2( Wordsmith.BUTTON_Y, Wordsmith.BUTTON_Y ) ))
                             this._headerAliases.RemoveAt( i-- );
                     }
                     #endregion
@@ -876,7 +876,7 @@ internal sealed class SettingsUI : Window
                     // Put the + button. Disable until valid data is entered.
                     if ( !bEnableAddAlias )
                         ImGui.BeginDisabled();
-                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( Wordsmith.BUTTON_Y.Scale(), Wordsmith.BUTTON_Y.Scale() ) );
+                    add |= ImGui.Button( "+##NewAliasAddButton", ImGuiHelpers.ScaledVector2( Wordsmith.BUTTON_Y, Wordsmith.BUTTON_Y ) );
                     if ( !bEnableAddAlias )
                         ImGui.EndDisabled();
 
@@ -976,7 +976,7 @@ internal sealed class SettingsUI : Window
 
                 // Dictionaries
 
-                List<string> dictionaries = new List<string>();
+                List<string> dictionaries = new();
 
                 // Add the dictionaries from the web manifest.
                 foreach ( string s in Wordsmith.WebManifest.Dictionaries )
@@ -1042,9 +1042,9 @@ internal sealed class SettingsUI : Window
 
                     // Delete all
                     ImGui.TableNextColumn();
-                    if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", ImGuiHelpers.ScaledVector2(-1, Wordsmith.BUTTON_Y.Scale() ) ))
+                    if (ImGui.Button("Delete All##DeleteAllDictionaryEntriesButton", new(-1, Wordsmith.BUTTON_Y.Scale() ) ))
                         WordsmithUI.ShowMessageBox(
-                            $"{Wordsmith.AppName} - Reset Dictionary",
+                            $"{Wordsmith.APPNAME} - Reset Dictionary",
                             "This will delete all entries that you added to the\ndictionary.This cannot be undone.\nProceed?",
                             MessageBox.ButtonStyle.OkCancel,
                             ( mb ) => {
@@ -1064,7 +1064,7 @@ internal sealed class SettingsUI : Window
                         ImGui.Text(Wordsmith.Configuration.CustomDictionaryEntries[i]);
 
                         ImGui.TableNextColumn();
-                        if ( ImGui.Button( $"Delete##CustomDictionaryDelete{i}Buttom", ImGuiHelpers.ScaledVector2( -1, Wordsmith.BUTTON_Y.Scale() ) ) )
+                        if ( ImGui.Button( $"Delete##CustomDictionaryDelete{i}Buttom", new( -1, Wordsmith.BUTTON_Y.Scale() ) ) )
                             sRemoveEntry = Wordsmith.Configuration.CustomDictionaryEntries[i]; //Lang.RemoveDictionaryEntry( Wordsmith.Configuration.CustomDictionaryEntries[i] );
 
                         ImGuiExt.SetHoveredTooltip($"Permanently deletes {Wordsmith.Configuration.CustomDictionaryEntries[i]} from your custom dictionary.");
@@ -1218,9 +1218,10 @@ internal sealed class SettingsUI : Window
 
     private void DrawFooter()
     {
-        if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 5))
+        if (ImGui.BeginTable("SettingsUISaveCloseCancelButtonTable", 6))
         {
-            ImGui.TableSetupColumn( "SettingsUIKoFiButtonColumn", ImGuiTableColumnFlags.WidthFixed, 200 * ImGuiHelpers.GlobalScale );
+            ImGui.TableSetupColumn( "SettingsUIFoundBugColumn", ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale );
+            ImGui.TableSetupColumn( "SettingsUIKoFiButtonColumn", ImGuiTableColumnFlags.WidthFixed, 100 * ImGuiHelpers.GlobalScale );
             ImGui.TableSetupColumn( "SettingsUITableSpacerColumn", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn( "SettingsUISaveAndCloseButtonColumn", ImGuiTableColumnFlags.WidthFixed, 70 * ImGuiHelpers.GlobalScale );
             ImGui.TableSetupColumn( "SettingsUIDefaultsButtonColumn", ImGuiTableColumnFlags.WidthFixed, 70 * ImGuiHelpers.GlobalScale );
@@ -1230,7 +1231,7 @@ internal sealed class SettingsUI : Window
 
             // Leave the first column blank for spacing.
             ImGui.TableNextColumn();
-            if ( ImGui.Button( $"Found A Bug?" ) )
+            if ( ImGui.Button( $"Found A Bug?", new(-1, Wordsmith.BUTTON_Y.Scale() ) ))
             {
                 WordsmithUI.ShowMessageBox( "Found a bug?", "If you found a bug, please post as much useful information as possible.\nThe more you are able to share with me the faster I can find the problem and fix it.\nUseful information could be:\n\t* Screenshots\n\t* Description of what you were doing\n\t* Number of pads open\n\t* Dalamud.log file\n\t* Wordsmith.json config file\n\nGo to GitHub to report the bug?", MessageBox.ButtonStyle.YesNo, (m) =>
                 {
@@ -1238,12 +1239,13 @@ internal sealed class SettingsUI : Window
                         System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/LadyDefile/Wordsmith-DalamudPlugin/issues" ) { UseShellExecute = true } );
                 } );                
             }
-            ImGui.SameLine();
+
+            ImGui.TableNextColumn();
 
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.5f, 0, 0, 1f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.5f, 0.3f, 0.3f, 1f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.3f, 0.1f, 0.1f, 1f));
-            if (ImGui.Button("Buy Me A Ko-Fi##SettingsUIBuyAKoFiButton", ImGuiHelpers.ScaledVector2(-1, Wordsmith.BUTTON_Y.Scale() ) ))
+            if (ImGui.Button("Buy Me A Ko-Fi##SettingsUIBuyAKoFiButton", new(-1, Wordsmith.BUTTON_Y.Scale() ) ))
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://ko-fi.com/ladydefile") { UseShellExecute = true });
             ImGuiExt.SetHoveredTooltip( $"This is a donation/tip button. This is absolutely not required at all.\nWhile I work hard to make Wordsmith the best I can, I do so out of passion\nand not for money. That being said, if you would like to support me then\nthank you so, so much. It's super appreciated." );
             ImGui.PopStyleColor(3);
@@ -1252,14 +1254,14 @@ internal sealed class SettingsUI : Window
             ImGui.TableNextColumn();
             ImGui.TableNextColumn();
             // Save and close buttons
-            if (ImGui.Button("Apply", ImGuiHelpers.ScaledVector2(-1, Wordsmith.BUTTON_Y.Scale() ) ))
+            if (ImGui.Button("Apply", new( -1, Wordsmith.BUTTON_Y.Scale() ) ))
                 Save();
 
             ImGui.TableNextColumn();
             // Reset settings to default.
-            if (ImGui.Button("Defaults", ImGuiHelpers.ScaledVector2(-1, Wordsmith.BUTTON_Y.Scale() ) ))
+            if (ImGui.Button("Defaults", new( -1, Wordsmith.BUTTON_Y.Scale() ) ))
             {
-                WordsmithUI.ShowMessageBox( $"{Wordsmith.AppName} - Restore Default Settings",
+                WordsmithUI.ShowMessageBox( $"{Wordsmith.APPNAME} - Restore Default Settings",
                     "Restoring defaults resets all settings to their original values\n(not including words added to your dictionary).\nProceed?",
                     buttonStyle: MessageBox.ButtonStyle.OkCancel,
                     ( mb ) =>
@@ -1274,7 +1276,7 @@ internal sealed class SettingsUI : Window
 
             ImGui.TableNextColumn();
             // Cancel button
-            if (ImGui.Button("Close", ImGuiHelpers.ScaledVector2(-1, Wordsmith.BUTTON_Y.Scale() ) ))
+            if (ImGui.Button("Close", new( -1, Wordsmith.BUTTON_Y.Scale() ) ))
                 this.IsOpen = false;
 
             ImGui.EndTable();
@@ -1289,7 +1291,7 @@ internal sealed class SettingsUI : Window
 
     public void OnException(Exception e)
     {
-        PluginLog.LogError( e.ToString() );
+        Wordsmith.PluginLog.Error( e.ToString() );
         this.IsOpen = false;
         Dictionary<string, object> dump = this.Dump();
         dump["Exception"] = new Dictionary<string, object>()

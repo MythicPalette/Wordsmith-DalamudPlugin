@@ -317,31 +317,31 @@ internal sealed class HeaderData
             string rtn;
 
             // If there is no chat type, just return the empty string
-            if (ChatType == ChatType.None)
-                rtn = ChatType.GetShortHeader();
+            if (this.ChatType == ChatType.None)
+                rtn = this.ChatType.GetShortHeader();
 
             // If the chat type is linkshell, return the specific linkshell.
-            else if ( ChatType == ChatType.Linkshell )
-                rtn = $"/{(CrossWorld ? "cw" : "")}linkshell{Linkshell + 1}";
+            else if ( this.ChatType == ChatType.Linkshell )
+                rtn = $"/{(this.CrossWorld ? "cw" : "")}linkshell{this.Linkshell + 1}";
 
             // Get the long or short header based on the bool.
             else
-                rtn = this._useLongName ? ChatType.GetLongHeader() : ChatType.GetShortHeader();
+                rtn = this._useLongName ? this.ChatType.GetLongHeader() : this.ChatType.GetShortHeader();
 
             // If ChatType is Tell append the target name
-            if ( ChatType == ChatType.Tell )
-                rtn += $" {TellTarget}";
+            if ( this.ChatType == ChatType.Tell )
+                rtn += $" {this.TellTarget}";
 
             return rtn;
         }
     }
 
-    public int Length => Headstring.Length;
+    public int Length => this.Headstring.Length;
     public int AliasLength => this._alias.Length > 0 ? this._alias.Length+1 : -1;
 
     public bool Valid { get; private set; }
 
-    public HeaderData(bool valid) { Valid = valid; }
+    public HeaderData(bool valid) { this.Valid = valid; }
 
     public HeaderData(string headstring)
     {
@@ -431,7 +431,7 @@ internal sealed class HeaderData
         this.Valid = true;
     }
 
-    public override string ToString() => Headstring;
+    public override string ToString() => this.Headstring;
 }
 
 /// <summary>
@@ -509,12 +509,12 @@ internal sealed class TextChunk
     /// <summary>
     /// Text split into words.
     /// </summary>
-    internal List<Word> Words => Text.Words();
+    internal List<Word> Words => this.Text.Words();
 
     /// <summary>
     /// The number of words in the text chunk.
     /// </summary>
-    internal int WordCount => Words.Count();
+    internal int WordCount => this.Words.Count;
 
     internal string ContinuationMarker = "";
 
@@ -540,7 +540,7 @@ internal sealed class TextChunk
     /// Default constructor.
     /// </summary>
     /// <param name="text">The text that forms the chunk.</param>
-    internal TextChunk( string text ) { Text = text; }
+    internal TextChunk( string text ) { this.Text = text; }
 }
 
 internal sealed class ThesaurusEntry : WordEntry
@@ -550,7 +550,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all synonyms.
     /// </summary>
     public IReadOnlyList<string> Synonyms { get => _syn; }
-    private List<string> _syn = new List<string>();
+    private List<string> _syn = new();
 
     /// <summary>
     /// Adds a synonym to the list.
@@ -567,7 +567,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// <summary>
     /// Returns all synonyms joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string SynonymString => string.Join(", ", Synonyms ?? new string[] { });
+    public string SynonymString => string.Join(", ", this.Synonyms ?? Array.Empty<string>());
     #endregion
 
     #region Related
@@ -575,7 +575,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all related words.
     /// </summary>
     public IReadOnlyList<string> Related { get => _rel; }
-    private List<string> _rel = new List<string>();
+    private List<string> _rel = new();
 
     /// <summary>
     /// Adds a related word to the list.
@@ -592,7 +592,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// <summary>
     /// Returns all related words joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string RelatedString => string.Join(", ", Related ?? new string[] { });
+    public string RelatedString => string.Join(", ", this.Related ?? Array.Empty<string>() );
     #endregion
 
     #region Near Antonyms
@@ -600,7 +600,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all near antonyms.
     /// </summary>
     public IReadOnlyList<string> NearAntonyms { get => _near; }
-    private List<string> _near = new List<string>();
+    private List<string> _near = new();
 
     /// <summary>
     /// Adds a near antonyms to the list.
@@ -617,7 +617,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// <summary>
     /// Returns all near antonyms joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string NearAntonymString => string.Join(", ", NearAntonyms ?? new string[] { });
+    public string NearAntonymString => string.Join(", ", this.NearAntonyms ?? Array.Empty<string>() );
     #endregion
 
     #region Antonyms
@@ -625,7 +625,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all antonyms.
     /// </summary>
     public IReadOnlyList<string> Antonyms { get => _ant; }
-    private List<string> _ant = new List<string>();
+    private List<string> _ant = new();
 
     /// <summary>
     /// Adds a antonym to the list.
@@ -642,7 +642,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// <summary>
     /// Returns all antonyms joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string AntonymString => string.Join(", ", Antonyms ?? new string[] { });
+    public string AntonymString => string.Join(", ", this.Antonyms ?? Array.Empty<string>() );
     #endregion
 }
 
@@ -673,13 +673,13 @@ internal struct Rect
     /// Returns the <see cref="Vector2"/> coordinates of the
     /// upper left corner of the rectangle
     /// </summary>
-    public Vector2 Position => new Vector2( Left, Top );
+    public Vector2 Position => new( Left, Top );
 
     /// <summary>
     /// Returns the size of the rectangle as a <see cref="Vector2"/>
     /// where X is width and Y is height.
     /// </summary>
-    public Vector2 Size => new Vector2( Right - Left, Bottom - Top );
+    public Vector2 Size => new( Right - Left, Bottom - Top );
 
     /// <summary>
     /// Determines whether or not a <see cref="Vector2"/> coordinate is within
@@ -886,7 +886,7 @@ internal sealed class WordSearchResult
     /// <summary>
     /// A list of all WordEntries that hold the word variant data.
     /// </summary>
-    private List<WordEntry> _entries = new List<WordEntry>();
+    private List<WordEntry> _entries = new();
 
     /// <summary>
     /// An array of all word variant entries.
@@ -911,7 +911,7 @@ internal sealed class WordSearchResult
     /// <param name="query">The string that was searched.</param>
     public WordSearchResult(string query)
     {
-        Query = query;
+        this.Query = query;
         ID = ++_nextid;
     }
 }

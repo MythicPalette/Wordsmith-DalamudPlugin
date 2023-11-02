@@ -5,9 +5,9 @@ namespace Wordsmith.Gui;
 
 internal sealed class ErrorWindow : MessageBox
 {
-    private const string message = "Wordsmith has encountered an error.\nCopy error dump to clipboard and open bug report page?\n\nWARNING: I WILL be able to see anything and everything\ntyped as part of the log.";
-    internal Dictionary<string, object> ErrorDump = new Dictionary<string, object>();
-    public ErrorWindow( Dictionary<string, object> dump ) : base( $"Wordsmith Error", message, ButtonStyle.YesNo, Callback) { this.ErrorDump = dump; }
+    private const string MESSAGE = "Wordsmith has encountered an error.\nCopy error dump to clipboard and open bug report page?\n\nWARNING: I WILL be able to see anything and everything\ntyped as part of the log.";
+    internal Dictionary<string, object> ErrorDump = new();
+    public ErrorWindow( Dictionary<string, object> dump ) : base( $"Wordsmith Error", MESSAGE, ButtonStyle.YesNo, Callback) { this.ErrorDump = dump; }
 
     public static void Callback(MessageBox mb)
     {
@@ -28,7 +28,7 @@ internal sealed class ErrorWindow : MessageBox
             }
             catch ( Exception e )
             {
-                PluginLog.LogError( e.ToString() );
+                Wordsmith.PluginLog.Error( e.ToString() );
             }
         }
         WordsmithUI.RemoveWindow( mb );

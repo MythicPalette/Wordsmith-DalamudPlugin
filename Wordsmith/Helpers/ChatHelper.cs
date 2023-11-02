@@ -7,7 +7,7 @@ internal sealed class ChatHelper
     /// <summary>
     /// Buffer zone to protect the size of the text.
     /// </summary>
-    private const int _safety = 10;
+    private const int SAFETY = 10;
     /// <summary>
     /// Takes inputs and returns it as a collection of strings that are ready to be sent, all under 500 bytes.
     /// </summary>
@@ -20,7 +20,7 @@ internal sealed class ChatHelper
 
         // Get the number of bytes taken by the header.
         // We then cut the bytes out required for the safety zone, header, continuation marker, and OOC tags.
-        int iMaxByteWidth = 480 - _safety - encoder.GetByteCount($"{header} ") - encoder.GetByteCount($"{Wordsmith.Configuration.ContinuationMarker}");
+        int iMaxByteWidth = 480 - SAFETY - encoder.GetByteCount($"{header} ") - encoder.GetByteCount($"{Wordsmith.Configuration.ContinuationMarker}");
 
         // If the user has enabled OOC then subtract the byte length of the opening and closing tags
         // from the available byte length.
@@ -80,11 +80,8 @@ internal sealed class ChatHelper
                 throw new Exception( "Too many markers. Unable to fit text body." );
 
             // Get the current possible string.
-            string? substring = GetSubstringByByteCount(text, offset, iMaxByteWidth - iMarkerWidth);
-
-            // If the string comes back null, throw an error.
-            if ( substring == null )
-                throw new Exception( "substring is null" );
+            string? substring = GetSubstringByByteCount(text, offset, iMaxByteWidth - iMarkerWidth)
+                ?? throw new Exception( "substring is null" );
 
             if ( substring.Length == 0 )
                 throw new Exception( "Failed to retrieve a valid substring." );
@@ -130,7 +127,7 @@ internal sealed class ChatHelper
             throw new IndexOutOfRangeException();
 
         // Designate a text encoder so we don't reinitialize a new one every time.
-        UTF8Encoding encoder = new UTF8Encoding();
+        UTF8Encoding encoder = new();
 
         // Create a variable to hold the last known space and last known sentence marker
         int lastSpace = -1;

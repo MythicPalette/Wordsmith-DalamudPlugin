@@ -44,6 +44,8 @@ internal static class WordsmithUI
     private static List<Window> _add_queue = new();
     #endregion
 
+    private static Window? GetWindowByName( string name ) => _windowSystem.Windows.FirstOrDefault( x => x.WindowName == name );
+
     /// <summary>
     /// Adds a window object to the <see cref="WindowSystem"/>.
     /// If the window lock is engaged the window will be stored in a
@@ -57,7 +59,7 @@ internal static class WordsmithUI
             return;
 
         // Check if the Window already exists.
-        Window? w_test = _windowSystem.GetWindow(w.WindowName);
+        Window? w_test = GetWindowByName(w.WindowName);
 
         // If the window already exists in the Window System show the
         // existing Window and dispose of the given Window object.
@@ -108,7 +110,7 @@ internal static class WordsmithUI
     /// </summary>
     /// <param name="windowName"><see cref="string"/> name of the Window.</param>
     /// <returns><see langword="true"/> if the <see cref="Window"/> exists.</returns>
-    internal static bool Contains( string windowName ) => _windowSystem.GetWindow( windowName ) != null;
+    internal static bool Contains( string windowName ) => GetWindowByName( windowName ) != null;
 
     /// <summary>
     /// Disposes of all child objects.
@@ -164,7 +166,7 @@ internal static class WordsmithUI
                     w.IsOpen = false;
             }
             // Log the error.
-            PluginLog.LogError( $"There was an exception in the WindowSystem draw process. All windows have been hidden for now.\nError: {e}\nMessage: {e.Message}" );
+            Wordsmith.PluginLog.Error( $"There was an exception in the WindowSystem draw process. All windows have been hidden for now.\nError: {e}\nMessage: {e.Message}" );
 
             // Attempt to add an error window to be displayed. If it fails to draw we'll end up back here anyway.
             if ( !Contains("WordsmithUI Error") )
@@ -186,7 +188,7 @@ internal static class WordsmithUI
         }
     }
 
-    internal static Window? GetWindow( string name ) => _windowSystem.GetWindow( name );
+    internal static Window? GetWindow( string name ) => GetWindowByName( name );
 
     /// <summary>
     /// Removes the window from the <see cref="WindowSystem"/> and <see cref="List{T}"/>.
@@ -209,7 +211,7 @@ internal static class WordsmithUI
             }
             catch ( Exception e )
             {
-                PluginLog.LogError( $"ERROR: {e.Message}\n{e}" );
+                Wordsmith.PluginLog.Error( $"ERROR: {e.Message}\n{e}" );
             }
         }
         // If the windows are locked queue deletion for next cycle
