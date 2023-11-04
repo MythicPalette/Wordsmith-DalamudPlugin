@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Reflection;
+using System.Security.Cryptography;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
@@ -536,82 +537,36 @@ internal static class Extensions
     /// <returns><see cref="Word"/> array containing all words in the <see cref="string"/>.</returns>
     internal static List<Word> Words( this string s )
     {
-        if ( s.Length == 0 )
-            return new();
+        // Create the word regex.
+        Regex re = new(@"[^\w\s]*(?<word>(?<body>[A-Za-z0-9]+)(?<tail>['-:]+[A-Za-z0-9]+)?)?[^A-Za-z0-9\s]*");
 
-        List<Word> words = new();
+        // Get all of the word segments.
+        MatchCollection matches = re.Matches(s);
 
-        // The start of the current word
-        int start = 0;
+        // Prepare the results
+        List<Word> results = new();
 
-        // The end of the current word
-        int len = 1;
-
-        while ( start + len <= s.Length )
+        // Extract the data from each match
+        foreach ( Match m in matches )
         {
-            // Scoot the starting point until we've skipped all spaces, return carriage, and newline characters.
-            while ( start < s.Length && " \r\n".Contains( s[start] ) )
-                ++start;
-
-            // If the start has gone all the way to the end, leave the loop.
-            if ( start == s.Length )
-                break;
-
-            // If the word finishes the string or it contains a whitespace character
-            if ( start + len == s.Length || " \r\n".Contains( s[start + len] ) )
-            {
-                // Where the word starts compared to included punctuation
-                int wordoffset = 0;
-
-                // The length of the word offset.
-                int wordlenoffset = 0;
-
-                // If the word starting index is a punctuation character then we scoot the word offset forward up to the entire
-                // length of the current string.
-                while ( start + wordoffset < s.Length && Wordsmith.Configuration.PunctuationCleaningList.Contains( s[start + wordoffset] ) && wordoffset <= len )
-                    ++wordoffset;
-
-                // Default to false hyphen termination.
-                bool hyphen = false;
-
-                // If the word ends with a punctuation character then we scoot the word offset left up to the point that
-                // the offset puts us at -1 word length. This will happen when the word has no letters.
-                while ( start + len - wordlenoffset - 1 > -1 && $"-{Wordsmith.Configuration.PunctuationCleaningList}".Contains( s[start + len - wordlenoffset - 1] ) && wordoffset <= len )
-                {
-                    // If the character is a hyphen, flag it as true.
-                    if ( s[start + len - wordlenoffset - 1] == '-' )
-                        hyphen = true;
-
-                    // If the character is not a hyphen, flag it as false.
-                    else
-                        hyphen = false;
-
-                    ++wordlenoffset;
-                }
-
-                // Add the start offset to the len offset to account for the lost length at the start.
-                wordlenoffset += wordoffset;
-
-                // When we create the word we add the offset to ensure that we
-                // adjust the position as needed.
-                Word w = new()
-                {
-                    StartIndex = start,
-                    EndIndex = start + len,
-                    WordIndex = start+wordoffset,
-                    WordLength = len-wordlenoffset,
-                    HyphenTerminated = hyphen
-                };
-
-                words.Add( w );
-                start += len;
-                len = 1;
-
+            if ( m.Length == 0 )
                 continue;
+
+            Word w = new()
+            {
+                StartIndex = m.Index,
+                EndIndex = m.Index + m.Length,
+                WordIndex = m.Groups["word"].Success ? m.Groups["word"].Index : -1,
+                WordLength = m.Groups["word"].Success ? m.Groups["word"].Length : 0
+            };
+            if (w.WordEndIndex < w.EndIndex && w.WordLength > 0)
+            {
+                if ( s[w.WordEndIndex] == '-' )
+                    w.HyphenTerminated = true;
             }
-            ++len;
+            results.Add( w );
         }
-        return words;
+        return results;
     }
 
     /// <summary>
