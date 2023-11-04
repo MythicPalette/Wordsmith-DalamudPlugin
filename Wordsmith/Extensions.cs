@@ -598,8 +598,8 @@ internal static class Extensions
                 {
                     StartIndex = start,
                     EndIndex = start + len,
-                    WordIndex = start+wordoffset,
-                    WordLength = len-wordlenoffset,
+                    WordIndex = len-wordlenoffset > 0 ? start+wordoffset : 0,
+                    WordLength = len-wordlenoffset > 0 ? len-wordlenoffset : 0,
                     HyphenTerminated = hyphen
                 };
 
