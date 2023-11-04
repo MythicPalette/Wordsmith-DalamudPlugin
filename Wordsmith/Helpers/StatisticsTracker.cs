@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,16 +12,25 @@ internal class StatisticsTracker
 
     internal void TallyWord( string line, Word word)
     {
-        if ( word.WordLength == 0 )
+        try
         {
-            Wordsmith.PluginLog.Error( $"Word has a length of zero." );
+            if ( word.WordLength == 0 || word.WordEndIndex - word.WordIndex < 1 )
+            {
+                Wordsmith.PluginLog.Verbose( $"Word has a length of zero. ([{word.StartIndex}..{word.EndIndex}] {line[word.StartIndex..word.EndIndex]}\")" );
+                return;
+            }
+
+            string w = line[word.WordIndex..word.WordEndIndex];
+            if ( !this._word_usage_count.ContainsKey( w.ToLower() ) )
+                this._word_usage_count[w.ToLower()] = 1;
+            else
+                this._word_usage_count[w.ToLower()]++;
+        }
+        catch (Exception e)
+        {
+            Wordsmith.PluginLog.Error( $"Failed to Tally Word \"[{word.StartIndex}..{word.EndIndex}]{line[word.StartIndex..word.EndIndex]}\"" );
             return;
         }
-        string w = line[word.WordIndex..word.WordEndIndex];
-        if ( !this._word_usage_count.ContainsKey( w.ToLower() ) )
-            this._word_usage_count[w.ToLower()] = 1;
-        else
-            this._word_usage_count[w.ToLower()]++;
     }
 
     internal void TallyWords( string line, IEnumerable<Word> words)
