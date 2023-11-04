@@ -541,8 +541,12 @@ internal static class Extensions
 
         List<Word> words = new();
 
+        // The start of the current word
         int start = 0;
+
+        // The end of the current word
         int len = 1;
+
         while ( start + len <= s.Length )
         {
             // Scoot the starting point until we've skipped all spaces, return carriage, and newline characters.
@@ -553,10 +557,15 @@ internal static class Extensions
             if ( start == s.Length )
                 break;
 
+            // If the word finishes the string or it contains a whitespace character
             if ( start + len == s.Length || " \r\n".Contains( s[start + len] ) )
             {
+                // Where the word starts compared to included punctuation
                 int wordoffset = 0;
+
+                // The length of the word offset.
                 int wordlenoffset = 0;
+
                 // If the word starting index is a punctuation character then we scoot the word offset forward up to the entire
                 // length of the current string.
                 while ( start + wordoffset < s.Length && Wordsmith.Configuration.PunctuationCleaningList.Contains( s[start + wordoffset] ) && wordoffset <= len )
