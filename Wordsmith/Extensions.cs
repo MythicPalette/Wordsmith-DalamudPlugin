@@ -248,6 +248,7 @@ internal static class Extensions
 
         Dictionary<string, object> result = new()
         {
+            ["Version"] = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown",
             ["Type"] = obj.GetType().ToString()
         };
 
