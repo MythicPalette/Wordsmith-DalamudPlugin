@@ -1034,7 +1034,14 @@ internal sealed class ScratchPadUI : Window
                             ImGui.SetClipboardText( string.Join( '\n', text ) );
 
                             // Notify the user that the text was copied.
-                            Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+                            //Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
+
+                            Wordsmith.NotificationManager.AddNotification(new()
+                            {
+                                Content = "Copied text to clipboard!",
+                                Title = "Wordsmith",
+                                Type = Dalamud.Interface.ImGuiNotification.NotificationType.Success
+                            });
                         }
 
                         // Close the popup

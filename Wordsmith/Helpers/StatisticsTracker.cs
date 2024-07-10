@@ -26,7 +26,7 @@ internal class StatisticsTracker
             else
                 this._word_usage_count[w.ToLower()]++;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             Wordsmith.PluginLog.Error( $"Failed to Tally Word \"[{word.StartIndex}..{word.EndIndex}]{line[word.StartIndex..word.EndIndex]}\"" );
             return;

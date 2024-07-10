@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 using Dalamud.Configuration;
+using Dalamud.Plugin.Services;
 
 namespace Wordsmith;
 
@@ -248,7 +249,13 @@ public sealed class Configuration : IPluginConfiguration
     {
         Wordsmith.PluginInterface.SavePluginConfig(this);
         if (notify)
-            Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+            Wordsmith.NotificationManager.AddNotification(new()
+            {
+                Content = "Configuration saved!",
+                Title = "Wordsmith",
+                Type = Dalamud.Interface.ImGuiNotification.NotificationType.Success
+            });
+            //Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
         this.RecentlySaved = true;
     }
 }

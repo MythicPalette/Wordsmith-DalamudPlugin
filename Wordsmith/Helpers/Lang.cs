@@ -80,7 +80,13 @@ public static class Lang
 
             // If both failed to load then present the failure notification
             if (!loaded)
-                Wordsmith.PluginInterface.UiBuilder.AddNotification($"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning);
+                Wordsmith.NotificationManager.AddNotification(new()
+                {
+                    Content = $"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.",
+                    Title = "Wordsmith",
+                    Type = Dalamud.Interface.ImGuiNotification.NotificationType.Warning
+                });
+            //Wordsmith.PluginInterface.UiBuilder.AddNotification($"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning);
 
             else
             {
@@ -90,7 +96,13 @@ public static class Lang
 
                 Enabled = true;
                 if (notify)
-                    Wordsmith.PluginInterface.UiBuilder.AddNotification($"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+                    Wordsmith.NotificationManager.AddNotification(new()
+                    {
+                        Content = $"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.",
+                        Title = "Wordsmith",
+                        Type = Dalamud.Interface.ImGuiNotification.NotificationType.Success
+                    });
+                //Wordsmith.PluginInterface.UiBuilder.AddNotification($"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
             }
         });
         t.Start();

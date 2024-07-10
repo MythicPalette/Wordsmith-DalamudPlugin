@@ -41,6 +41,8 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Wordsmith.Gui;
 using Wordsmith.Helpers;
+using System.Threading;
+using Dalamud.Interface;
 
 namespace Wordsmith;
 
@@ -87,7 +89,7 @@ public sealed class Wordsmith : IDalamudPlugin
     // All plugin services are automatically populated by Dalamud. These are important
     // classes that are used to directly interface with the plugin API.
     [PluginService]
-    internal static DalamudPluginInterface PluginInterface { get; private set; } = null!;
+    internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
 
     [PluginService]
     internal static ICommandManager CommandManager { get; private set; } = null!;
@@ -98,6 +100,13 @@ public sealed class Wordsmith : IDalamudPlugin
 
     [PluginService]
     internal static IPluginLog PluginLog { get; private set; } = null!;
+
+    [PluginService]
+    internal static ITextureProvider TextureProvider { get; private set; } = null!;
+
+    [PluginService]
+    internal static INotificationManager NotificationManager { get; private set; } = null!;
+
 
     /// <summary>
     /// <see cref="Configuration"/> holding all configurable data for the plugin.
@@ -118,10 +127,7 @@ public sealed class Wordsmith : IDalamudPlugin
         // Get the configuration.
         Configuration = PluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
 
-        // Try to load the Merriam-Webster logo if the file exists. It should be in the correct location
-        // but it should always be verified beforehand.
-        if ( File.Exists( Path.Combine( PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ) ) )
-            ScratchPadHelpUI.MerriamWebsterLogo = PluginInterface.UiBuilder.LoadImage( Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ));
+        //PluginInterface.UiBuilder.LoadImage( Path.Combine(PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png" ));
 
         // Add commands for the different windows
         // Note that the first two use inline functions but scratch pads require a little text parsing.
@@ -131,6 +137,9 @@ public sealed class Wordsmith : IDalamudPlugin
         {
             HelpMessage = "Opens or creates a scratch pad. Follow with a number or custom name if you like. (i.e. \"/scratchpad 5\" or \"/scratchpad Juliet\")"
         });
+
+        PluginInterface.UiBuilder.OpenMainUi += WordsmithUI.ShowScratchPad;
+
 
         WebManifest = Git.GetManifest();
 
@@ -155,6 +164,7 @@ public sealed class Wordsmith : IDalamudPlugin
         CommandManager.RemoveHandler(THES_CMD_STRING);
         CommandManager.RemoveHandler(SETTINGS_CMD_STRING);
         CommandManager.RemoveHandler(SCRATCH_CMD_STRING);
+        PluginInterface.UiBuilder.OpenMainUi -= WordsmithUI.ShowScratchPad;
 
         // Dispose of the UI
         WordsmithUI.Dispose();
