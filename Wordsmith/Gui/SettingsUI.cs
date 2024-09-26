@@ -1242,7 +1242,7 @@ internal sealed class SettingsUI : Window
                 WordsmithUI.ShowMessageBox( "Found a bug?", "If you found a bug, please post as much useful information as possible.\nThe more you are able to share with me the faster I can find the problem and fix it.\nUseful information could be:\n\t* Screenshots\n\t* Description of what you were doing\n\t* Number of pads open\n\t* Dalamud.log file\n\t* Wordsmith.json config file\n\nGo to GitHub to report the bug?", MessageBox.ButtonStyle.YesNo, (m) =>
                 {
                     if ( m.Result == MessageBox.DialogResult.Yes )
-                        System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/LadyDefile/Wordsmith-DalamudPlugin/issues" ) { UseShellExecute = true } );
+                        System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/MythicPalette/Wordsmith-DalamudPlugin/issues" ) { UseShellExecute = true } );
                 } );                
             }
 
@@ -1251,8 +1251,10 @@ internal sealed class SettingsUI : Window
             ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(0.5f, 0, 0, 1f));
             ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(0.5f, 0.3f, 0.3f, 1f));
             ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(0.3f, 0.1f, 0.1f, 1f));
+
+            // Create the donation button. The link to my kofi is stored in the web manifest in case it ever changes.
             if (ImGui.Button("Buy Me A Ko-Fi##SettingsUIBuyAKoFiButton", new(-1, Wordsmith.BUTTON_Y.Scale() ) ))
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("https://ko-fi.com/ladydefile") { UseShellExecute = true });
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Wordsmith.WebManifest.Kofi) { UseShellExecute = true });
             ImGuiExt.SetHoveredTooltip( $"This is a donation/tip button. This is absolutely not required at all.\nWhile I work hard to make Wordsmith the best I can, I do so out of passion\nand not for money. That being said, if you would like to support me then\nthank you so, so much. It's super appreciated." );
             ImGui.PopStyleColor(3);
 
