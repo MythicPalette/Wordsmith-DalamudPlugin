@@ -3,8 +3,8 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.15.1</Version>
-    <PackageProjectUrl>https://github.com/LadyDefile/Wordsmith</PackageProjectUrl>
+    <Version>1.15.2</Version>
+    <PackageProjectUrl>https://github.com/MythicPalette/Wordsmith</PackageProjectUrl>
     <LangVersion>latest</LangVersion>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
@@ -24,7 +24,7 @@
   <PropertyGroup>
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <RepositoryUrl>https://github.com/LadyDefile/Wordsmith</RepositoryUrl>
+    <RepositoryUrl>https://github.com/MythicPalette/Wordsmith</RepositoryUrl>
     <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
 

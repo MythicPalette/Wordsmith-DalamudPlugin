@@ -719,10 +719,12 @@ internal sealed class SettingsUI : Window
                         }
                     }
                     ImGui.EndChild();
-                    if ( ImGui.Button( "Close All", new( -1, Wordsmith.BUTTON_Y.Scale() ) ) )
-                        foreach ( ScratchPadUI pad in WordsmithUI.Windows )
-                            WordsmithUI.RemoveWindow( pad );
-
+                    if (ImGui.Button( "Close All", new( -1, Wordsmith.BUTTON_Y.Scale() ) ))
+                        foreach (Window w in WordsmithUI.Windows)
+                        {
+                            if ( w is ScratchPadUI pad)
+                                WordsmithUI.RemoveWindow( pad );
+                        }
                     ImGui.Unindent();
                  }
                 ImGui.EndChild();
