@@ -1656,7 +1656,7 @@ internal sealed class ScratchPadUI : Window
 
         // Add the continuation marker
         if ( count > 1 && (index + 1 < count || Wordsmith.Configuration.ContinuationMarkerOnLast) )
-            result += chunk.ContinuationMarker.ReplacePlaceholders( index + 1, count );
+            result += ' '+chunk.ContinuationMarker.ReplacePlaceholders( index + 1, count );
 
         // Add the After Continuation marks.
         current = markers.Where( x => x.Position == MarkerPosition.AfterContinuationMarker ).ToList();
