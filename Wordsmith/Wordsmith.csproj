@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.15.3</Version>
+    <Version>1.15.4</Version>
     <PackageProjectUrl>https://github.com/MythicPalette/Wordsmith</PackageProjectUrl>
     <LangVersion>latest</LangVersion>
     <TargetFramework>net9.0-windows</TargetFramework>
