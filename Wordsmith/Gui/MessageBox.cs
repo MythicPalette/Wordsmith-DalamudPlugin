@@ -21,6 +21,8 @@ internal class MessageBox: Window
     private Action<MessageBox>? _callback = null;
     private ButtonStyle _buttonStyle = ButtonStyle.None;
 
+    private IntPtr _hWnd = IntPtr.Zero;
+
     internal MessageBox(
         string title,
         string message,
@@ -40,6 +42,11 @@ internal class MessageBox: Window
         this._buttonStyle = buttonStyle;
         this.SizeCondition = ImGuiCond.Appearing;
         this.Size = ImGui.CalcTextSize(message);
+
+
+        foreach( Process pList in Process.GetProcesses() )
+            if( pList.ProcessName == "ffxiv_dx11" || pList.ProcessName == "ffxiv" )
+                this._hWnd = pList.MainWindowHandle;
     }
 
     /// <summary>
@@ -47,18 +54,12 @@ internal class MessageBox: Window
     /// </summary>
     internal void Center()
     {
-        // Get the pointer to the window handle.
-        IntPtr hWnd = IntPtr.Zero;
-        foreach ( Process pList in Process.GetProcesses() )
-            if ( pList.ProcessName == "ffxiv_dx11" || pList.ProcessName == "ffxiv" )
-                hWnd = pList.MainWindowHandle;
-
         // If failing to get the handle then abort.
-        if ( hWnd == IntPtr.Zero )
+        if ( this._hWnd == IntPtr.Zero )
             return;
 
         // Get the game window rectangle
-        GetWindowRect( new( null, hWnd ), out Rect rGameWindow );
+        GetWindowRect( new( null, this._hWnd ), out Rect rGameWindow );
 
         // Get the size of the current window.
         Vector2 vThisSize = ImGui.GetWindowSize();

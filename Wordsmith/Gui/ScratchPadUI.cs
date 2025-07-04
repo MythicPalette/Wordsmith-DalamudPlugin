@@ -105,7 +105,7 @@ internal sealed class ScratchPadUI : Window
     private float _lastScale = ImGuiHelpers.GlobalScale;
     #endregion
 
-    #region Construction & Initialization
+    #region Construction & Destruction
     internal static string CreateWindowName( int id ) => $"{Wordsmith.APPNAME} - Scratch Pad #{id}";
     internal static string CreateWindowName( string str ) => $"{Wordsmith.APPNAME} - Scratch Pad: {str.Replace( "%", "%%" )}";
 
@@ -141,6 +141,21 @@ internal sealed class ScratchPadUI : Window
     {
         this.WindowName = CreateWindowName( name );
         this.Title = name;
+    }
+
+    private void DoClose()
+    {
+        // To prevent the window from being created repeatedly
+        // ensure that the dialog is not already open.
+        WordsmithUI.ShowMessageBox(
+            "Confirm Delete",
+            $"Are you sure you want to delete Scratch Pad {this.ID}?\r\n(Cancel will close without deleting.)",
+            MessageBox.ButtonStyle.OkCancel,
+            ( mb ) =>
+            {
+                if( ( mb.Result & MessageBox.DialogResult.Ok ) == MessageBox.DialogResult.Ok )
+                    WordsmithUI.RemoveWindow( this );
+            } );
     }
     #endregion
 
@@ -196,18 +211,9 @@ internal sealed class ScratchPadUI : Window
         if ( Wordsmith.Configuration.DeleteClosedScratchPads && !this._hideOnly )
         {
             // If confirmation required then launch a confirmation dialog
-            if ( Wordsmith.Configuration.ConfirmDeleteClosePads )
-            {
-                WordsmithUI.ShowMessageBox(
-                    "Confirm Delete",
-                    $"Are you sure you want to delete Scratch Pad {this.ID}? (Cancel will close without deleting.)",
-                    MessageBox.ButtonStyle.OkCancel,
-                    ( mb ) =>
-                    {
-                        if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
-                            WordsmithUI.RemoveWindow( this );
-                    } );
-            }
+            if ( Wordsmith.Configuration.ConfirmDeleteClosePads)
+                DoClose();
+
             else // No confirmation required, just delete.
                 WordsmithUI.RemoveWindow( this );
         }
@@ -821,17 +827,8 @@ internal sealed class ScratchPadUI : Window
             if ( ImGui.Button( $"Delete Pad##Scratch{this.ID}", ImGuiHelpers.ScaledVector2( -1, Wordsmith.BUTTON_Y ) ) )
             {
                 if ( Wordsmith.Configuration.ConfirmDeleteClosePads )
-                {
-                    WordsmithUI.ShowMessageBox(
-                        "Confirm Delete",
-                        $"Are you sure you want to delete this pad?",
-                        MessageBox.ButtonStyle.OkCancel,
-                        ( mb ) =>
-                        {
-                            if ( (mb.Result & MessageBox.DialogResult.Ok) == MessageBox.DialogResult.Ok )
-                                WordsmithUI.RemoveWindow( this );
-                        } );
-                }
+                    DoClose();
+
                 else
                     WordsmithUI.RemoveWindow( this );
             }
