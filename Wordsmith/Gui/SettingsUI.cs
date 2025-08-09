@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
 
@@ -1004,7 +1004,7 @@ internal sealed class SettingsUI : Window
                 if (dictionaries.Count == 0)
                 {
                     // Alert the user to the missing dictionaries.
-                    ImGui.TextColored(new(255, 0, 0, 255), "ERROR.");
+                    ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), "ERROR.");
                     ImGui.TextWrapped($"There are no dictionary files in the manifest or {{{Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory?.FullName!, "Dictionaries")}}}.");
                 }
                 else

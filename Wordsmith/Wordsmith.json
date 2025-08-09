@@ -4,7 +4,14 @@
   "Punchline": "A roleplay thesaurus and scratch pad.",
   "Description": "Wordsmith is a text editor with roleplayers in mind. It automatically breaks your text up for easy copy/paste, has advanced features, spellcheck, and even a thesaurus.",
   "InternalName": "Wordsmith",
+  "AssemblyVersion": "1.15.5",
   "ApplicableVersion": "any",
+  "DalamudApiLevel": 13,
+  "LoadRequiredState": 0,
+  "LoadSync": false,
+  "CanUnloadAsync": false,
+  "LoadPriority": 0,
+  "AcceptsFeedback": true,
   "Tags": [
     "Social",
     "Utility"

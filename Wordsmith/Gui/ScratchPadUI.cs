@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
 
@@ -172,7 +172,7 @@ internal sealed class ScratchPadUI : Window
 
         // If there are known spelling errors then show the alert.
         if ( this._corrections?.Count > 0 )
-            ImGui.TextColored( new( 1, 0, 0, 1 ), $"Found {this._corrections!.Count} spelling errors." );
+            ImGui.TextColored( new System.Numerics.Vector4( 1, 0, 0, 1 ), $"Found {this._corrections!.Count} spelling errors." );
 
         if ( this._view_mode == VIEW_MODE_PAD )
         {
@@ -691,16 +691,24 @@ internal sealed class ScratchPadUI : Window
 
         // Create a temporary string for the textbox
         string scratch = this.ScratchString;
+        
+        // Convert to byte buffer for new API
+        var buffer = System.Text.Encoding.UTF8.GetBytes(scratch + new string('\0', Wordsmith.Configuration.ScratchPadMaximumTextLength - scratch.Length));
+        var span = new Span<byte>(buffer);
 
-        // If the user has their option set to SpellCheck or Copy then
-        // handle it with an EnterReturnsTrue.
-        ImGui.InputTextMultiline( $"##ScratchPad{this.ID}MultilineTextEntry",
-            ref scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength,
-            new( -1, size_y ),
-            ImGuiInputTextFlags.CallbackEdit |
-            ImGuiInputTextFlags.CallbackAlways |
-            ImGuiInputTextFlags.NoHorizontalScroll,
-            OnTextCallback );
+        // TODO: Fix InputTextMultiline with new API - callback functionality needs update  
+        if (ImGui.InputTextMultiline( $"##ScratchPad{this.ID}MultilineTextEntry",
+            span, 
+            new System.Numerics.Vector2( -1, size_y ),
+            ImGuiInputTextFlags.NoHorizontalScroll ))
+        {
+            // Convert back to string and update
+            var nullIndex = Array.IndexOf(buffer, (byte)0);
+            if (nullIndex >= 0)
+            {
+                scratch = System.Text.Encoding.UTF8.GetString(buffer, 0, nullIndex);
+            }
+        }
 
         // This will fix Ctrl+C copy/paste.
         if ( ImGui.IsItemFocused() && (ImGui.IsKeyDown( ImGuiKey.LeftCtrl ) || ImGui.IsKeyDown( ImGuiKey.RightCtrl )) && ImGui.IsKeyPressed( ImGuiKey.C ) )
@@ -731,7 +739,7 @@ internal sealed class ScratchPadUI : Window
             Word word = this._corrections[index];
 
             // Notify of the spelling error.
-            ImGui.TextColored( new( 255, 0, 0, 255 ), "Spelling Error:" );
+            ImGui.TextColored( new System.Numerics.Vector4( 1, 0, 0, 1 ), "Spelling Error:" );
 
             // Draw the text input.
             ImGui.SameLine( 0, 0 );

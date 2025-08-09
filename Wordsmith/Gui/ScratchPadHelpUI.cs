@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface.Internal;
 using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Plugin.Services;
 
@@ -27,9 +27,8 @@ internal sealed class ScratchPadHelpUI : Window
             if (ImGui.BeginTabItem($"General##HelpTabBarItem"))
             {
                 //ImGui.Image( MerriamWebsterLogo.ImGuiHandle, ImGuiHelpers.ScaledVector2( 64, 64 ) );
-                ImGui.Image(
-                    Wordsmith.TextureProvider.GetFromFile(Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png")).GetWrapOrEmpty().ImGuiHandle,
-                    ImGuiHelpers.ScaledVector2( 64, 64));
+                // TODO: Fix image display with new texture API
+                // var texture = Wordsmith.TextureProvider.GetFromFile(Path.Combine(Wordsmith.PluginInterface.AssemblyLocation.Directory!.FullName, "mwlogo.png")).GetWrapOrEmpty();
                 ImGui.SameLine();
                 ImGui.TextWrapped( "Thesaurus functionality provided through Merriam-Webster's API. Thank you to Merriam-Webster for providing a free API-Key to Wordsmith to allow for integrated thesaurus functionality.\n\nNote: This support is experimental and Merriam-Webster only provides 1,000 free queries a day. If 1,000 queries a day is not enough I will look into more options." );
                 ImGui.Separator();
