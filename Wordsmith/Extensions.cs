@@ -2,7 +2,7 @@
 using System.Reflection;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 
 namespace Wordsmith;
 
@@ -661,7 +661,7 @@ internal static class Extensions
 }
 
 /// <summary>
-/// A class for ImGuiNET wrappers and extensions.
+/// A class for Dalamud.Bindings.ImGui wrappers and extensions.
 /// </summary>
 internal static class ImGuiExt
 {

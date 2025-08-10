@@ -40,7 +40,7 @@ internal sealed class Git
                 {
                     // Disable the IfModifiedSince header to avoid a 304 response error.
                     client.DefaultRequestHeaders.IfModifiedSince = null;
-                    Wordsmith.PluginLog.Error( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}\nRaw: {raw}" );
+                    Wordsmith.PluginLog.Warning( $"Failed to get manifest. Tries remaining {tries}. Error: {e.Message}\nRaw: {raw}" );
                 }
             }
         }
@@ -69,7 +69,7 @@ internal sealed class Git
                 {
                     // Disable refresh request.
                     client.DefaultRequestHeaders.IfModifiedSince = null;
-                    Wordsmith.PluginLog.Error( $"Error loading dictionary from web: {e.Message}" );
+                    Wordsmith.PluginLog.Warning( $"Error loading dictionary from web: {e.Message}" );
                 }
             }            
         }

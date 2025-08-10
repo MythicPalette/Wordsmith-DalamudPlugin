@@ -2,7 +2,7 @@
 #if DEBUG
 using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 namespace Wordsmith.Gui;
 internal sealed class DebugUI : Window
 {

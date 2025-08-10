@@ -37,7 +37,7 @@ internal sealed class Console
 
             case "guid":
                 if ( m.Groups["value"].Value.ToLower() == "new" )
-                    ImGuiNET.ImGui.SetClipboardText(Guid.NewGuid().ToString().ToUpper());
+                    Dalamud.Bindings.ImGui.ImGui.SetClipboardText(Guid.NewGuid().ToString().ToUpper());
                 break;
 
             case "mark":

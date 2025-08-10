@@ -1,7 +1,7 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using Wordsmith.Enums;
 using Wordsmith.Helpers;
 
@@ -172,7 +172,7 @@ internal sealed class ScratchPadUI : Window
 
         // If there are known spelling errors then show the alert.
         if ( this._corrections?.Count > 0 )
-            ImGui.TextColored( new( 1, 0, 0, 1 ), $"Found {this._corrections!.Count} spelling errors." );
+            ImGui.TextColored( new Vector4( 1, 0, 0, 1 ), $"Found {this._corrections!.Count} spelling errors." );
 
         if ( this._view_mode == VIEW_MODE_PAD )
         {
@@ -692,15 +692,29 @@ internal sealed class ScratchPadUI : Window
         // Create a temporary string for the textbox
         string scratch = this.ScratchString;
 
-        // If the user has their option set to SpellCheck or Copy then
-        // handle it with an EnterReturnsTrue.
-        ImGui.InputTextMultiline( $"##ScratchPad{this.ID}MultilineTextEntry",
-            ref scratch, (uint)Wordsmith.Configuration.ScratchPadMaximumTextLength,
-            new( -1, size_y ),
+        // API 13 requires a byte span
+        // Start by creating a buffer with an extra length of 1
+        // so the encoded text will always end with \0
+        byte[] buff = Encoding.UTF8.GetBytes(
+            scratch + new string('\0', Wordsmith.Configuration.ScratchPadMaximumTextLength - scratch.Length + 1)
+            );
+
+
+        if (ImGui.InputTextMultiline( $"##ScratchPad{this.ID}MutilineTextEntry",
+            new( buff ), new Vector2( -1, size_y ),
             ImGuiInputTextFlags.CallbackEdit |
             ImGuiInputTextFlags.CallbackAlways |
             ImGuiInputTextFlags.NoHorizontalScroll,
-            OnTextCallback );
+            OnTextCallback )) {
+
+            // Get the index of the end of the string via terminator byte
+            int eol = Array.IndexOf(buff, (byte)0);
+
+            // Get the string or fallback to string.Empty
+            scratch = eol >= 0
+                ? UTF8Encoding.UTF8.GetString( buff, 0, eol )
+                : string.Empty;
+        }
 
         // This will fix Ctrl+C copy/paste.
         if ( ImGui.IsItemFocused() && (ImGui.IsKeyDown( ImGuiKey.LeftCtrl ) || ImGui.IsKeyDown( ImGuiKey.RightCtrl )) && ImGui.IsKeyPressed( ImGuiKey.C ) )
@@ -731,7 +745,7 @@ internal sealed class ScratchPadUI : Window
             Word word = this._corrections[index];
 
             // Notify of the spelling error.
-            ImGui.TextColored( new( 255, 0, 0, 255 ), "Spelling Error:" );
+            ImGui.TextColored( new Vector4( 255, 0, 0, 255 ), "Spelling Error:" );
 
             // Draw the text input.
             ImGui.SameLine( 0, 0 );
@@ -1400,28 +1414,28 @@ internal sealed class ScratchPadUI : Window
     /// </summary>
     /// <param name="data">Pointer to <see cref="ImGuiInputTextCallbackData"/></param>
     /// <returns>Always returns 0</returns>
-    public unsafe int OnTextCallback( ImGuiInputTextCallbackData* data )
+    public unsafe int OnTextCallback( ImGuiInputTextCallbackDataPtr data )
     {
         try
         {
-            if ( data->EventFlag == ImGuiInputTextFlags.CallbackAlways )
+            if ( data.EventFlag == ImGuiInputTextFlags.CallbackAlways )
             {
                 // If the user hits the right key and this makes it so that a \r character is to the left of the cursor
                 // move the cursor again until passed all \r keys. This will make the cursor go from \r|\r\n to \r\r|\n
                 // then to \r\r\n|
                 if ( ImGui.IsKeyPressed( ImGuiKey.RightArrow ) )//ImGui.GetKeyIndex(ImGuiKey.RightArrow)))
                 {
-                    while ( data->CursorPos < data->BufTextLen && data->Buf[(data->CursorPos - 1 > 0 ? data->CursorPos - 1 : 0)] == '\r' )
+                    while ( data.CursorPos < data.BufTextLen && data.Buf[(data.CursorPos - 1 > 0 ? data.CursorPos - 1 : 0)] == '\r' )
                     {
-                        data->CursorPos++;
+                        data.CursorPos++;
                         Wordsmith.PluginLog.Verbose( $"Moved cursor to the right." );
                     }
                 }
-                if ( data->CursorPos > 0 )
+                if ( data.CursorPos > 0 )
                 {
-                    while ( data->CursorPos > 0 && data->Buf[data->CursorPos - 1] == '\r' )
+                    while ( data.CursorPos > 0 && data.Buf[data.CursorPos - 1] == '\r' )
                     {
-                        data->CursorPos--;
+                        data.CursorPos--;
                         Wordsmith.PluginLog.Verbose( "Moved cursor to the left." );
                     }
                 }
@@ -1435,7 +1449,6 @@ internal sealed class ScratchPadUI : Window
         catch ( Exception e ) { DumpError( e ); }
         return 0;
     }
-
     /// <summary>
     /// Updates text chunks on text changed.
     /// </summary>
@@ -1466,14 +1479,14 @@ internal sealed class ScratchPadUI : Window
     /// </summary>
     /// <param name="data">Pointer to callback data</param>
     /// <returns></returns>
-    public unsafe int OnTextEdit( ImGuiInputTextCallbackData* data )
+    public unsafe int OnTextEdit( ImGuiInputTextCallbackDataPtr data )
     {
         try
         {
             // If _ignoreTextEdit is true then the reason for the edit
             // was a resize and the text has already been wrapped so
             // simply return from here.
-            if ( this._ignoreTextEdit )
+            if( this._ignoreTextEdit )
             {
                 this._ignoreTextEdit = false;
                 return 0;
@@ -1487,20 +1500,20 @@ internal sealed class ScratchPadUI : Window
             // a negative number, return a blank string so the rest of the code can continue as normal
             // at which point the buffer will be cleared and BufTextLen will be set to 0, preventing any
             // memory damage or crashes.
-            string txt = data->BufTextLen >= 0 ? utf8.GetString(data->Buf, data->BufTextLen) : "";
+            string txt = data.BufTextLen >= 0 ? utf8.GetString(data.Buf, data.BufTextLen) : "";
 
             // There is no need to operate on an empty string.
-            if ( txt.Length == 0 )
+            if( txt.Length == 0 )
                 return 0;
 
-            int pos = data->CursorPos;
+            int pos = data.CursorPos;
 
             // Check for header input.
-            if ( _header_parse )
+            if( _header_parse )
                 txt = CheckForHeader( txt, ref pos );
 
             // Wrap the string if there is enough there.
-            if ( txt.Length > 0 )
+            if( txt.Length > 0 )
             {
                 // Rewrap scratch
                 ImGuiStylePtr style = ImGui.GetStyle();
@@ -1512,28 +1525,28 @@ internal sealed class ScratchPadUI : Window
             byte[] bytes = utf8.GetBytes(txt);
 
             // Replace with new values.
-            for ( int i = 0; i < bytes.Length; ++i )
-                data->Buf[i] = bytes[i];
+            for( int i = 0; i < bytes.Length; ++i )
+                data.Buf[i] = bytes[i];
 
             // Terminate the string.
-            data->Buf[bytes.Length] = 0;
+            data.Buf[bytes.Length] = 0;
 
             // Assign the new buffer text length. This is the
             // number of bytes that make up the text, not the number
             // of characters in the text.
-            data->BufTextLen = bytes.Length;
+            data.BufTextLen = bytes.Length;
 
             // Reassing the cursor position to adjust for the change in text lengths.
-            data->CursorPos = pos;
+            data.CursorPos = pos;
 
-            // Flag the buffer as dirty so ImGui will rebuild the buffer
-            // and redraw the text in the InputText.
-            data->BufDirty = 1;
+            //// Flag the buffer as dirty so ImGui will rebuild the buffer
+            //// and redraw the text in the InputText.
+            data.BufDirty = true;
 
             // Set the text changed flag.
             _textchanged = true;
         }
-        catch ( Exception e ) { DumpError( e ); }
+        catch( Exception e ) { DumpError( e ); }
         // Return 0 to signal no errors.
         return 0;
     }
