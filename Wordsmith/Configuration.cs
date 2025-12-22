@@ -104,7 +104,7 @@ public sealed class Configuration : IPluginConfiguration
     /// </summary>
     public string ContinuationMarker { get; set; } = "(#c/#m)";
 
-    private List<ChunkMarker> _chunkMarkers = new();
+    private List<ChunkMarker> _chunkMarkers = [];
     public List<ChunkMarker> ChunkMarkers
     {
         get => this._chunkMarkers;
@@ -173,7 +173,7 @@ public sealed class Configuration : IPluginConfiguration
     /// <summary>
     /// A collection of all header aliases the user has created.
     /// </summary>
-    public List<(int ChatType, string Alias, object? data)> HeaderAliases { get; set; } = new();
+    public List<(int ChatType, string Alias, object? data)> HeaderAliases { get; set; } = [];
 
     /// <summary>
     /// The limit to the history size that <see cref="Gui.ScratchPadUI"/> keeps.
@@ -190,7 +190,7 @@ public sealed class Configuration : IPluginConfiguration
     /// <summary>
     /// Holds the dictionary of words added by the user.
     /// </summary>
-    public List<string> CustomDictionaryEntries { get; set; } = new();
+    public List<string> CustomDictionaryEntries { get; set; } = [];
 
     /// <summary>
     /// The file to be loaded into Lang dictionary.
@@ -201,16 +201,11 @@ public sealed class Configuration : IPluginConfiguration
     /// The color to display a mispelled word as.
     /// </summary>
     public Vector4 SpellingErrorHighlightColor { get; set; } = new( 0.9f, 0.2f, 0.2f, 1f );
-
-    /// <summary>
-    /// Default list that spell checker will attempt to delete.
-    /// </summary>
-    private const string PUNCTUATION_CLEAN_LIST_DEFAULT = @",.:;'*""(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
     
     /// <summary>
     /// The spell checker will attempt to delete these punctuation marks from the beginning and end of every word
     /// </summary>
-    public string PunctuationCleaningList { get; set; } = PUNCTUATION_CLEAN_LIST_DEFAULT;
+    public string PunctuationCleaningList { get; set; } = @",.:;'*""(){}[]!?<>`~♥@#$%^&*_=+\\/←→↑↓《》■※☀★★☆♡ヅツッシ☀☁☂℃℉°♀♂♠♣♦♣♧®©™€$£♯♭♪✓√◎◆◇♦■□〇●△▽▼▲‹›≤≥<«“”─＼～";
 
     /// <summary>
     /// The maximum number of suggestions that a word will generate
@@ -233,12 +228,12 @@ public sealed class Configuration : IPluginConfiguration
     /// <summary>
     /// Contains the nicknames of all Cross-World Linkshells
     /// </summary>
-    public string[] CrossWorldLinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
+    public string[] CrossWorldLinkshellNames { get; set; } = [ "1", "2", "3", "4", "5", "6", "7", "8" ];
 
     /// <summary>
     /// Contains the names of all normal Linkshells.
     /// </summary>
-    public string[] LinkshellNames { get; set; } = new string[] { "1", "2", "3", "4", "5", "6", "7", "8" };
+    public string[] LinkshellNames { get; set; } = [ "1", "2", "3", "4", "5", "6", "7", "8" ];
     #endregion
 
     /// <summary>
@@ -248,14 +243,16 @@ public sealed class Configuration : IPluginConfiguration
     internal void Save(bool notify = true)
     {
         Wordsmith.PluginInterface.SavePluginConfig(this);
-        if (notify)
-            Wordsmith.NotificationManager.AddNotification(new()
+        if( notify )
+        {
+            _ = Wordsmith.NotificationManager.AddNotification( new()
             {
                 Content = "Configuration saved!",
                 Title = "Wordsmith",
                 Type = Dalamud.Interface.ImGuiNotification.NotificationType.Success
-            });
+            } );
             //Wordsmith.PluginInterface.UiBuilder.AddNotification("Configuration saved!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+        }
         this.RecentlySaved = true;
     }
 }

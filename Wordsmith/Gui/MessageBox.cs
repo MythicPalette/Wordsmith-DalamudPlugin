@@ -45,8 +45,10 @@ internal class MessageBox: Window
 
 
         foreach( Process pList in Process.GetProcesses() )
-            if( pList.ProcessName == "ffxiv_dx11" || pList.ProcessName == "ffxiv" )
+        {
+            if( pList.ProcessName is "ffxiv_dx11" or "ffxiv" )
                 this._hWnd = pList.MainWindowHandle;
+        }
     }
 
     /// <summary>
@@ -59,7 +61,7 @@ internal class MessageBox: Window
             return;
 
         // Get the game window rectangle
-        GetWindowRect( new( null, this._hWnd ), out Rect rGameWindow );
+        _ = GetWindowRect( new( null, this._hWnd ), out Rect rGameWindow );
 
         // Get the size of the current window.
         Vector2 vThisSize = ImGui.GetWindowSize();

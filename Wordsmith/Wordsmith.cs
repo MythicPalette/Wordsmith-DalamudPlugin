@@ -62,17 +62,17 @@ public sealed class Wordsmith : IDalamudPlugin
     /// <summary>
     /// Command to open a new or specific scratch pad.
     /// </summary>
-    private const string SCRATCH_CMD_STRING = "/scratchpad";
+    private const string _SCRATCH_CMD_STRING = "/scratchpad";
 
     /// <summary>
     /// Command to open the settings window.
     /// </summary>
-    private const string SETTINGS_CMD_STRING = "/wordsmith";
+    private const string _SETTINGS_CMD_STRING = "/wordsmith";
 
     /// <summary>
     /// Command to open the thesaurus.
     /// </summary>
-    private const string THES_CMD_STRING = "/thesaurus";
+    private const string _THES_CMD_STRING = "/thesaurus";
 
     /// <summary>
     /// The maximum length of scratch text.
@@ -80,10 +80,6 @@ public sealed class Wordsmith : IDalamudPlugin
     internal const int MAX_SCRATCH_LENGTH = 32768 ;
     #endregion
 
-    /// <summary>
-    /// Plugin name interface property.
-    /// </summary>
-    public string Name => APPNAME;
 
     #region Plugin Services
     // All plugin services are automatically populated by Dalamud. These are important
@@ -131,9 +127,9 @@ public sealed class Wordsmith : IDalamudPlugin
 
         // Add commands for the different windows
         // Note that the first two use inline functions but scratch pads require a little text parsing.
-        CommandManager.AddHandler(THES_CMD_STRING, new CommandInfo( ( c, a ) => { WordsmithUI.ShowThesaurus(); } ) { HelpMessage = "Display the thesaurus window." });
-        CommandManager.AddHandler(SETTINGS_CMD_STRING, new CommandInfo( ( c, a ) => { WordsmithUI.ShowSettings(); }) { HelpMessage = "Display the configuration window." });
-        CommandManager.AddHandler(SCRATCH_CMD_STRING, new CommandInfo( OnScratchCommand )
+        _ = CommandManager.AddHandler(_THES_CMD_STRING, new CommandInfo( ( c, a ) => WordsmithUI.ShowThesaurus() ) { HelpMessage = "Display the thesaurus window." });
+        _ = CommandManager.AddHandler(_SETTINGS_CMD_STRING, new CommandInfo( ( c, a ) => WordsmithUI.ShowSettings()) { HelpMessage = "Display the configuration window." });
+        _ = CommandManager.AddHandler(_SCRATCH_CMD_STRING, new CommandInfo( OnScratchCommand )
         {
             HelpMessage = "Opens or creates a scratch pad. Follow with a number or custom name if you like. (i.e. \"/scratchpad 5\" or \"/scratchpad Juliet\")"
         });
@@ -161,9 +157,9 @@ public sealed class Wordsmith : IDalamudPlugin
         PluginInterface.UiBuilder.OpenConfigUi -= WordsmithUI.ShowSettings;
 
         // Remove command handlers.
-        CommandManager.RemoveHandler(THES_CMD_STRING);
-        CommandManager.RemoveHandler(SETTINGS_CMD_STRING);
-        CommandManager.RemoveHandler(SCRATCH_CMD_STRING);
+        _ = CommandManager.RemoveHandler(_THES_CMD_STRING);
+        _ = CommandManager.RemoveHandler(_SETTINGS_CMD_STRING);
+        _ = CommandManager.RemoveHandler(_SCRATCH_CMD_STRING);
         PluginInterface.UiBuilder.OpenMainUi -= WordsmithUI.ShowScratchPad;
 
         // Dispose of the UI

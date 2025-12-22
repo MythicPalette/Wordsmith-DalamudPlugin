@@ -45,8 +45,8 @@ internal sealed class ScratchPadUI : Window
 
     #region Chat Header
     private bool _header_parse = Wordsmith.Configuration.ParseHeaderInput;
-    private HeaderData _header = new(true);
-    public HeaderData Header => this._header;
+
+    public HeaderData Header { get; private set; } = new( true );
     #endregion
 
     #region Chat Text
@@ -55,25 +55,24 @@ internal sealed class ScratchPadUI : Window
     /// </summary>
     internal string ScratchString
     {
-        get => this._scratch;
+        get => field;
         set
         {
-            this._scratch = value;
+            field = value;
             OnTextChanged();
         }
-    }
-    private string _scratch = "";
-    private bool _useOOC = Wordsmith.Configuration.OocByDefault;
+    } = "";
+
     internal bool UseOOC
     {
-        get => this._useOOC;
+        get => field;
         set
         {
-            this._invalidateChunks |= this._useOOC != value;
-            this._useOOC = value;
+            this._invalidateChunks |= field != value;
+            field = value;
         }
-    }
-    private List<TextChunk> _chunks = new();
+    } = Wordsmith.Configuration.OocByDefault;
+    private List<TextChunk> _chunks = [];
     private int _nextChunk = 0;
     private bool _canUndo = false;
     private bool _textchanged = false;
@@ -87,14 +86,14 @@ internal sealed class ScratchPadUI : Window
     #endregion
 
     #region History
-    private List<PadState> _text_history = new();
+    private List<PadState> _text_history = [];
     private StatisticsTracker _statisticsTracker = new();
 
     private string _stats_order_by = "usesdescending";
     #endregion
 
     #region Spell Check
-    private List<Word> _corrections = new();
+    private List<Word> _corrections = [];
     private float _rest_time = Wordsmith.Configuration.AutoSpellCheckDelay*1.0f;
     private bool _do_spell_check = false;
     #endregion
@@ -286,10 +285,12 @@ internal sealed class ScratchPadUI : Window
                         WordsmithUI.ShowScratchPad();
 
                     // For each of the existing scratch pads, add a button that opens that specific one.
-                    List<ScratchPadUI> padList = new(WordsmithUI.Windows.Where( x => x is ScratchPadUI && x != this).Cast<ScratchPadUI>());
-                    foreach ( ScratchPadUI pad in padList )
-                        if ( ImGui.MenuItem( $"{pad.WindowName}" ) )
+                    List<ScratchPadUI> padList = [.. WordsmithUI.Windows.Where( x => x is ScratchPadUI && x != this).Cast<ScratchPadUI>()];
+                    foreach( ScratchPadUI pad in padList )
+                    {
+                        if( ImGui.MenuItem( $"{pad.WindowName}" ) )
                             WordsmithUI.ShowScratchPad( pad.ID );
+                    }
 
                     // End the scratch pad menu
                     ImGui.EndMenu();
@@ -325,9 +326,11 @@ internal sealed class ScratchPadUI : Window
                     // Create a chunk menu and create a copy button for each chunk.
                     if ( ImGui.BeginMenu( $"Chunks##ScratchPad{this.ID}ChunksMenu" ) )
                     {
-                        for ( int i = 0; i < this._chunks.Count; ++i )
-                            if ( ImGui.MenuItem( $"Copy Chunk {i + 1}##ScratchPad{this.ID}ChunkMenuItem{i}" ) )
-                                ImGui.SetClipboardText( CreateCompleteTextChunk( this._chunks[i], this._useOOC, i, this._chunks.Count ) );
+                        for( int i = 0; i < this._chunks.Count; ++i )
+                        {
+                            if( ImGui.MenuItem( $"Copy Chunk {i + 1}##ScratchPad{this.ID}ChunkMenuItem{i}" ) )
+                                ImGui.SetClipboardText( CreateCompleteTextChunk( this._chunks[i], this.UseOOC, i, this._chunks.Count ) );
+                        }
 
                         // End chunk menu
                         ImGui.EndMenu();
@@ -401,7 +404,7 @@ internal sealed class ScratchPadUI : Window
         int columns = default_columns;
 
         // If using Tell or Linkshells, we need 3 columns
-        if ( this._header.ChatType == ChatType.Tell || this._header.ChatType == ChatType.Linkshell )
+        if ( this.Header.ChatType is ChatType.Tell or ChatType.Linkshell )
             ++columns;
 
         if ( ImGui.BeginTable( $"##ScratchPad{this.ID}HeaderTable", columns ) )
@@ -417,7 +420,7 @@ internal sealed class ScratchPadUI : Window
             ImGui.TableSetupColumn( $"Scratchpad{this.ID}OOCColumn", ImGuiTableColumnFlags.WidthFixed, 75 * ImGuiHelpers.GlobalScale );
 
             // Header parse lock
-            ImGui.TableNextColumn();
+            _ = ImGui.TableNextColumn();
             if ( Dalamud.Interface.Components.ImGuiComponents.IconButton( this._header_parse ? FontAwesomeIcon.LockOpen : FontAwesomeIcon.Lock ) )
                 this._header_parse = !this._header_parse;
             ImGuiExt.SetHoveredTooltip( $"{(this._header_parse ? "Locks" : "Unlocks")} header parsing on this pad." );
@@ -425,54 +428,54 @@ internal sealed class ScratchPadUI : Window
             #region Header Selection
             // Get the header options.
             string[] options = Enum.GetNames(typeof(ChatType));
-            int ctype = (int)this._header.ChatType;
+            int ctype = (int)this.Header.ChatType;
 
             // Display a combo box and reference ctype. Do not show the last option because it is handled
             // in a different way.
-            ImGui.TableNextColumn();
+            _ = ImGui.TableNextColumn();
             ImGui.SetNextItemWidth( -1 );
-            ImGui.Combo( $"##ScratchPad{this.ID}ChatTypeCombo", ref ctype, options, options.Length - 1 );
+            _ = ImGui.Combo( $"##ScratchPad{this.ID}ChatTypeCombo", ref ctype, options, options.Length - 1 );
             ImGuiExt.SetHoveredTooltip( "Select the chat header." );
 
-            this._invalidateChunks |= (ChatType)ctype != this._header.ChatType;
+            this._invalidateChunks |= (ChatType)ctype != this.Header.ChatType;
 
             // Convert ctype back to ChatType and set _chatType
-            this._header.ChatType = (ChatType)ctype;
+            this.Header.ChatType = (ChatType)ctype;
 
             // Chat target bar is only shown if the mode is tell
-            if ( this._header.ChatType == ChatType.Tell )
+            if ( this.Header.ChatType == ChatType.Tell )
             {
-                ImGui.TableNextColumn();
+                _ = ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth( -1 );
 
-                string str = this._header.TellTarget;
-                ImGui.InputTextWithHint( $"##TellTargetText{this.ID}", "User Name@World", ref str, 128 );
+                string str = this.Header.TellTarget;
+                _ = ImGui.InputTextWithHint( $"##TellTargetText{this.ID}", "User Name@World", ref str, 128 );
                 ImGuiExt.SetHoveredTooltip( "Enter the user and world or a placeholder here." );
-                this._header.TellTarget = str;
+                this.Header.TellTarget = str;
             }
 
             // Linkshell selection
-            else if ( this._header.ChatType == ChatType.Linkshell )
+            else if ( this.Header.ChatType == ChatType.Linkshell )
             {
-                ImGui.TableNextColumn();
-                bool b = this._header.CrossWorld;
-                ImGui.Checkbox( "Cross-World", ref b );
-                this._header.CrossWorld = b;
+                _ = ImGui.TableNextColumn();
+                bool b = this.Header.CrossWorld;
+                _ = ImGui.Checkbox( "Cross-World", ref b );
+                this.Header.CrossWorld = b;
 
                 ImGui.SameLine();
                 ImGui.SetNextItemWidth( -1 );
-                int l = this._header.Linkshell;
-                ImGui.Combo( $"##ScratchPad{this.ID}LinkshellCombo", ref l, (this._header.CrossWorld ? Wordsmith.Configuration.CrossWorldLinkshellNames : Wordsmith.Configuration.LinkshellNames), 8 );
+                int l = this.Header.Linkshell;
+                _ = ImGui.Combo( $"##ScratchPad{this.ID}LinkshellCombo", ref l, (this.Header.CrossWorld ? Wordsmith.Configuration.CrossWorldLinkshellNames : Wordsmith.Configuration.LinkshellNames), 8 );
                 ImGuiExt.SetHoveredTooltip( "Enter a custom target here such as /cwls1." );
-                this._header.Linkshell = l;
+                this.Header.Linkshell = l;
             }
             #endregion
 
-            ImGui.TableNextColumn();
+            _ = ImGui.TableNextColumn();
 
             // Use a temporary variable here so that the UseOOC property can be triggered properly.
             bool ooc = this.UseOOC;
-            ImGui.Checkbox( "((OOC))", ref ooc );
+            _ = ImGui.Checkbox( "((OOC))", ref ooc );
             this.UseOOC = ooc;
 
             ImGuiExt.SetHoveredTooltip( "Enables or disables OOC markers." );
@@ -520,18 +523,20 @@ internal sealed class ScratchPadUI : Window
 
                     if ( Wordsmith.Configuration.EnableTextHighlighting )
                     {
-                        List<ChunkMarker> markers = new();
-                        foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
-                            if ( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this._useOOC, this._chunks.Count ) )
+                        List<ChunkMarker> markers = [];
+                        foreach( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
+                        {
+                            if( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this.UseOOC, this._chunks.Count ) )
                                 markers.Add( cm );
+                        }
 
-                        DrawChunkItem( this._chunks[i], this._header.ChatType, this._useOOC, i, this._chunks.Count, fSpaceWidth, markers, this._corrections );
+                        DrawChunkItem( this._chunks[i], this.Header.ChatType, this.UseOOC, i, this._chunks.Count, fSpaceWidth, markers, this._corrections );
                     }
                     else
                     {
                         // Set width and display the chunk.
                         ImGui.SetNextItemWidth( -1 );
-                        ImGui.TextWrapped( CreateCompleteTextChunk( this._chunks[i], this._useOOC, i, this._chunks.Count ) );
+                        ImGui.TextWrapped( CreateCompleteTextChunk( this._chunks[i], this.UseOOC, i, this._chunks.Count ) );
                     }
                 }
             }
@@ -539,7 +544,7 @@ internal sealed class ScratchPadUI : Window
             else
             {
                 ImGui.SetNextItemWidth( -1 );
-                ImGui.TextWrapped( $"{this._header}{(this._useOOC ? "(( " : "")}{this.ScratchString.Unwrap()}{(this._useOOC ? " ))" : "")}" );
+                ImGui.TextWrapped( $"{this.Header}{(this.UseOOC ? "(( " : "")}{this.ScratchString.Unwrap()}{(this.UseOOC ? " ))" : "")}" );
             }
 
             if ( this._textchanged )
@@ -594,7 +599,7 @@ internal sealed class ScratchPadUI : Window
             }
         }
 
-        DrawMarkers( lMarkers.Where( x => x.Position == MarkerPosition.BeforeOOC ).ToList() );
+        DrawMarkers( [.. lMarkers.Where( x => x.Position == MarkerPosition.BeforeOOC )] );
 
         // Draw OOC
         if ( ooc )
@@ -604,7 +609,7 @@ internal sealed class ScratchPadUI : Window
             width += ImGui.CalcTextSize( Wordsmith.Configuration.OocOpeningTag ).X;
             sameLine = true;
         }
-        DrawMarkers( lMarkers.Where( x => x.Position == MarkerPosition.BeforeBody ).ToList() );
+        DrawMarkers( [.. lMarkers.Where( x => x.Position == MarkerPosition.BeforeBody )] );
 
         // Draw body
         string chunktext = chunk.Text.Trim().Unwrap();
@@ -636,7 +641,7 @@ internal sealed class ScratchPadUI : Window
             ImGuiExt.SetHoveredTooltip( $"StartIndex: {word.StartIndex}, EndIndex: {word.EndIndex}, WordIndex: {word.WordIndex}, WordLength: {word.WordLength}, HyphenTerminated: {word.HyphenTerminated}" );
 #endif
         }
-        DrawMarkers( lMarkers.Where( x => x.Position == MarkerPosition.AfterBody ).ToList() );
+        DrawMarkers( [.. lMarkers.Where( x => x.Position == MarkerPosition.AfterBody )] );
 
         // Draw OOC
         if ( ooc )
@@ -658,14 +663,14 @@ internal sealed class ScratchPadUI : Window
         }
 
         // Draw after OOC markers
-        DrawMarkers( lMarkers.Where( x => x.Position == MarkerPosition.AfterOOC ).ToList() );
+        DrawMarkers( [.. lMarkers.Where( x => x.Position == MarkerPosition.AfterOOC )] );
 
         // If we are to draw the continuation marker then use the same DrawMarkers system 
         if ( chunkCount > 1 && (index + 1 < chunkCount || Wordsmith.Configuration.ContinuationMarkerOnLast) )
-            DrawMarkers( new() { new( Wordsmith.Configuration.ContinuationMarker, 0, 0, 0 ) } );
+            DrawMarkers( [new( Wordsmith.Configuration.ContinuationMarker, 0, 0, 0 )] );
 
         // Draw the after continuation markers
-        DrawMarkers( lMarkers.Where( x => x.Position == MarkerPosition.AfterContinuationMarker ).ToList() );
+        DrawMarkers( [.. lMarkers.Where( x => x.Position == MarkerPosition.AfterContinuationMarker )] );
     }
 
     /// <summary>
@@ -701,7 +706,7 @@ internal sealed class ScratchPadUI : Window
 
 
         if (ImGui.InputTextMultiline( $"##ScratchPad{this.ID}MutilineTextEntry",
-            new( buff ), new Vector2( -1, size_y ),
+            new Span<byte>( buff ), new Vector2( -1, size_y ),
             ImGuiInputTextFlags.CallbackEdit |
             ImGuiInputTextFlags.CallbackAlways |
             ImGuiInputTextFlags.NoHorizontalScroll,
@@ -768,26 +773,27 @@ internal sealed class ScratchPadUI : Window
                 {
                     //    // Create a selectable to add the word to dictionary.
                     if ( ImGui.Selectable( $"Add To Dictionary##ScratchPad{this.ID}ReplaceContextMenu" ) )
-                        OnAddToDictionary( index );
+                        _ = OnAddToDictionary( index );
 
                     // If the suggestions haven't been generated then get them.
-                    if ( word.Suggestions is null )
+                    if( word.Suggestions is null )
+                    {
                         word.GenerateSuggestions( wordText );
-
+                    }
                     else
                     {
                         // Don't try to draw any children if there are none.
-                        if ( word.Suggestions.Count > 0 )
+                        if( word.Suggestions.Count > 0 )
                         {
                             ImGui.Separator();
 
                             float childwidth = ImGui.CalcTextSize(this._replaceText).X + (20*ImGuiHelpers.GlobalScale) > ImGui.CalcTextSize(" Add To Dictionary ").X ? ImGui.CalcTextSize(this._replaceText).X + (20*ImGuiHelpers.GlobalScale) : ImGui.CalcTextSize(" Add To Dictionary ").X;
-                            if ( ImGui.BeginListBox( "##SuggestionsListBox", new( childwidth, (word.Suggestions.Count > 5 ? 5 : word.Suggestions.Count) * Wordsmith.BUTTON_Y.Scale() ) ) )
+                            if( ImGui.BeginListBox( "##SuggestionsListBox", new( childwidth, ( word.Suggestions.Count > 5 ? 5 : word.Suggestions.Count ) * Wordsmith.BUTTON_Y.Scale() ) ) )
                             {
                                 // List the suggestions.
-                                foreach ( string suggestion in word.Suggestions )
+                                foreach( string suggestion in word.Suggestions )
                                 {
-                                    if ( ImGui.Selectable( $"{suggestion}##ScratchPad{this.ID}Replacement" ) )
+                                    if( ImGui.Selectable( $"{suggestion}##ScratchPad{this.ID}Replacement" ) )
                                     {
                                         this._replaceText = suggestion;
                                         OnReplace( 0 );
@@ -808,7 +814,7 @@ internal sealed class ScratchPadUI : Window
             ImGui.SameLine();
             ImGui.SetNextItemWidth( 120 * ImGuiHelpers.GlobalScale );
             if ( ImGui.Button( $"Add To Dictionary##ScratchPad{this.ID}" ) )
-                OnAddToDictionary( 0 );
+                _ = OnAddToDictionary( 0 );
         }
     }
     #endregion
@@ -988,10 +994,13 @@ internal sealed class ScratchPadUI : Window
                     if ( i > 0 )
                         ImGui.Spacing();
 
-                    List<ChunkMarker> markers = new();
-                    foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
-                        if ( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this._useOOC, this._chunks.Count ) )
+                    List<ChunkMarker> markers = [];
+                    foreach( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
+                    {
+                        if( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this.UseOOC, this._chunks.Count ) )
                             markers.Add( cm );
+                    }
+
                     DrawChunkItem( tlist[i], pad.Header!.ChatType, pad.UseOOC, i, tlist.Count, fSpaceWidth, markers, null );
                 }
 
@@ -1010,35 +1019,39 @@ internal sealed class ScratchPadUI : Window
 
                 if ( ImGui.BeginPopup( $"ScratchPad{this.ID}History{idx}Popup" ) )
                 {
-                    if ( ImGui.MenuItem( $"Reload Pad State##ScratchPad{this.ID}HistoryItem{idx}Reload" ) )
+                    if( ImGui.MenuItem( $"Reload Pad State##ScratchPad{this.ID}HistoryItem{idx}Reload" ) )
                     {
                         // If there is currently written text, require confirmation.
-                        if ( this.ScratchString != "" )
+                        if( this.ScratchString != "" )
+                        {
                             WordsmithUI.ShowMessageBox(
                                 "Load History?", "Loading the history state will overwrite\nany currently written text and chat headers.",
                                 MessageBox.ButtonStyle.OkCancel,
                                 new Action<MessageBox>( ( m ) =>
                                 {
-                                    if ( m.Result == MessageBox.DialogResult.Ok )
+                                    if( m.Result == MessageBox.DialogResult.Ok )
                                         LoadState( pad );
                                 } )
                             );
+                        }
 
                         // If there is no currently written text just load the state.
                         else
+                        {
                             LoadState( pad );
+                        }
 
                         // Close the popup
                         ImGui.CloseCurrentPopup();
                     }
-                    else if ( ImGui.MenuItem( $"Copy All To Clipboard##ScratchPad{this.ID}HistoryItem{idx}Copy" ) )
+                    else if( ImGui.MenuItem( $"Copy All To Clipboard##ScratchPad{this.ID}HistoryItem{idx}Copy" ) )
                     {
                         // Get each chunk
-                        if ( result != null )
+                        if( result != null )
                         {
                             // Get the text from every chunk.
-                            List<string> text = new();
-                            for ( int i = 0; i < result.Count; i++ )
+                            List<string> text = [];
+                            for( int i = 0; i < result.Count; i++ )
                                 text.Add( CreateCompleteTextChunk( result[i], pad.UseOOC, i, result.Count ) );
 
                             // Set the clipboard text.
@@ -1047,29 +1060,30 @@ internal sealed class ScratchPadUI : Window
                             // Notify the user that the text was copied.
                             //Wordsmith.PluginInterface.UiBuilder.AddNotification( "Copied text to clipboard!", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success );
 
-                            Wordsmith.NotificationManager.AddNotification(new()
+                            _ = Wordsmith.NotificationManager.AddNotification( new()
                             {
                                 Content = "Copied text to clipboard!",
                                 Title = "Wordsmith",
                                 Type = Dalamud.Interface.ImGuiNotification.NotificationType.Success
-                            });
+                            } );
                         }
 
                         // Close the popup
                         ImGui.CloseCurrentPopup();
                     }
-                    else if ( ImGui.MenuItem( $"Copy Text To Clipboard##ScratchPad{this.ID}HIstoryItem{idx}Copy" ) )
+                    else if( ImGui.MenuItem( $"Copy Text To Clipboard##ScratchPad{this.ID}HIstoryItem{idx}Copy" ) )
+                    {
                         ImGui.SetClipboardText( pad.ScratchText.Unwrap() );
-
-                    else if ( ImGui.MenuItem( $"Delete##ScratchPad{this.ID}HistoryItem{idx}Delete" ) )
+                    }
+                    else if( ImGui.MenuItem( $"Delete##ScratchPad{this.ID}HistoryItem{idx}Delete" ) )
                     {
                         // Remove the history item.
-                        this._text_history.Remove( pad );
+                        _ = this._text_history.Remove( pad );
 
                         // Close the popup
                         ImGui.CloseCurrentPopup();
                     }
-                    else if ( ImGui.MenuItem( $"Delete All##ScratchPad{this.ID}HistoryItem{idx}DeleteAll" ) )
+                    else if( ImGui.MenuItem( $"Delete All##ScratchPad{this.ID}HistoryItem{idx}DeleteAll" ) )
                     {
                         // Remove the history item.
                         this._text_history.Clear();
@@ -1113,7 +1127,7 @@ internal sealed class ScratchPadUI : Window
             {
                 // Remove any duplicates of this pad state to prevent
                 // building a list of the same edit.
-                this._text_history.RemoveAll( x => x.Equals( p ) );
+                _ = this._text_history.RemoveAll( x => x.Equals( p ) );
 
                 // Add the history to the end of the list.
                 this._text_history.Add( p );
@@ -1148,24 +1162,22 @@ internal sealed class ScratchPadUI : Window
                 bool word = this._stats_order_by.StartsWith("word");
                 bool desc = this._stats_order_by.EndsWith("descending");
 
-                ImGui.TableNextColumn();
+                _ = ImGui.TableNextColumn();
                 ImGui.TableHeader( $"Word {(word ? (desc ? "↓" : "↑") : "")}" );
                 if ( ImGui.IsItemClicked() )
                 {
-                    if ( this._stats_order_by == "word" )
-                        this._stats_order_by = "worddescending";
-                    else
-                        this._stats_order_by = "word";
+                    this._stats_order_by = this._stats_order_by == "word"
+                        ? "worddescending"
+                        : "word";
                 }
 
-                ImGui.TableNextColumn();
+                _ = ImGui.TableNextColumn();
                 ImGui.TableHeader( $"Uses {(!word ? (desc ? "↓" : "↑") : "")}" );
                 if ( ImGui.IsItemClicked() )
                 {
-                    if ( this._stats_order_by == "usesdescending" )
-                        this._stats_order_by = "uses";
-                    else
-                        this._stats_order_by = "usesdescending";
+                    this._stats_order_by = this._stats_order_by == "usesdescending"
+                        ? "uses"
+                        : "usesdescending";
                 }
 
                 List<KeyValuePair<string, int>> wordUses = word
@@ -1174,10 +1186,10 @@ internal sealed class ScratchPadUI : Window
 
                 foreach ( KeyValuePair<string, int> kvp in wordUses )
                 {
-                    ImGui.TableNextColumn();
+                    _ = ImGui.TableNextColumn();
                     ImGui.Text( $"{kvp.Key}" );
 
-                    ImGui.TableNextColumn();
+                    _ = ImGui.TableNextColumn();
                     ImGui.Text( $"{kvp.Value}" );
                 }
 
@@ -1215,7 +1227,7 @@ internal sealed class ScratchPadUI : Window
                 return;
 
             // Copy the next chunk over.
-            ImGui.SetClipboardText( CreateCompleteTextChunk( this._chunks[this._nextChunk], this._useOOC, this._nextChunk, this._chunks.Count ) );
+            ImGui.SetClipboardText( CreateCompleteTextChunk( this._chunks[this._nextChunk], this.UseOOC, this._nextChunk, this._chunks.Count ) );
 
             // Add the text to the tracker if tracking enabled.
             if ( Wordsmith.Configuration.TrackWordStatistics )
@@ -1253,7 +1265,7 @@ internal sealed class ScratchPadUI : Window
             AppendHistory( new( this ) );
 
             // Clear any corrections.
-            this._corrections = new();
+            this._corrections = [];
 
             // Clear scratch.
             this.ScratchString = "";
@@ -1286,7 +1298,7 @@ internal sealed class ScratchPadUI : Window
             this._canUndo = false;
 
             // Delete the history entry.
-            this._text_history.Remove( p );
+            _ = this._text_history.Remove( p );
         }
         catch ( Exception e ) { DumpError( e ); }
     }
@@ -1347,9 +1359,11 @@ internal sealed class ScratchPadUI : Window
         if ( sender == null )
             return;
 
-        if ( sender == this.Header )
-            foreach ( TextChunk tc in this._chunks )
+        if( sender == this.Header )
+        {
+            foreach( TextChunk tc in this._chunks )
                 tc.Header = this.Header.ToString();
+        }
     }
 
     /// <summary>
@@ -1364,7 +1378,7 @@ internal sealed class ScratchPadUI : Window
             // update the text.
             if ( this._replaceText.Length > 0 && index < this._corrections.Count )
             {
-                if ( Helpers.Console.ProcessCommand( this, _replaceText ) )
+                if ( Helpers.Console.ProcessCommand( this, this._replaceText ) )
                     return;
 
                 // Get the first object
@@ -1374,15 +1388,15 @@ internal sealed class ScratchPadUI : Window
                 StringBuilder sb = new(this.ScratchString.Unwrap());
 
                 // Remove the original word.
-                sb.Remove( word.WordIndex, word.WordLength );
+                _ = sb.Remove( word.WordIndex, word.WordLength );
 
                 // Insert the new text.
-                sb.Insert( word.WordIndex, this._replaceText.Trim() );
+                _ = sb.Insert( word.WordIndex, this._replaceText.Trim() );
 
                 string newScratch = sb.ToString();
 
                 // Remove the word from the list.
-                this._corrections.Remove( word );
+                _ = this._corrections.Remove( word );
 
                 // Adjust the index of all following words.
                 if ( this._replaceText.Length != word.WordLength )
@@ -1442,7 +1456,7 @@ internal sealed class ScratchPadUI : Window
             }
             else
             {
-                OnTextEdit( data );
+                _ = OnTextEdit( data );
                 OnTextChanged();
             }
         }
@@ -1509,7 +1523,7 @@ internal sealed class ScratchPadUI : Window
             int pos = data.CursorPos;
 
             // Check for header input.
-            if( _header_parse )
+            if( this._header_parse )
                 txt = CheckForHeader( txt, ref pos );
 
             // Wrap the string if there is enough there.
@@ -1544,7 +1558,7 @@ internal sealed class ScratchPadUI : Window
             data.BufDirty = true;
 
             // Set the text changed flag.
-            _textchanged = true;
+            this._textchanged = true;
         }
         catch( Exception e ) { DumpError( e ); }
         // Return 0 to signal no errors.
@@ -1605,9 +1619,9 @@ internal sealed class ScratchPadUI : Window
             int len = headerData.AliasLength > 0 ? headerData.AliasLength : headerData.Length;
             if ( headerData.ChatType != ChatType.None && cursorPos >= len )
             {
-                this._header = headerData;
+                this.Header = headerData;
 
-                text = text.Remove( 0, len + 1 );
+                text = text[( len + 1 )..];
                 cursorPos -= len + 1;
             }
         }
@@ -1628,13 +1642,15 @@ internal sealed class ScratchPadUI : Window
         string result = chunk.Header.Length > 0 ? $"{chunk.Header} " : "";
 
         // Get the applicable markers.
-        List<ChunkMarker> markers = new();
-        foreach ( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
-            if ( cm.AppliesTo( index, count ) && cm.Visible( OOC, count ) )
+        List<ChunkMarker> markers = [];
+        foreach( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
+        {
+            if( cm.AppliesTo( index, count ) && cm.Visible( OOC, count ) )
                 markers.Add( cm );
+        }
 
         // Add the before OOC marks.
-        List<ChunkMarker> current = markers.Where(x => x.Position == MarkerPosition.BeforeOOC).ToList();
+        List<ChunkMarker> current = [.. markers.Where(x => x.Position == MarkerPosition.BeforeOOC)];
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
@@ -1643,7 +1659,7 @@ internal sealed class ScratchPadUI : Window
             result += chunk.OutOfCharacterStartTag;
 
         // Insert custom markers before the body.
-        current = markers.Where( x => x.Position == MarkerPosition.BeforeBody ).ToList();
+        current = [.. markers.Where( x => x.Position == MarkerPosition.BeforeBody )];
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
@@ -1651,7 +1667,7 @@ internal sealed class ScratchPadUI : Window
         result += chunk.Text;
 
         // Insert custom markers after the body.
-        current = markers.Where( x => x.Position == MarkerPosition.AfterBody ).ToList();
+        current = [.. markers.Where( x => x.Position == MarkerPosition.AfterBody )];
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
@@ -1660,7 +1676,7 @@ internal sealed class ScratchPadUI : Window
             result += chunk.OutOfCharacterEndTag;
 
         // Insert the after OOC marks
-        current = markers.Where( x => x.Position == MarkerPosition.AfterOOC ).ToList();
+        current = [.. markers.Where( x => x.Position == MarkerPosition.AfterOOC )];
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
@@ -1669,7 +1685,7 @@ internal sealed class ScratchPadUI : Window
             result += ' '+chunk.ContinuationMarker.ReplacePlaceholders( index + 1, count );
 
         // Add the After Continuation marks.
-        current = markers.Where( x => x.Position == MarkerPosition.AfterContinuationMarker ).ToList();
+        current = [.. markers.Where( x => x.Position == MarkerPosition.AfterContinuationMarker )];
         if ( current.Count > 0 )
             result += string.Join( ' ', current.Select( c => c.Text ) );
 
@@ -1696,7 +1712,7 @@ internal sealed class ScratchPadUI : Window
     /// <summary>
     /// Runs FFXIVify on this pad.
     /// </summary>
-    internal void FFXIVify() => this._chunks = ChatHelper.FFXIVify( this.Header, this.ScratchString.Unwrap(), this.UseOOC ) ?? new();
+    internal void FFXIVify() => this._chunks = ChatHelper.FFXIVify( this.Header, this.ScratchString.Unwrap(), this.UseOOC ) ?? [];
 
     /// <summary>
     /// Returns the default height of the text input.
@@ -1711,21 +1727,21 @@ internal sealed class ScratchPadUI : Window
     /// <returns>Returns the height of footer elements as a <see langword="float"/></returns>
     private float GetFooterHeight( float inputSize = -1 )
     {
-        if ( this._view_mode == VIEW_MODE_PAD )
+        if( this._view_mode == VIEW_MODE_PAD )
         {
             // Text input size can either be given or calculated.
             float result = inputSize > 0 ? inputSize : GetDefaultInputHeight();
             int paddingCount = 2;
 
             // Delete pad button
-            if ( !Wordsmith.Configuration.DeleteClosedScratchPads )
+            if( !Wordsmith.Configuration.DeleteClosedScratchPads )
             {
                 result += Wordsmith.BUTTON_Y.Scale();
                 paddingCount++;
             }
 
             // Replace Text section
-            if ( this._corrections.Count > 0 )
+            if( this._corrections.Count > 0 )
             {
                 result += Wordsmith.BUTTON_Y.Scale();
                 paddingCount++;
@@ -1740,10 +1756,14 @@ internal sealed class ScratchPadUI : Window
 
             return result;
         }
-        else if ( this._view_mode == VIEW_MODE_HISTORY )
+        else if( this._view_mode == VIEW_MODE_HISTORY )
+        {
             return Wordsmith.BUTTON_Y.Scale() + ImGui.GetStyle().FramePadding.Y;
-        else if ( this._view_mode == VIEW_MODE_STATS )
-            return (Wordsmith.BUTTON_Y.Scale() + ImGui.GetStyle().FramePadding.Y) * 2;
+        }
+        else if( this._view_mode == VIEW_MODE_STATS )
+        {
+            return ( Wordsmith.BUTTON_Y.Scale() + ImGui.GetStyle().FramePadding.Y ) * 2;
+        }
 
         return 0;
     }
@@ -1764,7 +1784,7 @@ internal sealed class ScratchPadUI : Window
     private void LoadState( PadState state )
     {
         // Revert to given padstate
-        this._header = state.Header!;
+        this.Header = state.Header!;
         this.ScratchString = state.ScratchText;
 
         // Exit history.

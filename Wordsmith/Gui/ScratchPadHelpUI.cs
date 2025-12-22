@@ -11,14 +11,12 @@ internal sealed class ScratchPadHelpUI : Window
 {
     //internal static IDalamudTextureWrap? MerriamWebsterLogo = null;
 
-    internal ScratchPadHelpUI() : base($"{Wordsmith.APPNAME} - Help")
+    internal ScratchPadHelpUI() : base( $"{Wordsmith.APPNAME} - Help" ) => this.SizeConstraints = new()
     {
-        this.SizeConstraints = new()
-        {
-            MinimumSize = new( 300, 450 ),
-            MaximumSize = new( 9999, 9999 )
-        };
-    }
+        MinimumSize = new( 300, 450 ),
+        MaximumSize = new( 9999, 9999 )
+    };
+
     public override void Draw()
     {
         if (ImGui.BeginTabBar($"{Wordsmith.APPNAME}HelpTabBar"))
@@ -65,15 +63,15 @@ internal sealed class ScratchPadHelpUI : Window
                     ImGui.TableSetupColumn("PlaceholderValueColumn", ImGuiTableColumnFlags.WidthStretch, 2);
 
                     // Setup the column headers.
-                    ImGui.TableNextColumn();
+                    _ = ImGui.TableNextColumn();
                     ImGui.TableHeader("Placeholder##ColumnHeader");
 
-                    ImGui.TableNextColumn();
+                    _ = ImGui.TableNextColumn();
                     ImGui.TableHeader("Description##ColumnHeader");
 
                     // Create a string array with all of the placeholders.
-                    string[] placeholders = new string[]
-                    {
+                    string[] placeholders =
+                    [
                         "<t>, <target>",
                         "<tt>, <t2t>",
                         "<me>, <0>",
@@ -88,12 +86,12 @@ internal sealed class ScratchPadHelpUI : Window
                         "<cross>",
                         "<triangle>",
                         "<mo>, <mouse>"
-                    };
+                    ];
 
                     // Create an array with all of the placeholder definitions at the same index
                     // as the placeholder in the previous array.
-                    string[] descriptions = new string[]
-                    {
+                    string[] descriptions =
+                    [
                         "Your current target.",
                         "The target of your current target.",
                         "Yourself!",
@@ -108,16 +106,16 @@ internal sealed class ScratchPadHelpUI : Window
                         "Person with the Cross marker over their head.",
                         "Person with the Triangle marker over their head.",
                         "The person your mouse is currently over."
-                    };
+                    ];
 
                     // Iterate through both arrays simultaneously and put the data in the
                     // table left then right.
                     for (int i = 0; i < placeholders.Length; ++i)
                     {
-                        ImGui.TableNextColumn();
+                        _ = ImGui.TableNextColumn();
                         ImGui.Text(placeholders[i]);
 
-                        ImGui.TableNextColumn();
+                        _ = ImGui.TableNextColumn();
                         ImGui.TextWrapped(descriptions[i]);
                     }
 
@@ -134,14 +132,14 @@ internal sealed class ScratchPadHelpUI : Window
                     ImGui.TableSetupColumn("RoleplayHelpTermColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("God Modding").X);
                     ImGui.TableSetupColumn("RoleplayHelpDescriptionColumn", ImGuiTableColumnFlags.WidthStretch);
 
-                    ImGui.TableNextColumn();
+                    _ = ImGui.TableNextColumn();
                     ImGui.TableHeader("Term");
 
-                    ImGui.TableNextColumn();
+                    _ = ImGui.TableNextColumn();
                     ImGui.TableHeader("Description");
 
                     string[] terms =
-                    {
+                    [
                         "IC",
                         "OOC",
                         "RP",
@@ -150,10 +148,10 @@ internal sealed class ScratchPadHelpUI : Window
                         "WU",
                         "God Modding",
                         "Metagaming",
-                    };
+                    ];
 
                     string[] desc =
-                    {
+                    [
                         "Stands for \"In Character\" which means any text you enter is as your character, not as yourself.",
                         "Stands for \"Out of Character\" which means you are speaking as yourself.",
                         "Stands for \"Roleplay\" or \"Roleplaying\".",
@@ -162,14 +160,14 @@ internal sealed class ScratchPadHelpUI : Window
                         "Stands for \"Walk Up\" meaning you don't mind if a stranger walks up and joins your RP or starts a new one with you.",
                         "This is when your roleplay tries to control the other player's actions and dictates what they do.",
                         "This is when you use information your character doesn't know in character. (i.e. someone tells you \"My character hates cheese\" OOC and then your character mentions knowing that the other character hates cheese even though it was impossible for them to know that."
-                    };
+                    ];
 
                     for (int i = 0; i < terms.Length && i < desc.Length; ++i)
                     {
-                        ImGui.TableNextColumn();
+                        _ = ImGui.TableNextColumn();
                         ImGui.TextWrapped(terms[i]);
 
-                        ImGui.TableNextColumn();
+                        _ = ImGui.TableNextColumn();
                         ImGui.TextWrapped(desc[i]);
                     }
                     ImGui.EndTable();

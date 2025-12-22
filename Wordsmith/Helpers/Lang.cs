@@ -4,29 +4,24 @@ using System.Threading.Tasks;
 
 namespace Wordsmith.Helpers;
 
-public static class Lang
+public static partial class Lang
 {
-    private static HashSet<string> _dictionary = new();
+    private static HashSet<string> _dictionary = [];
 
-    private static bool _enabled = false;
     /// <summary>
     /// Active becomes true after Init() has successfully loaded a language file.
     /// </summary>
     public static bool Enabled
     {
-        get { return _enabled; }
-        set
-        {
-            _enabled = value;
-        }
-    }
+        get => field; set => field = value;
+    } = false;
 
     /// <summary>
     /// Verifies that the string exists in the hash table
     /// </summary>
     /// <param name="key">String to search for.</param>
     /// <returns><see langword="true""/> if the word is in the dictionary</returns>
-    public static bool isWord(string key) => isWord(key, true);
+    public static bool IsWord(string key) => IsWord(key, true);
 
     /// <summary>
     /// Verifies that the string exists in the hash table
@@ -34,7 +29,7 @@ public static class Lang
     /// <param name="key">String to search for.</param>
     /// <param name="lowercase">If <see langword="true"/> then the string is made lowercase.</param>
     /// <returns><see langword="true""/> if the word is in the dictionary</returns>
-    public static bool isWord(string key, bool lowercase) => _dictionary.Contains(lowercase ? key.ToLower() : key);
+    public static bool IsWord(string key, bool lowercase) => _dictionary.Contains(lowercase ? key.ToLower() : key);
 
     private static void ValidateAndAddWord(string candidate)
     {
@@ -42,12 +37,12 @@ public static class Lang
         string[] splits = candidate.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         foreach (string s in splits)
-            _dictionary.Add(s.ToLower());
+            _ = _dictionary.Add(s.ToLower());
     }
 
     private static void ValidateConfiguration()
     {
-        Match m = Regex.Match( Wordsmith.Configuration.DictionaryFile, @"^(?:web|local):\s.+" );
+        Match m = DictionaryFileRegex().Match( Wordsmith.Configuration.DictionaryFile );
 
         // If the configuration does not have a web or local setting, set to default.
         if ( !m.Success )
@@ -80,14 +75,15 @@ public static class Lang
 
             // If both failed to load then present the failure notification
             if (!loaded)
-                Wordsmith.NotificationManager.AddNotification(new()
+            {
+                _ =  Wordsmith.NotificationManager.AddNotification(new()
                 {
                     Content = $"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.",
                     Title = "Wordsmith",
                     Type = Dalamud.Interface.ImGuiNotification.NotificationType.Warning
-                });
-            //Wordsmith.PluginInterface.UiBuilder.AddNotification($"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning);
-
+                }) ;
+                //Wordsmith.PluginInterface.UiBuilder.AddNotification($"Failed to load the dictionary {Wordsmith.Configuration.DictionaryFile}. Spellcheck disabled.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Warning);
+            }
             else
             {
                 // Add all of the custom dictionary entries to the dictionary
@@ -95,14 +91,16 @@ public static class Lang
                     ValidateAndAddWord(word);
 
                 Enabled = true;
-                if (notify)
-                    Wordsmith.NotificationManager.AddNotification(new()
+                if( notify )
+                {
+                    _ = Wordsmith.NotificationManager.AddNotification(new()
                     {
                         Content = $"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.",
                         Title = "Wordsmith",
                         Type = Dalamud.Interface.ImGuiNotification.NotificationType.Success
                     });
-                //Wordsmith.PluginInterface.UiBuilder.AddNotification($"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+                    //Wordsmith.PluginInterface.UiBuilder.AddNotification($"Successfully loaded the dictionary.\n{_dictionary.Count} unique words.", "Wordsmith", Dalamud.Interface.Internal.Notifications.NotificationType.Success);
+                }
             }
         });
         t.Start();
@@ -116,7 +114,7 @@ public static class Lang
 
     private static bool LoadWebLanguage()
     {
-        Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:web: )*(.+)");
+        Match m = WebDictionaryRegex().Match( Wordsmith.Configuration.DictionaryFile );
         if (!m.Success)
         {
             Wordsmith.PluginLog.Debug( $"Wordsmith is not configured for web dictionary file. Skipping LoadWebLanguage()" );
@@ -137,9 +135,11 @@ public static class Lang
             if ( lines.Length == 0 )
                 throw new Exception();
 
-            foreach (string l in lines)
-                if (!l.StartsWith("#") && l.Trim().Length > 0)
-                    ValidateAndAddWord(l);
+            foreach( string l in lines )
+            {
+                if( !l.StartsWith( '#' ) && l.Trim().Length > 0 )
+                    ValidateAndAddWord( l );
+            }
 
             return true;
         }
@@ -163,7 +163,7 @@ public static class Lang
     /// </summary>
     private static bool LoadLanguageFile()
     {
-        Match m = Regex.Match(Wordsmith.Configuration.DictionaryFile, @"^(?:local: )*(.+)");
+        Match m = LocalDictionaryRegex().Match( Wordsmith.Configuration.DictionaryFile );
         if ( !m.Success )
         {
             Wordsmith.PluginLog.Debug( $"Not configured for local language file. Skipping LoadLanguageFile()." );
@@ -185,9 +185,11 @@ public static class Lang
             string[] lines = File.ReadAllLines(filepath);
 
             // Iterate over each word and add it to the dictionary
-            foreach (string l in lines)
-                if (!l.StartsWith("#") && l.Trim().Length > 0)
-                    ValidateAndAddWord(l); //_dictionary.Add( l.Trim().ToLower() );
+            foreach( string l in lines )
+            {
+                if( !l.StartsWith( '#' ) && l.Trim().Length > 0 )
+                    ValidateAndAddWord( l ); //_dictionary.Add( l.Trim().ToLower() );
+            }
 
             return true;
         }
@@ -226,8 +228,8 @@ public static class Lang
     /// <param name="word">String to remove</param>
     public static void RemoveDictionaryEntry(string word)
     {
-        _dictionary.Remove(word.Trim().ToLower());
-        Wordsmith.Configuration.CustomDictionaryEntries.Remove(word.Trim().ToLower());
+        _ = _dictionary.Remove(word.Trim().ToLower());
+        _ = Wordsmith.Configuration.CustomDictionaryEntries.Remove(word.Trim().ToLower());
         Wordsmith.Configuration.Save();
     }
 
@@ -237,31 +239,31 @@ public static class Lang
             throw new Exception( $"GetSuggestions({word}) failed. Word must have length." );
 
         // Check if the first character is capitalized.
-        bool isCapped = Regex.Match(word, @"^\s*[A-Z].*").Success; //"ABCDEFGHIJKLMNOPQRSTUVWXYZ".Contains(word[0]);
+        bool isCapped = WordRegex().IsMatch( word ); //"ABCDEFGHIJKLMNOPQRSTUVWXYZ".Contains(word[0]);
 
         // Get the lowercase version of the word for the remaining tests.
         word = word.ToLower();
 
         // Generate all of the possible suggestions. We start the GenerateAway thread first as it
         // is by far the longest process.
-        Task<List<string>> aways = new(() => { return GenerateAway(word, 2, isCapped, true); });
+        Task<List<string>> aways = new(() => GenerateAway(word, 2, isCapped, true));
         aways.Start();
 
-        Task<List<string>> transpose = new(() => { return GenerateTranspose(word, isCapped, true); } );
+        Task<List<string>> transpose = new(() => GenerateTranspose(word, isCapped, true));
         transpose.Start();
 
-        Task<List<string>> splits = new(() => { return GenerateSplits(word); });
+        Task<List<string>> splits = new(() => GenerateSplits(word));
         splits.Start();
 
-        Task<List<string>> deletes = new(() => { return GenerateDeletes(word, isCapped, true); });
+        Task<List<string>> deletes = new(() => GenerateDeletes(word, isCapped, true));
         deletes.Start();
 
-        List<string> results = new();
+        List<string> results = [];
 
         void AddResults(Task<List<string>> t)
         {
             int index = 0;
-            while ( results.Count <= Wordsmith.Configuration.MaximumSuggestions && index < t.Result.Count && isWord( t.Result[index] ) )
+            while ( results.Count <= Wordsmith.Configuration.MaximumSuggestions && index < t.Result.Count && IsWord( t.Result[index] ) )
                 results.Add( t.Result[index++] );
         }
         // Collect the transposes.
@@ -285,7 +287,7 @@ public static class Lang
 
     private static List<string> GenerateTranspose(string word, bool isCapped, bool filter)
     {
-        List<string> results = new();
+        List<string> results = [];
 
         // Letter swaps
         for (int x = 0; x < word.Length - 1; ++x)
@@ -302,7 +304,7 @@ public static class Lang
             // Overwite char at x+1 with x.
             chars[x + 1] = y;
 
-            if (!filter || isWord(new string(chars)))
+            if (!filter || IsWord(new string(chars)))
                 results.Add(isCapped ? new string(chars).CaplitalizeFirst() : new string(chars));
         }
         return results;
@@ -311,12 +313,12 @@ public static class Lang
     private static List<string> GenerateDeletes(string word, bool isCapped, bool filter)
     {
         if (word.Length == 0)
-            return new();
+            return [];
 
-        List<string> results = new();
+        List<string> results = [];
         for (int i = 0; i < word.Length; ++i)
         {
-            if (!filter || isWord(word.Remove(i, 1)))
+            if (!filter || IsWord(word.Remove(i, 1)))
                 results.Add(isCapped ? word.Remove(i, 1).CaplitalizeFirst() : word.Remove(i, 1));
         }
 
@@ -332,11 +334,11 @@ public static class Lang
         // then if check word two
         // add word one + word two
         // return results
-        List<string> results = new();
+        List<string> results = [];
         for (int i = 1; i < word.Length - 1; ++i)
         {
-            string[] splits = new string[] { word[0..i], word[i..^0] };
-            if (isWord(splits[0]) && isWord(splits[1]))
+            string[] splits = [word[0..i], word[i..^0]];
+            if (IsWord(splits[0]) && IsWord(splits[1]))
                 results.Add($"{splits[0]} {splits[1]}");
         }
         return results;
@@ -345,7 +347,7 @@ public static class Lang
     private static List<string> GenerateAway(string word, int depth, bool isCapped, bool filter)
     {
         string letters = "abcdefghijklmnopqrstuvwxyz";
-        List<string> results = new();
+        List<string> results = [];
         try
         {
             // This will toggle between vowel and consonant generation
@@ -359,12 +361,12 @@ public static class Lang
 
                         // Start with vowel replacements, these are more common than
                         // consonant mistakes.
-                        if ( "aAeEiIoOuUyY".Contains( chars[x] ) == (z == 0) )
+                        if( "aAeEiIoOuUyY".Contains( chars[x] ) == ( z == 0 ) )
                         {
                             chars[x] = letters[y];
                             string test = new(chars);
 
-                            if ( (!filter || isWord( test )) && !results.Contains( test ) )
+                            if( ( !filter || IsWord( test ) ) && !results.Contains( test ) )
                                 results.Add( isCapped ? test.CaplitalizeFirst() : test );
                         }
 
@@ -372,7 +374,9 @@ public static class Lang
                         // 26 different times each time the chars[x] is the wrong character type.
                         // i.e. consant when z==0 or vowel when z==1.
                         else
+                        { 
                             break;
+                        }
                     }
                 }
             }
@@ -384,7 +388,7 @@ public static class Lang
 
                 // If the inserted character makes a word or not filtering then add it if
                 // it is not already in the results.
-                if ( (!filter || isWord( foretest )) && !results.Contains( foretest ) )
+                if ( (!filter || IsWord( foretest )) && !results.Contains( foretest ) )
                     results.Add( foretest );
 
                 // Append a character to the word
@@ -392,13 +396,13 @@ public static class Lang
 
                 // If the appended character makes a word or not filtering then add it if
                 // it is not already in the results.
-                if ( (!filter || isWord( afttest )) && !results.Contains( afttest ) )
+                if ( (!filter || IsWord( afttest )) && !results.Contains( afttest ) )
                     results.Add( afttest );
             }
 
             if ( depth > 1 )
             {
-                List<string> parents = new(results);
+                List<string> parents = [.. results];
                 foreach ( string s in parents )
                     results.AddRange( GenerateAway( s, depth - 1, isCapped, depth > 2 ) );
             }
@@ -409,4 +413,13 @@ public static class Lang
         }
         return results;
     }
+
+    [GeneratedRegex( @"^(?:web|local):\s.+" )]
+    private static partial Regex DictionaryFileRegex();
+    [GeneratedRegex( @"^(?:web: )*(.+)" )]
+    private static partial Regex WebDictionaryRegex();
+    [GeneratedRegex( @"^(?:local: )*(.+)" )]
+    private static partial Regex LocalDictionaryRegex();
+    [GeneratedRegex( @"^\s*[A-Z].*" )]
+    private static partial Regex WordRegex();
 }

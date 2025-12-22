@@ -1,0 +1,7 @@
+﻿[*.cs]
+
+# IDE0220: Add explicit cast
+dotnet_diagnostic.IDE0220.severity = none
+
+# IDE0180: Use tuple to swap values
+dotnet_diagnostic.IDE0180.severity = none

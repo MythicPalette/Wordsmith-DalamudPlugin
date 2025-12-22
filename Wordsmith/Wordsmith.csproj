@@ -3,17 +3,17 @@
   <PropertyGroup>
     <Authors>Lady Defile</Authors>
     <Company>DefiledCreations</Company>
-    <Version>1.15.7</Version>
+    <Version>1.15.8</Version>
     <PackageProjectUrl>https://github.com/MythicPalette/Wordsmith</PackageProjectUrl>
     <LangVersion>latest</LangVersion>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <Platforms>x64</Platforms>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>$(SolutionDir)\build\Wordsmith</OutputPath>
-    <DalamudApiLevel>13</DalamudApiLevel>
+    <DalamudApiLevel>14</DalamudApiLevel>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,6 +47,11 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="DalamudPackager" Version="14.0.1" />
+    <PackageReference Update="DotNet.ReproducibleBuilds" Version="1.2.39" />
   </ItemGroup>
 
 </Project>

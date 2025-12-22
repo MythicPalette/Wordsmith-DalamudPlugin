@@ -5,8 +5,8 @@ namespace Wordsmith.Helpers;
 
 internal sealed class Git
 {
-    private const string MANIFEST_JSON_URL = "https://raw.githubusercontent.com/MythicPalette/WordsmithDictionaries/main/manifest.json";
-    private const string LIBRARY_FILE_URL = "https://raw.githubusercontent.com/MythicPalette/WordsmithDictionaries/main/library";
+    private const string _MANIFEST_JSON_URL = "https://raw.githubusercontent.com/MythicPalette/WordsmithDictionaries/main/manifest.json";
+    private const string _LIBRARY_FILE_URL = "https://raw.githubusercontent.com/MythicPalette/WordsmithDictionaries/main/library";
 
     internal static WebManifest GetManifest()
     {
@@ -22,7 +22,7 @@ internal sealed class Git
                 string raw = "";
                 try
                 {
-                    raw = client.GetStringAsync( MANIFEST_JSON_URL ).Result;
+                    raw = client.GetStringAsync( _MANIFEST_JSON_URL ).Result;
 
                     // Deserialize the manifest.
                     WebManifest? manifest = JsonConvert.DeserializeObject<WebManifest>(raw);
@@ -61,7 +61,7 @@ internal sealed class Git
                 try
                 {
                     // Get data
-                    result = client.GetStringAsync( $"{LIBRARY_FILE_URL}/{name}" ).Result;
+                    result = client.GetStringAsync( $"{_LIBRARY_FILE_URL}/{name}" ).Result;
                     Wordsmith.PluginLog.Debug( $"Loaded dictionary {name} from web." );
                     break;
                 }

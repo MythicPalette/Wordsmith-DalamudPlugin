@@ -47,13 +47,17 @@ internal sealed class DebugUI : Window
         if ( ImGui.CollapsingHeader( $"Message Boxes##DebugUICollapsingHeader" ) )
         {
             ImGui.Indent();
-            foreach ( MessageBox mb in WordsmithUI.Windows.Where(w => w.GetType() == typeof(MessageBox)) )
-                if ( ImGui.CollapsingHeader($"{mb.WindowName}") )
+            foreach( MessageBox mb in WordsmithUI.Windows.Where( w => w.GetType() == typeof( MessageBox ) ) )
+            {
+                if( ImGui.CollapsingHeader( $"{mb.WindowName}" ) )
                     DrawClassData( mb, $"MessageBoxUI" );
+            }
 
-            foreach ( ErrorWindow ew in WordsmithUI.Windows.Where( w => w.GetType() == typeof( ErrorWindow ) ) )
-                if ( ImGui.CollapsingHeader( $"{ew.WindowName}" ) )
+            foreach( ErrorWindow ew in WordsmithUI.Windows.Where( w => w.GetType() == typeof( ErrorWindow ) ) )
+            {
+                if( ImGui.CollapsingHeader( $"{ew.WindowName}" ) )
                     DrawClassData( ew, $"ErrorWindowUI" );
+            }
             ImGui.Unindent();
         }
 
@@ -61,16 +65,18 @@ internal sealed class DebugUI : Window
         if ( ImGui.CollapsingHeader( "Scratch Pad Data##DebugUICollapsingHeader" ) )
         {
             ImGui.Indent();
-            foreach ( ScratchPadUI pad in WordsmithUI.Windows.Where( w => w.GetType() == typeof( ScratchPadUI ) ) )
-                if ( ImGui.CollapsingHeader($"Scratch Pad {pad.ID}##DebugUICollapsingHeader") )
+            foreach( ScratchPadUI pad in WordsmithUI.Windows.Where( w => w.GetType() == typeof( ScratchPadUI ) ) )
+            {
+                if( ImGui.CollapsingHeader( $"Scratch Pad {pad.ID}##DebugUICollapsingHeader" ) )
                     DrawClassData( pad, $"ScratchPad{pad.ID}", "NextID" );
+            }
             ImGui.Unindent();
         }
         
         if ( ImGui.CollapsingHeader( "Console##ConsoleCollapsingHeader" ) )
         {
             ImGui.Indent();
-            string[] options = WordsmithUI.Windows.Where(x => x is ScratchPadUI).Select(x => x.WindowName).ToArray();
+            string[] options = [.. WordsmithUI.Windows.Where(x => x is ScratchPadUI).Select(x => x.WindowName)];
             if ( _consolePadNumber >= options.Length )
                 _consolePadNumber = 0;
 
@@ -78,18 +84,18 @@ internal sealed class DebugUI : Window
             if ( options.Length == 0 )
             {
                 ImGui.BeginDisabled();
-                ImGui.Combo( "##ScratchPadConsoleSelectionCombo", ref _consolePadNumber, new string[] { "None" }, 1 );
+                _ = ImGui.Combo( "##ScratchPadConsoleSelectionCombo", ref _consolePadNumber, ["None"], 1 );
             }
             else
             {
-                ImGui.Combo( "##ScratchPadConsoleSelectionCombo", ref _consolePadNumber, options, options.Length );
+                _ = ImGui.Combo( "##ScratchPadConsoleSelectionCombo", ref _consolePadNumber, options, options.Length );
                 w = WordsmithUI.GetWindow( options[_consolePadNumber] );
             }
 
             if ( ImGui.BeginChildFrame(99, new (ImGui.GetContentRegionAvail().X, WordsmithUI.LineHeight * 15 - Wordsmith.BUTTON_Y.Scale()*2 ) ) )
             {
-                if ( w is ScratchPadUI pad && Helpers.Console.Log.Keys.Contains(pad))
-                    ImGui.TextWrapped( string.Join("\n", Helpers.Console.Log[pad] ) );
+                if ( w is ScratchPadUI pad && Helpers.Console.Log.TryGetValue( pad, out List<string>? value ) )
+                    ImGui.TextWrapped( string.Join("\n", value ) );
             }
             ImGui.EndChildFrame();
 
@@ -97,7 +103,7 @@ internal sealed class DebugUI : Window
             if ( ImGui.InputText( $"##ConsoleInputLine", ref _consoleInput, 1024, ImGuiInputTextFlags.EnterReturnsTrue ) )
             {
                 if ( w is ScratchPadUI pad )
-                    Helpers.Console.ProcessCommand( pad, $"devx {_consoleInput}" );
+                    _ = Helpers.Console.ProcessCommand( pad, $"devx {_consoleInput}" );
                 _consoleInput = "";
             }
             if ( options.Length == 0 )

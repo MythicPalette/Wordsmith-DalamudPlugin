@@ -16,50 +16,37 @@ public sealed class ChunkMarker
     /// <summary>
     /// Designates which <see cref="MarkerPosition"/> within the final <see cref="string"/> to place the text.
     /// </summary>
-    public MarkerPosition Position { get { return this._position; } set { this._position = value; } }
-    private MarkerPosition _position = MarkerPosition.AfterOOC;
+    public MarkerPosition Position { get; set; } = MarkerPosition.AfterOOC;
 
     /// <summary>
     /// The <see cref="RepeatMode"/> designates how to determine which <see cref="string"/> results will
     /// use this marker.
     /// </summary>
-    public RepeatMode RepeatMode { get { return this._repeatMode; } set { this._repeatMode = value; } }
-    private RepeatMode _repeatMode = RepeatMode.All;
+    public RepeatMode RepeatMode { get; set; } = RepeatMode.All;
 
     /// <summary>
     /// The <see cref="DisplayMode"/> flags for how and when this marker will be displayed.
     /// </summary>
-    public DisplayMode DisplayMode { get { return this._displayMode; } set { this._displayMode = value; } }
-    private DisplayMode _displayMode = DisplayMode.WithMultipleChunks | DisplayMode.AnyOOC;
+    public DisplayMode DisplayMode { get; set; } = DisplayMode.WithMultipleChunks | DisplayMode.AnyOOC;
 
     /// <summary>
     /// <see cref="uint"/> iterative number specificing how often to repeat.
     /// </summary>
     public uint Nth
     {
-        get { return this._nth; }
-        set
-        {
-            // nth can't be zero.
-            if ( value == 0 )
-                this._nth = 1;
-            else
-                this._nth = value;
-        }
+        get => field;
+        set => field = value == 0 ? 1 : value;
     }
-    private uint _nth = 1;
 
     /// <summary>
     /// <see cref="uint"/> chunk number for the first iteration to appear on (one-based, not zero-based)
     /// </summary>
-    public uint StartPosition { get { return this._offset; } set { this._offset = value; } }
-    private uint _offset = 1;
+    public uint StartPosition { get; set; } = 1;
 
     /// <summary>
     /// <see cref="string"/> seed for the final text. This may contain placeholders to be replaced.
     /// </summary>
-    public string Text { get { return this._text;} set { this._text = value; } }
-    private string _text = "";
+    public string Text { get; set; } = "";
 
     public ChunkMarker() { }
     public ChunkMarker( string text, MarkerPosition position, RepeatMode repeat, DisplayMode display) : this( text, position, repeat, display, 1, 0 ) { }
@@ -87,25 +74,29 @@ public sealed class ChunkMarker
         // If the repeat mode is All then every other check can be skipped.
         if ( this.RepeatMode != RepeatMode.All )
         {
-            if ( this.RepeatMode == RepeatMode.AllExceptFirst && chunkNumber == 0 )
+            if( this.RepeatMode == RepeatMode.AllExceptFirst && chunkNumber == 0 )
+            {
                 return false;
-
-            else if ( this.RepeatMode == RepeatMode.AllExceptLast && chunkNumber == chunkCount - 1 )
+            }
+            else if( this.RepeatMode == RepeatMode.AllExceptLast && chunkNumber == chunkCount - 1 )
+            {
                 return false;
-
-            else if ( this.RepeatMode == RepeatMode.OnlyOnFirst && chunkNumber != 0 )
+            }
+            else if( this.RepeatMode == RepeatMode.OnlyOnFirst && chunkNumber != 0 )
+            {
                 return false;
-
-            else if ( this.RepeatMode == RepeatMode.OnlyOnLast && chunkNumber != chunkCount - 1 )
+            }
+            else if( this.RepeatMode == RepeatMode.OnlyOnLast && chunkNumber != chunkCount - 1 )
+            {
                 return false;
-
-            else if ( this.RepeatMode == RepeatMode.EveryNth )
+            }
+            else if( this.RepeatMode == RepeatMode.EveryNth )
             {
                 int startpos = (int)(this.StartPosition - 1);
 
-                if ( chunkNumber < startpos )
+                if( chunkNumber < startpos )
                     return false;
-                if ( (chunkNumber - startpos) % this.Nth != 0 )
+                if( ( chunkNumber - startpos ) % this.Nth != 0 )
                     return false;
             }
         }
@@ -161,7 +152,7 @@ public sealed class ChunkMarker
     {
         // Dump the object then covert the resulting dictionary to a string.
         Dictionary<string, object> dict = this.Dump();
-        List<string> lResults = new();
+        List<string> lResults = [];
         foreach ( string key in dict.Keys )
             lResults.Add($"{{\"{key}\", {dict[key]}}}");
         return $"{{{string.Join(", ", lResults)}}}";
@@ -174,10 +165,12 @@ public sealed class ChunkMarker
     /// <returns>A <see cref="List{ChunkMarker}"/> of sorted markers.</returns>
     public static List<ChunkMarker> SortList(List<ChunkMarker> list )
     {
-        List<ChunkMarker> result = new();
-        foreach ( MarkerPosition mp in Enum.GetValues( typeof( MarkerPosition ) ) )
-            foreach ( ChunkMarker cm in list.Where( x => x.Position == mp ) )
+        List<ChunkMarker> result = [];
+        foreach( MarkerPosition mp in Enum.GetValues( typeof( MarkerPosition ) ) )
+        {
+            foreach( ChunkMarker cm in list.Where( x => x.Position == mp ) )
                 result.Add( cm );
+        }
         return result;
     }
 }
@@ -188,7 +181,7 @@ public sealed class ChunkMarker
 internal sealed class Clock
 {
     // A C# DateTime tick is 1/10,000,000 of a second.
-    private const float TICKS_PER_SECOND = 10000000f;
+    private const float _TICKS_PER_SECOND = 10000000f;
 
     // The last frame time.
     private DateTime _lastTick = DateTime.MinValue;
@@ -203,10 +196,7 @@ internal sealed class Clock
     /// The longest recorded <see cref="Delta"/> since the
     /// </summary>
     internal float LongestFrame { get; private set; }
-    public Clock()
-    {
-        this._lastTick = DateTime.UtcNow;
-    }
+    public Clock() => this._lastTick = DateTime.UtcNow;
 
     /// <summary>
     /// Calculates the new <see cref="Delta"/> value from
@@ -219,11 +209,11 @@ internal sealed class Clock
         DateTime tick = DateTime.UtcNow;
 
         // Compare that the last tick to find the difference and convert it to seconds.
-        float delta = (tick.Ticks - this._lastTick.Ticks) / TICKS_PER_SECOND;
+        float delta = (tick.Ticks - this._lastTick.Ticks) / _TICKS_PER_SECOND;
 
         // If the delta is longer than any others and this is not the first tick then
         // apply this to the longest frame.
-        if ( delta > this.LongestFrame && _lastTick > DateTime.MinValue)
+        if ( delta > this.LongestFrame && this._lastTick > DateTime.MinValue)
             this.LongestFrame = delta;
 
         // Set Delta and _lastTick
@@ -237,75 +227,71 @@ internal sealed class Clock
     internal void ResetLongest() => this.LongestFrame = this.Delta;
 }
 
-internal sealed class HeaderData
+internal sealed partial class HeaderData
 {
     // Event for when header data is changed.
     internal delegate void DataChangedHandler( HeaderData data );
     internal event DataChangedHandler? DataChanged;
 
-    private ChatType _chatType;
     public ChatType ChatType
     {
-        get { return _chatType; }
+        get => field;
         set
         {
             // To avoid invoking DataChanged when it hasn't return
             // if the value is the same.
-            if (_chatType == value)
+            if (field == value)
                 return;
 
-            _chatType = value;
+            field = value;
             DataChanged?.Invoke(this);
         }
     }
 
-    private int _linkshell = 0;
     public int Linkshell
     {
-        get { return _linkshell; }
+        get => field;
         set
         {
             // To avoid invoking DataChanged when it hasn't return
             // if the value is the same.
-            if (_linkshell == value)
+            if( field == value )
                 return;
 
-            _linkshell = value;
-            DataChanged?.Invoke(this);
+            field = value;
+            DataChanged?.Invoke( this );
         }
-    }
+    } = 0;
 
-    private bool _crossWorld = false;
     public bool CrossWorld
     {
-        get { return _crossWorld; }
+        get => field;
         set
         {
             // To avoid invoking DataChanged when it hasn't return
             // if the value is the same.
-            if (_crossWorld == value)
+            if (field == value)
                 return;
 
-            _crossWorld = value;
+            field = value;
             DataChanged?.Invoke(this);
         }
     }
 
-    private string _tellTarget = "";
     public string TellTarget
     {
-        get { return _tellTarget; }
+        get => field;
         set
         {
             // To avoid invoking DataChanged when it hasn't return
             // if the value is the same.
-            if (_tellTarget == value)
+            if( field == value )
                 return;
 
-            _tellTarget = value;
-            DataChanged?.Invoke(this);
+            field = value;
+            DataChanged?.Invoke( this );
         }
-    }
+    } = "";
 
     private string _alias = string.Empty;
     private bool _useLongName = false;
@@ -317,16 +303,12 @@ internal sealed class HeaderData
             string rtn;
 
             // If there is no chat type, just return the empty string
-            if (this.ChatType == ChatType.None)
-                rtn = this.ChatType.GetShortHeader();
-
-            // If the chat type is linkshell, return the specific linkshell.
-            else if ( this.ChatType == ChatType.Linkshell )
-                rtn = $"/{(this.CrossWorld ? "cw" : "")}linkshell{this.Linkshell + 1}";
-
-            // Get the long or short header based on the bool.
-            else
-                rtn = this._useLongName ? this.ChatType.GetLongHeader() : this.ChatType.GetShortHeader();
+            rtn = this.ChatType switch
+            {
+                ChatType.None => this.ChatType.GetShortHeader(),
+                ChatType.Linkshell => $"/{( this.CrossWorld ? "cw" : "" )}linkshell{this.Linkshell + 1}",
+                _ => this._useLongName ? this.ChatType.GetLongHeader() : this.ChatType.GetShortHeader()
+            };
 
             // If ChatType is Tell append the target name
             if ( this.ChatType == ChatType.Tell )
@@ -341,12 +323,12 @@ internal sealed class HeaderData
 
     public bool Valid { get; private set; }
 
-    public HeaderData(bool valid) { this.Valid = valid; }
+    public HeaderData(bool valid) => this.Valid = valid;
 
     public HeaderData(string headstring)
     {
         // If it doesn't start with a slash, we don't even try.
-        Match re = Regex.Match(headstring, @"^\s*(/(\w+))\s+");
+        Match re = WordRegex().Match( headstring );
         if (!re.Success)
             return;
 
@@ -369,14 +351,15 @@ internal sealed class HeaderData
             this._useLongName = m.Groups["long"].Success;
 
             // Get the target if there is one.
-            if ( this.ChatType == ChatType.Tell )
+            if( this.ChatType == ChatType.Tell )
+            {
                 this.TellTarget = m.Groups["target"].Value;
-
+            }
             // Get the linkshell channel if there is one.
-            else if ( this.ChatType >= ChatType.Linkshell )
+            else if( this.ChatType >= ChatType.Linkshell )
             {
                 // Get the Linkshell channel but subtract 1 to account for 0 indexing.
-                this.Linkshell = int.Parse( m.Groups["channel"].Value )-1;
+                this.Linkshell = int.Parse( m.Groups["channel"].Value ) - 1;
                 this.CrossWorld = this.ChatType > ChatType.Linkshell;
                 this.ChatType = ChatType.Linkshell;
             }
@@ -432,6 +415,8 @@ internal sealed class HeaderData
     }
 
     public override string ToString() => this.Headstring;
+    [GeneratedRegex( @"^\s*(/(\w+))\s+" )]
+    private static partial Regex WordRegex();
 }
 
 /// <summary>
@@ -482,11 +467,7 @@ internal sealed class PadState
 
 
         PadState o = (PadState)obj;
-        if ( o.ScratchText != this.ScratchText )
-            return false;
-        if ( o.UseOOC != this.UseOOC )
-            return false;
-        return true;
+        return o.ScratchText == this.ScratchText || o.UseOOC == this.UseOOC;
     }
 
     public override int GetHashCode() => HashCode.Combine( this.Header?.ChatType, this.ScratchText, this.UseOOC, this.Header?.TellTarget );
@@ -540,7 +521,7 @@ internal sealed class TextChunk
     /// Default constructor.
     /// </summary>
     /// <param name="text">The text that forms the chunk.</param>
-    internal TextChunk( string text ) { this.Text = text; }
+    internal TextChunk( string text ) => this.Text = text;
 }
 
 internal sealed class ThesaurusEntry : WordEntry
@@ -549,100 +530,100 @@ internal sealed class ThesaurusEntry : WordEntry
     /// <summary>
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all synonyms.
     /// </summary>
-    public IReadOnlyList<string> Synonyms { get => _syn; }
-    private List<string> _syn = new();
+    public IReadOnlyList<string> Synonyms => field;
+    private List<string> _syn = [];
 
     /// <summary>
     /// Adds a synonym to the list.
     /// </summary>
     /// <param name="word"><see cref="string"/> synonym.</param>
-    public void AddSynonym(string word) => _syn.Add(word);
+    public void AddSynonym(string word) => this._syn.Add(word);
 
     /// <summary>
     /// Adds a collection of synonyms to the list.
     /// </summary>
     /// <param name="words">An <see cref="IEnumerable{T}"/> of synonyms</param>
-    public void AddSynonyms(IEnumerable<string> words) => _syn.AddRange(words);
+    public void AddSynonyms(IEnumerable<string> words) => this._syn.AddRange(words);
 
     /// <summary>
     /// Returns all synonyms joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string SynonymString => string.Join(", ", this.Synonyms ?? Array.Empty<string>());
+    public string SynonymString => string.Join(", ", this.Synonyms ?? [] );
     #endregion
 
     #region Related
     /// <summary>
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all related words.
     /// </summary>
-    public IReadOnlyList<string> Related { get => _rel; }
-    private List<string> _rel = new();
+    public IReadOnlyList<string> Related => this._rel;
+    private List<string> _rel = [];
 
     /// <summary>
     /// Adds a related word to the list.
     /// </summary>
     /// <param name="word"><see cref="string"/> synonym.</param>
-    public void AddRelatedWord(string word) => _rel.Add(word);
+    public void AddRelatedWord(string word) => this._rel.Add(word);
 
     /// <summary>
     /// Adds a collection of related words to the list.
     /// </summary>
     /// <param name="words">An <see cref="IEnumerable{T}"/> of related words</param>
-    public void AddRelatedWords(IEnumerable<string> words) => _rel.AddRange(words);
+    public void AddRelatedWords(IEnumerable<string> words) => this._rel.AddRange(words);
 
     /// <summary>
     /// Returns all related words joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string RelatedString => string.Join(", ", this.Related ?? Array.Empty<string>() );
+    public string RelatedString => string.Join(", ", this.Related ?? [] );
     #endregion
 
     #region Near Antonyms
     /// <summary>
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all near antonyms.
     /// </summary>
-    public IReadOnlyList<string> NearAntonyms { get => _near; }
-    private List<string> _near = new();
+    public IReadOnlyList<string> NearAntonyms => this._near;
+    private List<string> _near = [];
 
     /// <summary>
     /// Adds a near antonyms to the list.
     /// </summary>
     /// <param name="word"><see cref="string"/> near antonym.</param>
-    public void AddNearAntonym(string word) => _near.Add(word);
+    public void AddNearAntonym(string word) => this._near.Add(word);
 
     /// <summary>
     /// Adds a collection of near antonyms to the list.
     /// </summary>
     /// <param name="words">An <see cref="IEnumerable{T}"/> of near antonyms</param>
-    public void AddNearAntonyms(IEnumerable<string> words) => _near.AddRange(words);
+    public void AddNearAntonyms(IEnumerable<string> words) => this._near.AddRange(words);
 
     /// <summary>
     /// Returns all near antonyms joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string NearAntonymString => string.Join(", ", this.NearAntonyms ?? Array.Empty<string>() );
+    public string NearAntonymString => string.Join(", ", this.NearAntonyms ?? [] );
     #endregion
 
     #region Antonyms
     /// <summary>
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all antonyms.
     /// </summary>
-    public IReadOnlyList<string> Antonyms { get => _ant; }
-    private List<string> _ant = new();
+    public IReadOnlyList<string> Antonyms => this._ant;
+    private List<string> _ant = [];
 
     /// <summary>
     /// Adds a antonym to the list.
     /// </summary>
     /// <param name="word"><see cref="string"/> antonym.</param>
-    public void AddAntonym(string word) => _ant.Add(word);
+    public void AddAntonym(string word) => this._ant.Add(word);
 
     /// <summary>
     /// Adds a collection of antonyms to the list.
     /// </summary>
     /// <param name="words">An <see cref="IEnumerable{T}"/> of antonyms</param>
-    public void AddAntonyms(IEnumerable<string> words) => _ant.AddRange(words);
+    public void AddAntonyms(IEnumerable<string> words) => this._ant.AddRange(words);
 
     /// <summary>
     /// Returns all antonyms joined into a comma-separated <see cref="string"/>
     /// </summary>
-    public string AntonymString => string.Join(", ", this.Antonyms ?? Array.Empty<string>() );
+    public string AntonymString => string.Join(", ", this.Antonyms ?? [] );
     #endregion
 }
 
@@ -673,13 +654,13 @@ internal struct Rect
     /// Returns the <see cref="Vector2"/> coordinates of the
     /// upper left corner of the rectangle
     /// </summary>
-    public Vector2 Position => new( Left, Top );
+    public readonly Vector2 Position => new( this.Left, this.Top );
 
     /// <summary>
     /// Returns the size of the rectangle as a <see cref="Vector2"/>
     /// where X is width and Y is height.
     /// </summary>
-    public Vector2 Size => new( Right - Left, Bottom - Top );
+    public readonly Vector2 Size => new( this.Right - this.Left, this.Bottom - this.Top );
 
     /// <summary>
     /// Determines whether or not a <see cref="Vector2"/> coordinate is within
@@ -687,12 +668,7 @@ internal struct Rect
     /// </summary>
     /// <param name="v">The <see cref="Vector2"/> coordinate to test</param>
     /// <returns><see langword="true"/> if the coordinate is within the bounds.</returns>
-    internal bool Contains( Vector2 v )
-    {
-        if ( v.X < this.Left || v.Y < this.Top || v.X > this.Right || v.Y > this.Bottom )
-            return false;
-        return true;
-    }
+    internal readonly bool Contains( Vector2 v ) => v.X >= this.Left && v.Y >= this.Top && v.X <= this.Right && v.Y <= this.Bottom;
 }
 
 internal sealed class WebManifest
@@ -702,8 +678,8 @@ internal sealed class WebManifest
     /// successfully loaded or not.
     /// </summary>
     internal bool IsLoaded { get; set; } = false;
-    public string[] Dictionaries = Array.Empty<string>();
-    public string[] Notice = Array.Empty<string>();
+    public string[] Dictionaries = [];
+    public string[] Notice = [];
     public string Kofi = string.Empty;
 }
 
@@ -729,7 +705,7 @@ internal sealed class Word
     /// The index where the word ends. This can be different
     /// from EndIndex when the text ends with punctuation.
     /// </summary>
-    internal int WordEndIndex => WordIndex + WordLength;
+    internal int WordEndIndex => this.WordIndex + this.WordLength;
 
     /// <summary>
     /// The last index of the text. This can be offset from
@@ -772,7 +748,7 @@ internal sealed class Word
     /// <param name="s">The <see cref="string"/> to get the text from.</param>
     /// <param name="offset">The <see cref="int"/> offset position to begin looking for the text.</param>
     /// <returns><see cref="string"/> containing the matching text.</returns>
-    internal string GetString(string s, int offset) => StartIndex + offset >= 0 && StartIndex < EndIndex && EndIndex + offset <= s.Length ? s[(StartIndex + offset)..(EndIndex + offset)] : "";
+    internal string GetString(string s, int offset) => this.StartIndex + offset >= 0 && this.StartIndex < this.EndIndex && this.EndIndex + offset <= s.Length ? s[( this.StartIndex + offset)..( this.EndIndex + offset)] : "";
 
     /// <summary>
     /// Attempts to collect the word from word index to word end index in a given string.
@@ -791,7 +767,7 @@ internal sealed class Word
     /// <param name="s">The <see cref="string"/> to get the text from.</param>
     /// <param name="offset">The <see cref="int"/> offset position to begin looking for the word.</param>
     /// <returns><see cref="string"/> containing the matching text.</returns>
-    internal string GetWordString(string s, int offset) => WordIndex + offset >= 0 && WordLength > 0 && WordIndex + WordLength + offset <= s.Length ? s[(WordIndex + offset)..(WordIndex + WordLength + offset)] : "";
+    internal string GetWordString(string s, int offset) => this.WordIndex + offset >= 0 && this.WordLength > 0 && this.WordIndex + this.WordLength + offset <= s.Length ? s[( this.WordIndex + offset)..( this.WordIndex + this.WordLength + offset)] : "";
 
     /// <summary>
     /// Offset the starting and ending indices for the whole text and word.
@@ -807,9 +783,9 @@ internal sealed class Word
         if ( this.EndIndex + offset < 0 )
             throw new IndexOutOfRangeException();
 
-        StartIndex += offset;
-        WordIndex += offset;
-        EndIndex += offset;
+        this.StartIndex += offset;
+        this.WordIndex += offset;
+        this.EndIndex += offset;
     }
 
     /// <summary>
@@ -818,9 +794,9 @@ internal sealed class Word
     /// <param name="wordText">Text to generate suggestions based on.</param>
     internal void GenerateSuggestions(string wordText)
     {
-        this.Suggestions = new();
+        this.Suggestions = [];
         BackgroundWorker bw = new();
-        bw.DoWork += ( s, e ) => { e.Result = Helpers.Lang.GetSuggestions( wordText ); };
+        bw.DoWork += ( s, e ) => e.Result = Helpers.Lang.GetSuggestions( wordText );
         bw.RunWorkerCompleted += ( s, e ) => { if ( e.Result is not null ) this.Suggestions = (List<string>)e.Result; };
         bw.RunWorkerAsync();
     }
@@ -837,18 +813,13 @@ internal class WordEntry
     public string Word { get; set; } = "";
 
     /// <summary>
-    /// Holds the type of the word (i.e. Noun)
-    /// </summary>
-    private string _type = "";
-
-    /// <summary>
     /// Gets or sets the type of the word (i.e. Noun)
     /// </summary>
     public string Type
     {
-        get => _type;
-        set => _type = value.CaplitalizeFirst();
-    }
+        get;
+        set => field = value.CaplitalizeFirst();
+    } = "";
 
     /// <summary>
     /// The definition of this variant of the word.
@@ -864,10 +835,14 @@ internal class WordEntry
     /// <summary>
     /// Default constructor that just assigns an ID.
     /// </summary>
-    public WordEntry() { ID = ++_nextid; }
+    public WordEntry() => this.ID = ++_nextid;
 }
 
-internal sealed class WordSearchResult
+/// <summary>
+/// Default constructor.
+/// </summary>
+/// <param name="query">The string that was searched.</param>
+internal sealed class WordSearchResult( string query )
 {
     /// <summary>
     /// Static value that holds the next available ID
@@ -877,42 +852,31 @@ internal sealed class WordSearchResult
     /// <summary>
     /// Holds the ID of this instance.
     /// </summary>
-    public readonly long ID;
+    public readonly long ID = ++_nextid;
 
     /// <summary>
     /// The original string used for the search.
     /// </summary>
-    public string Query { get; set; }
+    public string Query { get; set; } = query;
 
     /// <summary>
     /// A list of all WordEntries that hold the word variant data.
     /// </summary>
-    private List<WordEntry> _entries = new();
-
+    private List<WordEntry> _entries = [];
     /// <summary>
     /// An array of all word variant entries.
     /// </summary>
-    public IReadOnlyList<WordEntry> Entries { get => _entries; }
+    public IReadOnlyList<WordEntry> Entries => this._entries;
 
     /// <summary>
     /// Adds a single entry to the collection.
     /// </summary>
     /// <param name="entry">The entry to be added.</param>
-    public void AddEntry(WordEntry entry) => _entries.Add(entry);
+    public void AddEntry(WordEntry entry) => this._entries.Add(entry);
 
     /// <summary>
     /// Adds a range of entries to the collection.
     /// </summary>
     /// <param name="entries">The IEnumerable of WordEntry to add.</param>
-    public void AddEntries(IEnumerable<WordEntry> entries) => _entries.AddRange(entries);
-
-    /// <summary>
-    /// Default constructor.
-    /// </summary>
-    /// <param name="query">The string that was searched.</param>
-    public WordSearchResult(string query)
-    {
-        this.Query = query;
-        ID = ++_nextid;
-    }
+    public void AddEntries(IEnumerable<WordEntry> entries) => this._entries.AddRange(entries);
 }

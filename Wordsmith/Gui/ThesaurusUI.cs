@@ -47,12 +47,14 @@ internal sealed class ThesaurusUI : Window, IDisposable
                 for ( int i = 0, c = this._searchHelper.History.Count; i < c; )
                 {
                     WordSearchResult result = this._searchHelper.History[i];
-                    if ( DrawSearchResult( result ) )
+                    if( DrawSearchResult( result ) )
+                    {
                         i++;
+                    }
                     else
                     {
                         c--;
-                        this._searchHelper.DeleteResult(result);
+                        this._searchHelper.DeleteResult( result );
                     }
                 }
 
@@ -71,7 +73,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
         float btnWidth = 100*ImGuiHelpers.GlobalScale;
         ImGui.SetNextItemWidth( ImGui.GetWindowContentRegionMax().X - btnWidth - ImGui.GetStyle().FramePadding.X * 2 );
 
-        if ( ImGui.InputTextWithHint( "###ThesaurusSearchBar", "Search...", ref _query, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
+        if ( ImGui.InputTextWithHint( "###ThesaurusSearchBar", "Search...", ref this._query, 128, ImGuiInputTextFlags.EnterReturnsTrue ) )
         {
             this._searchHelper.SearchThesaurus( this._query );
             this._query = "";
@@ -109,7 +111,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
     /// </summary>
     /// <param name="result">The search result to be drawn</param>
     /// <returns><see langword="true"/> if visible; otherwise <see langword="false"/>.</returns>
-    private bool DrawSearchResult(WordSearchResult result)
+    private static bool DrawSearchResult(WordSearchResult result)
     {
         if (result != null)
         {
@@ -118,7 +120,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
             if (ImGui.CollapsingHeader($"{result.Query.Trim().CaplitalizeFirst()}##{result.ID}", ref vis, ImGuiTreeNodeFlags.DefaultOpen))
             {
                 ImGui.Indent();
-                foreach (ThesaurusEntry entry in result?.Entries ?? Array.Empty<ThesaurusEntry>())
+                foreach (ThesaurusEntry entry in result?.Entries ?? [] )
                     DrawEntry(entry);
                 ImGui.Unindent();
             }
@@ -133,7 +135,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
     /// Draws a search result's entry data. One search result can have multiple data entries.
     /// </summary>
     /// <param name="entry">The data to draw.</param>
-    private void DrawEntry(ThesaurusEntry entry)
+    private static void DrawEntry(ThesaurusEntry entry)
     {
         if ( ImGui.CollapsingHeader($"{entry.Type.Trim().CaplitalizeFirst()} - {entry.Definition.Replace("{it}", "").Replace("{/it}", "")}##{entry.ID}"))
         {

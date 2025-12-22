@@ -6,17 +6,17 @@ using Dalamud.Bindings.ImGui;
 
 namespace Wordsmith;
 
-internal static class Extensions
+internal static partial class Extensions
 {
-    private const string SPACED_WRAP_MARKER = "\r\r";
-    private const string NOSPACE_WRAP_MARKER = "\r";
+    private const string _SPACED_WRAP_MARKER = "\r\r";
+    private const string _NOSPACE_WRAP_MARKER = "\r";
 
     internal static float Scale( this int i ) => i * ImGuiHelpers.GlobalScale;
 
     #region Collections
     internal static Dictionary<int, Vector4> Clone( this Dictionary<int, Vector4> dict )
     {
-        Dictionary<int, Vector4> result = new();
+        Dictionary<int, Vector4> result = [];
         foreach ( int key in dict.Keys )
             result[key] = new Vector4( dict[key].X, dict[key].Y, dict[key].Z, dict[key].W );
         return result;
@@ -37,7 +37,7 @@ internal static class Extensions
         Type t = obj.GetType();
 
         // Create the resulting list
-        List<(int Type, string Name, string Value)> result = new();
+        List<(int Type, string Name, string Value)> result = [];
 
         // Get properties of the object and skip any that are in the exclude list.
         foreach ( PropertyInfo p in t.GetProperties().Where( x => !excludes?.Contains( x.Name ) ?? true ) )
@@ -58,26 +58,28 @@ internal static class Extensions
     private static string GetValueString( object? obj )
     {
         // If the object is null return an emtpy string.
-        if ( obj is null )
+        if( obj is null )
+        {
             return string.Empty;
+        }
 
         // If the object is a list
-        else if ( obj.IsGenericList() )
+        else if( obj.IsGenericList() )
         {
             // Cast it to an array list
             ArrayList? arrayList = ReflectListObjectToList( obj );
 
             // If the cast failed then return an empty string
-            if ( arrayList is null )
+            if( arrayList is null )
                 return string.Empty;
 
             // Start the resulting string with necessary JSON wrapper
             string result = "{ \"";
 
             // Convert each item in the list to string
-            for ( int i = 0; i < arrayList.Count; ++i )
+            for( int i = 0; i < arrayList.Count; ++i )
             {
-                if ( i > 0 )
+                if( i > 0 )
                     result += ", \"";
                 result += arrayList[i]?.ToString() ?? string.Empty;
             }
@@ -90,13 +92,13 @@ internal static class Extensions
         }
 
         // If the object is a dictionary
-        else if ( obj.IsGenericDictionary() )
+        else if( obj.IsGenericDictionary() )
         {
             // Cast the dictionary to a list of string
             List<string>? pairs = ReflectDictionaryObjectToList( obj );
 
             // If the cast fails then return an empty string
-            if ( pairs is null )
+            if( pairs is null )
                 return string.Empty;
 
 
@@ -104,9 +106,9 @@ internal static class Extensions
             string result = "{ \"";
 
             // Convert each item in the list to string
-            for ( int i = 0; i < (pairs?.Count ?? 0); ++i )
+            for( int i = 0; i < ( pairs?.Count ?? 0 ); ++i )
             {
-                if ( i > 0 )
+                if( i > 0 )
                     result += ", \"";
                 result += pairs![i] ?? string.Empty;
             }
@@ -119,16 +121,16 @@ internal static class Extensions
         }
 
         // If the object is an array
-        else if ( obj.GetType().IsArray )
+        else if( obj.GetType().IsArray )
         {
             // Convert it to an array of objects
-            if ( obj is object[] objects )
+            if( obj is object[] objects )
             {
                 // Convert all of the objects to strings inside of an array wrapper
                 string result = "[ \"";
-                for ( int i = 0; i < objects.Length; ++i )
+                for( int i = 0; i < objects.Length; ++i )
                 {
-                    if ( i > 0 )
+                    if( i > 0 )
                         result += ", \"";
                     result += objects[i].ToString();
                 }
@@ -151,7 +153,7 @@ internal static class Extensions
     /// <returns><see langword="true"/> if the object is a list; otherwise <see langword="false"/></returns>
     internal static bool IsGenericList( this object o )
     {
-        var oType = o.GetType();
+        Type oType = o.GetType();
         return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( List<> )));
     }
 
@@ -162,7 +164,7 @@ internal static class Extensions
     /// <returns><see langword="true"/> if the object is a Dictionary; otherwise <see langword="false"/></returns>
     internal static bool IsGenericDictionary( this object o )
     {
-        var oType = o.GetType();
+        Type oType = o.GetType();
         return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( Dictionary<,> )));
     }
 
@@ -173,7 +175,7 @@ internal static class Extensions
     /// <returns><see langword="true"/> if the object is an Enumerable; otherwise <see langword="false"/></returns>
     internal static bool IsGenericEnumerable( this object o )
     {
-        var oType = o.GetType();
+        Type oType = o.GetType();
         return (oType.IsGenericType && (oType.GetGenericTypeDefinition() == typeof( IEnumerable<> )));
     }
 
@@ -200,7 +202,7 @@ internal static class Extensions
         Type t = o.GetType();
 
         // Get the keys
-        var keys = t.GetProperty("Keys")?.GetValue(o);
+        object? keys = t.GetProperty("Keys")?.GetValue(o);
 
         // Return null if unable to get keys.
         if ( keys is null )
@@ -216,7 +218,7 @@ internal static class Extensions
             return null;
 
         // Get the values
-        var values = t.GetProperty("Values")?.GetValue(o);
+        object? values = t.GetProperty("Values")?.GetValue(o);
 
         // Return null if unable to get values.
         if ( values is null )
@@ -228,7 +230,7 @@ internal static class Extensions
         Array? valueArray = (Array?)valueToArray?.Invoke( values, null );
 
 
-        List<string> result = new();
+        List<string> result = [];
         for ( int i = 0; i < keyArray.Length; ++i )
         {
             result.Add( $"{keyArray.GetValue( i )}: {valueArray?.GetValue( i )}" );
@@ -361,12 +363,9 @@ internal static class Extensions
             if ( idx > -1 )
             {
                 // If the index is 0 just remove the space from the front of the line.
-                if ( idx == 0 )
-                    s = s[1..^0];
-
-                // Remove the space from inside the string.
-                else
-                    s = s[0..idx] + s[(idx + 1)..^0];
+                s = idx == 0
+                    ? s[1..^0]
+                    : s[0..idx] + s[(idx + 1)..^0];
 
                 // If the removed space is at a lower index than the cursor
                 // move the cursor back a space to account for the position change.
@@ -407,7 +406,7 @@ internal static class Extensions
     internal static string Unwrap( this string s )
     {
         // Replace the markers with the correct information
-        s = s.Trim().Replace( SPACED_WRAP_MARKER + "\n", " " ).Replace( NOSPACE_WRAP_MARKER + "\n", "" );
+        s = s.Trim().Replace( _SPACED_WRAP_MARKER + "\n", " " ).Replace( _NOSPACE_WRAP_MARKER + "\n", "" );
 
         // Before sending the string back, replace all stray return carriage characters with nothing
         // prevent the text from being poisoned by broken markers.
@@ -442,26 +441,26 @@ internal static class Extensions
 
         // Replace all wrap markers with spaces and adjust cursor offset. Do this before
         // all non-spaced wrap markers because the Spaced marker contains the nonspaced marker
-        while ( text.Contains( SPACED_WRAP_MARKER + '\n' ) )
+        while ( text.Contains( _SPACED_WRAP_MARKER + '\n' ) )
         {
-            int idx = text.IndexOf(SPACED_WRAP_MARKER + '\n');
-            text = text[0..idx] + " " + text[(idx + (SPACED_WRAP_MARKER + '\n').Length)..^0];
+            int idx = text.IndexOf(_SPACED_WRAP_MARKER + '\n');
+            text = text[0..idx] + " " + text[(idx + (_SPACED_WRAP_MARKER + '\n').Length)..^0];
 
             // We adjust the cursor position by one less than the wrap marker
             // length to account for the space that replaces it.
             if ( cursorPos > idx )
-                cursorPos -= SPACED_WRAP_MARKER.Length;
+                cursorPos -= _SPACED_WRAP_MARKER.Length;
 
         }
 
         // Replace all non-spaced wrap markers with an empty zone.
-        while ( text.Contains( NOSPACE_WRAP_MARKER + '\n' ) )
+        while ( text.Contains( _NOSPACE_WRAP_MARKER + '\n' ) )
         {
-            int idx = text.IndexOf(NOSPACE_WRAP_MARKER + '\n');
-            text = text[0..idx] + text[(idx + (NOSPACE_WRAP_MARKER + '\n').Length)..^0];
+            int idx = text.IndexOf(_NOSPACE_WRAP_MARKER + '\n');
+            text = text[0..idx] + text[(idx + (_NOSPACE_WRAP_MARKER + '\n').Length)..^0];
 
             if ( cursorPos > idx )
-                cursorPos -= (NOSPACE_WRAP_MARKER + '\n').Length;
+                cursorPos -= (_NOSPACE_WRAP_MARKER + '\n').Length;
         }
 
         // Replace all remaining carriage return characters with nothing.
@@ -503,26 +502,26 @@ internal static class Extensions
 
                 if ( lastSpace > offset )
                 {
-                    sb.Remove( lastSpace, 1 );
-                    sb.Insert( lastSpace, SPACED_WRAP_MARKER + '\n' );
-                    offset = lastSpace + SPACED_WRAP_MARKER.Length;
-                    i += SPACED_WRAP_MARKER.Length;
+                    _ = sb.Remove( lastSpace, 1 );
+                    _ = sb.Insert( lastSpace, _SPACED_WRAP_MARKER + '\n' );
+                    offset = lastSpace + _SPACED_WRAP_MARKER.Length;
+                    i += _SPACED_WRAP_MARKER.Length;
 
                     // Adjust cursor position for the marker but not
                     // the new line as the new line is replacing the space.
                     if ( lastSpace < cursorPos )
-                        cursorPos += SPACED_WRAP_MARKER.Length;
+                        cursorPos += _SPACED_WRAP_MARKER.Length;
                 }
                 else
                 {
-                    sb.Insert( i, NOSPACE_WRAP_MARKER + '\n' );
-                    offset = i + NOSPACE_WRAP_MARKER.Length;
-                    i += NOSPACE_WRAP_MARKER.Length;
+                    _ = sb.Insert( i, _NOSPACE_WRAP_MARKER + '\n' );
+                    offset = i + _NOSPACE_WRAP_MARKER.Length;
+                    i += _NOSPACE_WRAP_MARKER.Length;
 
                     // Adjust cursor position for the marker and the
                     // new line since both are inserted.
-                    if ( cursorPos > i - NOSPACE_WRAP_MARKER.Length )
-                        cursorPos += NOSPACE_WRAP_MARKER.Length + 1;
+                    if ( cursorPos > i - _NOSPACE_WRAP_MARKER.Length )
+                        cursorPos += _NOSPACE_WRAP_MARKER.Length + 1;
                 }
                 text = sb.ToString();
             }
@@ -538,9 +537,9 @@ internal static class Extensions
     internal static List<Word> Words( this string s )
     {
         if ( s.Length == 0 )
-            return new();
+            return [];
 
-        List<Word> words = new();
+        List<Word> words = [];
 
         // The start of the current word
         int start = 0;
@@ -580,13 +579,7 @@ internal static class Extensions
                 while ( start + len - wordlenoffset - 1 > -1 && $"-{Wordsmith.Configuration.PunctuationCleaningList}".Contains( s[start + len - wordlenoffset - 1] ) && wordoffset <= len )
                 {
                     // If the character is a hyphen, flag it as true.
-                    if ( s[start + len - wordlenoffset - 1] == '-' )
-                        hyphen = true;
-
-                    // If the character is not a hyphen, flag it as false.
-                    else
-                        hyphen = false;
-
+                    hyphen = s[start + len - wordlenoffset - 1] == '-';
                     ++wordlenoffset;
                 }
 
@@ -623,16 +616,15 @@ internal static class Extensions
     internal static string? GetTarget( this string s )
     {
         // Check for a placeholder
-        Match match = Regex.Match( s, @"^(?:/tell|/t) (?<target><\w+>)" );
+        Match match = TellRegex().Match( s );
         if ( match.Success )
             return match.Groups["target"].Value;
 
         // Check for user name@world
-        match = Regex.Match( s, @"^(?:/tell|/t) (?<target>[A-Z][a-zA-Z']{1,14} [A-Z][a-zA-Z']{1,14}@[A-Z][a-z]{3,13})$" );
-        if ( match.Success )
-                return match.Groups["target"].Value;
-        
-        return null;
+        match = TellCompleteRegex().Match( s );
+        return match.Success ?
+             match.Groups["target"].Value
+             : null;
     }
 
     /// <summary>
@@ -640,23 +632,32 @@ internal static class Extensions
     /// </summary>
     /// <param name="s"></param>
     /// <returns></returns>
-    internal static bool isTarget( this string s )
+    internal static bool IsTarget( this string s )
     {
         // No valid target has less than 3 characters.
         if ( s.Length < 3 )
             return false;
 
         // If the target is a valid User Name@World
-        if ( Regex.Match( s, @"^[A-Z][a-zA-Z']{1,14} [A-Z][a-zA-Z']{1,14}@[A-Z][a-z]{3,13}$" ).Success )
+        if ( UsernameWorldRegex().IsMatch( s ) )
             return true;
 
         // If the target is a placeholder.
-        if ( Regex.Match(s, @"^\<\w+\>$").Success )
+        if ( WordRegex().IsMatch( s ) )
             return true;
 
         // Return false when matches fail.
         return false;
     }
+
+    [GeneratedRegex( @"^(?:/tell|/t) (?<target><\w+>)" )]
+    private static partial Regex TellRegex();
+    [GeneratedRegex( @"^(?:/tell|/t) (?<target>[A-Z][a-zA-Z']{1,14} [A-Z][a-zA-Z']{1,14}@[A-Z][a-z]{3,13})$" )]
+    private static partial Regex TellCompleteRegex();
+    [GeneratedRegex( @"^[A-Z][a-zA-Z']{1,14} [A-Z][a-zA-Z']{1,14}@[A-Z][a-z]{3,13}$" )]
+    private static partial Regex UsernameWorldRegex();
+    [GeneratedRegex( @"^\<\w+\>$" )]
+    private static partial Regex WordRegex();
     #endregion
 }
 

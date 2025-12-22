@@ -9,14 +9,11 @@ internal enum ApiState { Idle, Searching, Failed}
 internal sealed class MerriamWebsterAPI : IDisposable
 {
     public bool Loading { get; private set; } = false;
-    private float _progress = 0.0f;
-    public float Progress => _progress;
+    public float Progress { get; private set; } = 0.0f;
 
     internal ApiState State { get; private set; }
 
-    private List<WordSearchResult> _history = new();
-
-    public List<WordSearchResult> History => _history;
+    public List<WordSearchResult> History { get; } = [];
 
     /// <summary>
     /// The client used by Wordsmith Thesaurus to get the web pages for scraping.
@@ -26,7 +23,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
     /// <summary>
     /// Instantiates a new SearchHelper object
     /// </summary>
-    public MerriamWebsterAPI() { _client = new HttpClient(); }
+    public MerriamWebsterAPI() => this._client = new HttpClient();
 
     /// <summary>
     /// Adds a searched item to the history.
@@ -39,7 +36,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
             return;
 
         // Add the latest to the history
-        this._history.Insert(0, entry);
+        this.History.Insert(0, entry);
         Wordsmith.PluginLog.Debug($"Added {entry.Query} to history.");
 
         // Setting search history length to zero will just make it unlimited.
@@ -47,8 +44,8 @@ internal sealed class MerriamWebsterAPI : IDisposable
             return;
 
         // If over allowed amount remove oldest.
-        while ( this._history.Count > Wordsmith.Configuration.SearchHistoryCount)
-            this._history.RemoveAt( this._history.Count - 1);
+        while ( this.History.Count > Wordsmith.Configuration.SearchHistoryCount)
+            this.History.RemoveAt( this.History.Count - 1);
     }
 
     /// <summary>
@@ -60,15 +57,15 @@ internal sealed class MerriamWebsterAPI : IDisposable
         if (entry == null)
             return;
 
-        else if ( this._history.Contains(entry))
-            this._history.Remove(entry);
+        else
+            _ = this.History.Remove(entry);
     }
 
     public int FindSearchResult(string query)
     {
-        for ( int i = 0; i < this._history.Count; i++ )
+        for ( int i = 0; i < this.History.Count; i++ )
         {
-            if ( this._history[i].Query.ToLower() == query.ToLower() )
+            if ( this.History[i].Query.Equals( query, StringComparison.CurrentCultureIgnoreCase ) )
                 return i;
         }
         return -1;
@@ -95,7 +92,7 @@ internal sealed class MerriamWebsterAPI : IDisposable
             // Get the search data
             string query = (string) e.Argument;
             // Check if the search already exists
-            if ( !SearchHistory( query ) )
+            if( !SearchHistory( query ) )
             {
                 string request = $"https://dictionaryapi.com/api/v3/references/thesaurus/json/{query.ToLower().Trim()}?key={Wordsmith.Configuration.MwApiKey}";
                 string html = this._client.GetStringAsync( request ).Result;
@@ -103,25 +100,25 @@ internal sealed class MerriamWebsterAPI : IDisposable
                 try
                 {
                     XDocument? doc = JsonConvert.DeserializeXNode($"{{ \"entry\": {html} }}", "root");
-                    if ( doc is not null )
+                    if( doc is not null )
                     {
                         WordSearchResult result = new(query);
 
                         // Iterate through each entry
                         XElement? root = doc.Element("root");
-                        if ( root is null )
+                        if( root is null )
                             return;
 
-                        List<XElement> entries = new(root.Elements("entry"));
+                        List<XElement> entries = [.. root.Elements("entry")];
                         // Only deal with entries that match correctly.
-                        foreach ( XElement entry in entries )
+                        foreach( XElement entry in entries )
                         {
                             // .Where( e => e.Element( "meta" )?.Element( "id" )?.Value.ToLower() == query )
-                            if ( entry.Element( "meta" ) is XElement meta )
+                            if( entry.Element( "meta" ) is XElement meta )
                             {
-                                if ( meta.Element( "id" ) is XElement id )
+                                if( meta.Element( "id" ) is XElement id )
                                 {
-                                    if ( id.Value.ToLower() != query.ToLower() )
+                                    if( id.Value.Equals( query, StringComparison.CurrentCultureIgnoreCase ) )
                                     {
                                         Wordsmith.PluginLog.Debug( $"Element ID did not match query: {id}" );
                                         continue;
@@ -140,13 +137,13 @@ internal sealed class MerriamWebsterAPI : IDisposable
                             }
 
                             // Get all of the senses
-                            List<XElement> subentries = entry.Element("def")?.Elements("sseq")?.ToList() ?? new();
-                            foreach ( XElement x in subentries )
+                            List<XElement> subentries = entry.Element("def")?.Elements("sseq")?.ToList() ?? [];
+                            foreach( XElement x in subentries )
                             {
                                 // The data is nested in another sseq tag
                                 XElement? data = x.Element("sseq")?.Elements("sseq").ElementAt(1);
 
-                                if ( data is not null )
+                                if( data is not null )
                                 {
                                     ThesaurusEntry tEntry = new()
                                     {
@@ -157,38 +154,41 @@ internal sealed class MerriamWebsterAPI : IDisposable
 
                                     // Definition
                                     int searches = 2;
-                                    foreach ( XElement dt in data.Elements( "dt" ) )
+                                    foreach( XElement dt in data.Elements( "dt" ) )
                                     {
                                         // Get the text definition
-                                        if ( dt.Elements( "dt" ).ElementAt( 0 ).Value == "text" )
+                                        if( dt.Elements( "dt" ).ElementAt( 0 ).Value == "text" )
                                         {
                                             tEntry.Definition = dt.Elements( "dt" ).ElementAt( 1 ).Value;
                                             searches--;
                                         }
 
                                         // Get the example
-                                        else if ( dt.Elements( "dt" ).ElementAt( 0 ).Value == "vis" )
+                                        else if( dt.Elements( "dt" ).ElementAt( 0 ).Value == "vis" )
                                         {
                                             // This piece is super nested for some reason.
                                             tEntry.Visualization = dt.Elements( "dt" )?.ElementAt( 1 )?.Element( "dt" )?.Element( "t" )?.Value ?? "";
                                             searches--;
                                         }
 
-                                        if ( searches < 1 )
+                                        if( searches < 1 )
                                             break;
                                     }
 
                                     // Internal method to get the nested word data.
                                     List<string> GetNestedWordData( string data_header )
                                     {
-                                        List<string> result = new();
-                                        foreach ( XElement word_list in data.Elements( data_header ) )
+                                        List<string> result = [];
+                                        foreach( XElement word_list in data.Elements( data_header ) )
+                                        {
                                             // The list has syn_list objects nested.
-                                            foreach ( XElement wl in word_list.Elements() )
+                                            foreach( XElement wl in word_list.Elements() )
+                                            {
                                                 // Inside the syn_list object is the word
-                                                foreach ( XElement wd in wl.Elements() )
+                                                foreach( XElement wd in wl.Elements() )
                                                     result.Add( wd.Value );
-
+                                            }
+                                        }
                                         return result;
                                     }
 
@@ -209,13 +209,15 @@ internal sealed class MerriamWebsterAPI : IDisposable
                         e.Result = result;
                     }
                 }
-                catch ( Exception ex )
+                catch( Exception ex )
                 {
                     Wordsmith.PluginLog.Error( ex.Message );
                 }
             }
             else
-                e.Result = this.History.FirstOrDefault( w => w.Query.ToLower() == query.ToLower() );
+            {
+                e.Result = this.History.FirstOrDefault( w => w.Query.Equals( query, StringComparison.CurrentCultureIgnoreCase ) );
+            }
         }
     }
 
@@ -250,9 +252,9 @@ internal sealed class MerriamWebsterAPI : IDisposable
 
             Wordsmith.PluginLog.Debug($"Checking History for {query}");
 
-            this._progress = 0f;
+            this.Progress = 0f;
             // If searching the same thing twice, return
-            if ( this.History[0].Query.ToLower() == query.ToLower())
+            if ( this.History[0].Query.Equals( query, StringComparison.CurrentCultureIgnoreCase ) )
                 return true;
 
             // Check if current query is in the history
@@ -265,11 +267,11 @@ internal sealed class MerriamWebsterAPI : IDisposable
                 if (Wordsmith.Configuration.ResearchToTop)
                 {
                     // Get the search result
-                    WordSearchResult result = this._history[idx];
+                    WordSearchResult result = this.History[idx];
 
                     // Remove the object
-                    this._history.RemoveAt( idx );
-                    this._history.Insert( 0, result );
+                    this.History.RemoveAt( idx );
+                    this.History.Insert( 0, result );
                     
                 }
                 return true;
