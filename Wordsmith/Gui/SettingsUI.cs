@@ -200,11 +200,13 @@ internal sealed partial class SettingsUI : Window
                         _ = ImGui.Checkbox( "Confirm Scratch Pad Delete##SettingsUICheckbox", ref this._confirmDeleteClosed );
                         ImGuiExt.SetHoveredTooltip( "When enabled a confirmation window will appear before deleting the Scratch Pad." );
 
-                        _ = ImGui.TableNextColumn();
-                        // Split on sentence
-                        _ = ImGui.Checkbox( "Split Text On Sentence##SettingsUICheckbox", ref this._onSentence );
-                        ImGuiExt.SetHoveredTooltip( "When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words." );
-
+                        if( Wordsmith.Configuration.ShowAdvancedSettings )
+                        {
+                            _ = ImGui.TableNextColumn();
+                            // Split on sentence
+                            _ = ImGui.Checkbox( "Split Text On Sentence##SettingsUICheckbox", ref this._onSentence );
+                            ImGuiExt.SetHoveredTooltip( "When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words." );
+                        }
                         //_ = ImGui.TableNextColumn();
                         //if( this._hideChunkDisplay )
                         //    ImGui.BeginDisabled();
@@ -623,16 +625,20 @@ internal sealed partial class SettingsUI : Window
                 if ( ImGui.CollapsingHeader( "Text Input Options##settingsheader" ) )
                 {
                     ImGui.Indent();
-                    // Max Text Length
                     float dragWidth = ImGui.GetContentRegionAvail().X - (125 * ImGuiHelpers.GlobalScale);
-                    ImGui.SetNextItemWidth( dragWidth );
-                    _ = ImGui.DragInt( "Max Text Length##ScratchPadSettingsSlider", ref this._scratchMaxTextLen, 8f, 512, Wordsmith.MAX_SCRATCH_LENGTH );
-                    if ( this._scratchMaxTextLen > Wordsmith.MAX_SCRATCH_LENGTH )
-                        this._scratchMaxTextLen = Wordsmith.MAX_SCRATCH_LENGTH;
+                    if( Wordsmith.Configuration.ShowAdvancedSettings )
+                    {
+                        // Max Text Length
+                        ImGui.SetNextItemWidth( dragWidth );
+                        _ = ImGui.DragInt( "Max Text Length##ScratchPadSettingsSlider", ref this._scratchMaxTextLen, 8f, 512, Wordsmith.MAX_SCRATCH_LENGTH );
+                        if( this._scratchMaxTextLen > Wordsmith.MAX_SCRATCH_LENGTH )
+                            this._scratchMaxTextLen = Wordsmith.MAX_SCRATCH_LENGTH;
 
-                    ImGuiExt.SetHoveredTooltip( $"This is the buffer size for text input.\nThe higher this value is the more\nmemory consumed up to a maximum of\n{Wordsmith.MAX_SCRATCH_LENGTH / 1024}KB per Scratch Pad." );
+                        ImGuiExt.SetHoveredTooltip( $"This is the buffer size for text input.\nThe higher this value is the more\nmemory consumed up to a maximum of\n{Wordsmith.MAX_SCRATCH_LENGTH / 1024}KB per Scratch Pad." );
 
-                    ImGui.Separator();
+                        ImGui.Separator();
+                    }
+
                     // Hide Chunk Display
                     _ = ImGui.Checkbox( "Maximize Input Area##SettingsUICheckbox", ref this._hideChunkDisplay );
                     ImGuiExt.SetHoveredTooltip( "When enabled, the text input area will expand to it's maximum size and scale with the Scratch Pad. This will disable the Chunk Display Area." );
@@ -999,16 +1005,20 @@ internal sealed partial class SettingsUI : Window
                 ImGui.Separator();
 
                 // Get half the width
-                float bar_width = ImGui.GetWindowContentRegionMax().X / 2.0f;
+
+                float bar_width = Wordsmith.Configuration.ShowAdvancedSettings ? ImGui.GetWindowContentRegionMax().X / 2.0f : ImGui.GetWindowContentRegionMax().X;
                 ImGui.SetNextItemWidth( bar_width - 170 * ImGuiHelpers.GlobalScale );
                 _ = ImGui.DragInt( "Maximum Suggestions", ref this._maxSuggestions, 0.1f, 0, 100 );
                 ImGuiExt.SetHoveredTooltip( "The number of spelling suggestions to return with spell checking. 0 is unlimited results." );
-                ImGui.SameLine();
 
-                ImGui.SetNextItemWidth( bar_width - 160 * ImGuiHelpers.GlobalScale );
-                _ = ImGui.DragFloat( "Auto-Spellcheck Delay (Seconds)", ref this._autospellcheckdelay, 0.1f, 0.1f, 100f );
-                ImGuiExt.SetHoveredTooltip( "The time in seconds to wait after typing stops to spell check." );
-                ImGui.Separator();
+                if( Wordsmith.Configuration.ShowAdvancedSettings )
+                {
+                    ImGui.SameLine();
+                    ImGui.SetNextItemWidth( bar_width - 160 * ImGuiHelpers.GlobalScale );
+                    _ = ImGui.DragFloat( "Auto-Spellcheck Delay (Seconds)", ref this._autospellcheckdelay, 0.1f, 0.1f, 100f );
+                    ImGuiExt.SetHoveredTooltip( "The time in seconds to wait after typing stops to spell check." );
+                    ImGui.Separator();
+                }
 
                 // Dictionaries
 
