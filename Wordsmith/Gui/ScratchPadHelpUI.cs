@@ -50,6 +50,12 @@ internal sealed class ScratchPadHelpUI : Window
                 ImGui.Spacing();
                 ImGui.TextWrapped("/Tell is a little different than other headers because it requires a target. Your target can be User Name@World or any usual placehold.\n\nMore information on Placeholders in the Placeholders tab.");
                 ImGui.EndTabItem();
+                ImGui.Separator();
+                ImGui.Spacing();
+                if (ImGui.Button("Github Wiki##ScratchPadWikiButton"))
+                {
+                    _ = System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo( "https://github.com/MythicPalette/Wordsmith-DalamudPlugin/wiki" ) { UseShellExecute = true } );
+                }
             }
 
             // Placeholders tab.
