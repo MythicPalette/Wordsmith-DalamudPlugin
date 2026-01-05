@@ -186,7 +186,9 @@ internal sealed class ScratchPadUI : Window
         {
             // Draw the form sections
             DrawHeader();
-            DrawChunkDisplay();
+            if ( !Wordsmith.Configuration.HideChunkDisplay )
+                DrawChunkDisplay();
+
             DrawMultilineTextInput();
             DrawWordReplacement();
             DrawEditFooter();
@@ -516,44 +518,33 @@ internal sealed class ScratchPadUI : Window
                 return;
             }
 
-            // We still perform this check on the property for ShowTextInChunks in case the user is using single line input.
-            // If ShowTextInChunks is enabled, we show the text in its chunked state.
-            if ( Wordsmith.Configuration.ShowTextInChunks )
+            float fSpaceWidth = ImGui.CalcTextSize( " " ).X;
+            for ( int i = 0; i < this._chunks.Count; ++i )
             {
-                float fSpaceWidth = ImGui.CalcTextSize( " " ).X;
-                for ( int i = 0; i < this._chunks.Count; ++i )
+                //// If not the first chunk, add a spacing.
+                if ( i > 0 )
+                    ImGui.Spacing();
+
+                // Put a separator at the top of the chunk.
+                ImGui.Separator();
+
+                if ( Wordsmith.Configuration.EnableTextHighlighting )
                 {
-                    //// If not the first chunk, add a spacing.
-                    if ( i > 0 )
-                        ImGui.Spacing();
-
-                    // Put a separator at the top of the chunk.
-                    ImGui.Separator();
-
-                    if ( Wordsmith.Configuration.EnableTextHighlighting )
+                    List<ChunkMarker> markers = [];
+                    foreach( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
                     {
-                        List<ChunkMarker> markers = [];
-                        foreach( ChunkMarker cm in Wordsmith.Configuration.ChunkMarkers )
-                        {
-                            if( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this.UseOOC, this._chunks.Count ) )
-                                markers.Add( cm );
-                        }
+                        if( cm.AppliesTo( i, this._chunks.Count ) && cm.Visible( this.UseOOC, this._chunks.Count ) )
+                            markers.Add( cm );
+                    }
 
-                        DrawChunkItem( this._chunks[i], this.Header.ChatType, this.UseOOC, i, this._chunks.Count, fSpaceWidth, markers, this._corrections );
-                    }
-                    else
-                    {
-                        // Set width and display the chunk.
-                        ImGui.SetNextItemWidth( -1 );
-                        ImGui.TextWrapped( CreateCompleteTextChunk( this._chunks[i], this.UseOOC, i, this._chunks.Count ) );
-                    }
+                    DrawChunkItem( this._chunks[i], this.Header.ChatType, this.UseOOC, i, this._chunks.Count, fSpaceWidth, markers, this._corrections );
                 }
-            }
-            // If it's disabled and the user has enabled UseOldSingleLineInput then we still need to draw a display for them.
-            else
-            {
-                ImGui.SetNextItemWidth( -1 );
-                ImGui.TextWrapped( $"{this.Header}{(this.UseOOC ? "(( " : "")}{this.ScratchString.Unwrap()}{(this.UseOOC ? " ))" : "")}" );
+                else
+                {
+                    // Set width and display the chunk.
+                    ImGui.SetNextItemWidth( -1 );
+                    ImGui.TextWrapped( CreateCompleteTextChunk( this._chunks[i], this.UseOOC, i, this._chunks.Count ) );
+                }
             }
 
             if ( this._textchanged )
@@ -688,7 +679,16 @@ internal sealed class ScratchPadUI : Window
     private unsafe void DrawMultilineTextInput()
     {
         // Default size of the text input.
-        float size_y = GetDefaultInputHeight();
+        float size_y = Wordsmith.Configuration.HideChunkDisplay ? -1 : GetDefaultInputHeight();
+
+        if ( Wordsmith.Configuration.HideChunkDisplay)
+        {
+            Vector2 vRegionMax = ImGui.GetContentRegionMax();
+            Vector2 vCursorPos = ImGui.GetCursorPos();
+            size_y = vRegionMax.Y - vCursorPos.Y;
+            if( size_y < 1 )
+                return;
+        }
 
         // The following two variables don't necessarily need
         // to be variables but they are helpful for debugging

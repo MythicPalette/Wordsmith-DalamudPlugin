@@ -32,6 +32,7 @@ internal sealed partial class SettingsUI : Window
     private bool _deleteClosed = Wordsmith.Configuration.DeleteClosedScratchPads;
     private bool _confirmDeleteClosed = Wordsmith.Configuration.ConfirmDeleteClosePads;
     private bool _ignoreHypen = Wordsmith.Configuration.IgnoreWordsEndingInHyphen;
+    private bool _hideChunkDisplay = Wordsmith.Configuration.HideChunkDisplay;
     private bool _showChunks = Wordsmith.Configuration.ShowTextInChunks;
     private bool _onSentence = Wordsmith.Configuration.SplitTextOnSentence;
     private bool _detectHeader = Wordsmith.Configuration.ParseHeaderInput;
@@ -200,14 +201,20 @@ internal sealed partial class SettingsUI : Window
                         ImGuiExt.SetHoveredTooltip( "When enabled a confirmation window will appear before deleting the Scratch Pad." );
 
                         _ = ImGui.TableNextColumn();
-                        // Show text in chunks.
-                        _ = ImGui.Checkbox( "Show Text In Chunks##SettingsUICheckbox", ref this._showChunks );
-                        ImGuiExt.SetHoveredTooltip( "When enabled it will display a large box with text above your entry form.\nThis box will show you how the text will be broken into chunks.\nIn single-line input mode this text will always show but without chunking." );
-
-                        _ = ImGui.TableNextColumn();
                         // Split on sentence
                         _ = ImGui.Checkbox( "Split Text On Sentence##SettingsUICheckbox", ref this._onSentence );
                         ImGuiExt.SetHoveredTooltip( "When enabled, Scratch Pad attempts to do chunk breaks at the end of sentences instead\nof between any words." );
+
+                        //_ = ImGui.TableNextColumn();
+                        //if( this._hideChunkDisplay )
+                        //    ImGui.BeginDisabled();
+
+                        // Show text in chunks.
+                        //_ = ImGui.Checkbox( "Show Text In Chunks##SettingsUICheckbox", ref this._showChunks );
+                        //ImGuiExt.SetHoveredTooltip( "When enabled, the Chunk Display Area will show you how the text will be broken into chunks with all of its formatting." );
+
+                        //if( this._hideChunkDisplay )
+                        //    ImGui.EndDisabled();
 
                         _ = ImGui.TableNextColumn();
                         _ = ImGui.Checkbox( "Parse Header From Text##SettingsUICheckbox", ref this._detectHeader );
@@ -626,9 +633,19 @@ internal sealed partial class SettingsUI : Window
                     ImGuiExt.SetHoveredTooltip( $"This is the buffer size for text input.\nThe higher this value is the more\nmemory consumed up to a maximum of\n{Wordsmith.MAX_SCRATCH_LENGTH / 1024}KB per Scratch Pad." );
 
                     ImGui.Separator();
+                    // Hide Chunk Display
+                    _ = ImGui.Checkbox( "Maximize Input Area##SettingsUICheckbox", ref this._hideChunkDisplay );
+                    ImGuiExt.SetHoveredTooltip( "When enabled, the text input area will expand to it's maximum size and scale with the Scratch Pad. This will disable the Chunk Display Area." );
+
+                    if( this._hideChunkDisplay )
+                        ImGui.BeginDisabled();
+
                     ImGui.SetNextItemWidth( dragWidth );
                     _ = ImGui.DragInt( "Input Height##ScratchPadInputLineHeight", ref this._scratchInputLineHeight, 0.1f, 3, 25 );
                     ImGuiExt.SetHoveredTooltip( "This is the maximum height of the text input (in lines).\nThe text input will grow up to the maximum size as\nlong as there is room for it to do so." );
+
+                    if( this._hideChunkDisplay )
+                        ImGui.EndDisabled();
 
                     ImGui.Unindent();
                     ImGui.Separator();
@@ -1394,6 +1411,7 @@ internal sealed partial class SettingsUI : Window
         Wordsmith.Configuration.DeleteClosedScratchPads = this._deleteClosed;
         Wordsmith.Configuration.ConfirmDeleteClosePads = this._confirmDeleteClosed;
         Wordsmith.Configuration.IgnoreWordsEndingInHyphen = this._ignoreHypen;
+        Wordsmith.Configuration.HideChunkDisplay = this._hideChunkDisplay;
         Wordsmith.Configuration.ShowTextInChunks = this._showChunks;
         Wordsmith.Configuration.SplitTextOnSentence = this._onSentence;
         Wordsmith.Configuration.ParseHeaderInput = this._detectHeader;

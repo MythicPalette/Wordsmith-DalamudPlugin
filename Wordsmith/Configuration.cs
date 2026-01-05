@@ -80,6 +80,11 @@ public sealed class Configuration : IPluginConfiguration
     public bool EnableTextHighlighting { get; set; } = true;
 
     /// <summary>
+    /// Hides the entire chunk display in Scratch pads.
+    /// </summary>
+    public bool HideChunkDisplay { get; set; } = false;
+
+    /// <summary>
     /// Toggles displaying text in copy chunks.
     /// </summary>
     public bool ShowTextInChunks { get; set; } = true;
