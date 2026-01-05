@@ -11,12 +11,14 @@ internal class MessageBox: Window
     [return: MarshalAs( UnmanagedType.Bool )]
     static extern bool GetWindowRect( HandleRef hWnd, out Rect lpRect );
 
-    internal enum DialogResult { None, Ok, Canceled, Closed, Aborted, Yes, No, NeverAgain }
-    [Flags]
+    internal enum DialogResult { None, Ok, Canceled, Closed, Aborted, Yes, No }
 
+    [Flags]
     internal enum ButtonStyle { None=0, Ok=1, Cancel=2, OkCancel=3, Abort=4, OkAbort=5, Yes=8, No=16, YesNo=24, NeverAgain=32 }
 
     internal DialogResult Result = DialogResult.None;
+    internal bool IsNeverAgainChecked = false;
+
     private string _message = string.Empty;
     private Action<MessageBox>? _callback = null;
     private ButtonStyle _buttonStyle = ButtonStyle.None;
@@ -73,13 +75,18 @@ internal class MessageBox: Window
     public override void Draw()
     {
         ImGui.Text( this._message );
+        if ( (this._buttonStyle & ButtonStyle.NeverAgain) != 0)
+        {
+            ImGui.Checkbox( "Never show again", ref this.IsNeverAgainChecked );
+        }
+
         int btn_count = 0;// this._buttonStyle == ButtonStyle.YesNo || this._buttonStyle == ButtonStyle.OkCancel ? 2 : 1;
         if ( (this._buttonStyle & ButtonStyle.Ok) != 0 )        btn_count++;
         if ( (this._buttonStyle & ButtonStyle.Cancel) != 0 )    btn_count++;
         if ( (this._buttonStyle & ButtonStyle.Abort) != 0 )     btn_count++;
         if ( (this._buttonStyle & ButtonStyle.Yes) != 0 )       btn_count++;
         if ( (this._buttonStyle & ButtonStyle.No) != 0 )        btn_count++;
-        if ( (this._buttonStyle & ButtonStyle.NeverAgain) != 0 )btn_count++;
+        //if ( (this._buttonStyle & ButtonStyle.NeverAgain) != 0 )btn_count++;
 
         // Do not let the code pass this point if there are no buttons.
         if ( btn_count == 0 )
@@ -150,16 +157,17 @@ internal class MessageBox: Window
             ImGui.SameLine();
         }
 
-        if ( (this._buttonStyle & ButtonStyle.NeverAgain) == ButtonStyle.NeverAgain )
-        {
-            if ( ImGui.Button( $"Never Show Again##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
-            {
-                this.Result = DialogResult.NeverAgain;
-                this._callback?.Invoke( this );
-                WordsmithUI.RemoveWindow( this );
-            }
-            ImGui.SameLine();
-        }
+        //if ( (this._buttonStyle & ButtonStyle.NeverAgain) == ButtonStyle.NeverAgain )
+        //{
+        //    if ( ImGui.Button( $"Never Show Again##MessageBoxButton", new( fButtonWidth, Wordsmith.BUTTON_Y.Scale() ) ) )
+        //    {
+        //        this.Result = DialogResult.NeverAgain;
+        //        this.IsNeverAgainChecked = true;
+        //        this._callback?.Invoke( this );
+        //        WordsmithUI.RemoveWindow( this );
+        //    }
+        //    ImGui.SameLine();
+        //}
 
         Center();
     }

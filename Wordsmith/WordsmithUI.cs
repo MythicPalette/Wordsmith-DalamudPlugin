@@ -277,7 +277,7 @@ internal static class WordsmithUI
                 ShowMessageBox( "Wordsmith Notice", Wordsmith.WebManifest.Notice[1] + "\n\nNotices are only displayed once. Hit ok to mark it as read.\nSelecting \"Never Show Again\" will disable ALL future notices.\nYou can change this any time in the settings.", MessageBox.ButtonStyle.Ok | ButtonStyle.NeverAgain, ( mb ) =>
                 {
                     // If they never want to see a notice again then immediately disable them.
-                    if ( mb.Result == DialogResult.NeverAgain )
+                    if ( mb.IsNeverAgainChecked )
                     {
                         Wordsmith.Configuration.NeverShowNotices = true;
                         Wordsmith.Configuration.Save( false );

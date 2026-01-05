@@ -148,12 +148,21 @@ internal sealed class ScratchPadUI : Window
         // ensure that the dialog is not already open.
         WordsmithUI.ShowMessageBox(
             "Confirm Delete",
-            $"Are you sure you want to delete Scratch Pad {this.ID}?\r\n(Cancel will close without deleting.)",
-            MessageBox.ButtonStyle.OkCancel,
+            $"Are you sure you want to delete Scratch Pad {this.ID}?\r\nSelecting \"No\" will hide the scratch pad and it can be reopened in settings\r\nor with the \"/scratchpad <id>\" command.\r\nIf you select \"Never Show Again\" this decision will become the default action for\r\nall scratch pads. You can change this later in settings.",
+            MessageBox.ButtonStyle.YesNo | MessageBox.ButtonStyle.NeverAgain,
             ( mb ) =>
             {
-                if( ( mb.Result & MessageBox.DialogResult.Ok ) == MessageBox.DialogResult.Ok )
+                bool yes = ( mb.Result & MessageBox.DialogResult.Yes ) == MessageBox.DialogResult.Yes;
+
+                if( yes )
                     WordsmithUI.RemoveWindow( this );
+
+                if (mb.IsNeverAgainChecked)
+                {
+                    Wordsmith.Configuration.DeleteClosedScratchPads = yes;
+                    Wordsmith.Configuration.ConfirmDeleteClosePads = false;
+                    Wordsmith.Configuration.Save();
+                }
             } );
     }
     #endregion
@@ -434,7 +443,7 @@ internal sealed class ScratchPadUI : Window
             // in a different way.
             _ = ImGui.TableNextColumn();
             ImGui.SetNextItemWidth( -1 );
-            _ = ImGui.Combo( $"##ScratchPad{this.ID}ChatTypeCombo", ref ctype, options, options.Length - 1 );
+            _ = ImGui.Combo( $"##ScratchPad{this.ID}ChatTypeCombo", ref ctype, options.Length > 1 ? options[..^1] : options );
             ImGuiExt.SetHoveredTooltip( "Select the chat header." );
 
             this._invalidateChunks |= (ChatType)ctype != this.Header.ChatType;
