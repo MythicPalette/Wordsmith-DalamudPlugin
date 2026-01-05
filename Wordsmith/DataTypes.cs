@@ -530,7 +530,7 @@ internal sealed class ThesaurusEntry : WordEntry
     /// <summary>
     /// A <see cref="IReadOnlyList{T}"/> of <see cref="string"/> containing all synonyms.
     /// </summary>
-    public IReadOnlyList<string> Synonyms => field;
+    public IReadOnlyList<string> Synonyms => _syn;
     private List<string> _syn = [];
 
     /// <summary>

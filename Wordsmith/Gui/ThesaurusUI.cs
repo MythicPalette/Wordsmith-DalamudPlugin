@@ -137,11 +137,15 @@ internal sealed class ThesaurusUI : Window, IDisposable
     /// <param name="entry">The data to draw.</param>
     private static void DrawEntry(ThesaurusEntry entry)
     {
+        if( entry == null )
+            return;
+
         if ( ImGui.CollapsingHeader($"{entry.Type.Trim().CaplitalizeFirst()} - {entry.Definition.Replace("{it}", "").Replace("{/it}", "")}##{entry.ID}"))
         {
             ImGui.Indent();
 
-            if (entry.Synonyms.Count > 0)
+
+            if (entry.Synonyms?.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -149,7 +153,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
                 ImGui.TextWrapped(entry.SynonymString);
             }
 
-            if (entry.Related.Count > 0)
+            if (entry.Related?.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -157,7 +161,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
                 ImGui.TextWrapped(entry.RelatedString);
             }
 
-            if (entry.NearAntonyms.Count > 0)
+            if (entry.NearAntonyms?.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();
@@ -165,7 +169,7 @@ internal sealed class ThesaurusUI : Window, IDisposable
                 ImGui.TextWrapped(entry.NearAntonymString);
             }
 
-            if (entry.Antonyms.Count > 0)
+            if (entry.Antonyms?.Count > 0)
             {
                 ImGui.Separator();
                 ImGui.Spacing();
