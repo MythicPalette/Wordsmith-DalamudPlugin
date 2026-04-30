@@ -16,7 +16,7 @@ internal static class WordsmithUI
     /// <summary>
     /// Returns a readonly list containing all currently registered windows.
     /// </summary>
-    internal static IReadOnlyList<Window> Windows => _windowSystem.Windows;
+    internal static IReadOnlyList<IWindow> Windows => _windowSystem.Windows;
     private static WindowSystem _windowSystem = new("Wordsmith");
 
     #region Window Queue
@@ -33,7 +33,7 @@ internal static class WordsmithUI
     /// requests until after the window lock has been disabled and then
     /// remove them.
     /// </summary>
-    private static List<Window> _removal_queue = new();
+    private static List<IWindow> _removal_queue = new();
 
     /// <summary>
     /// This queue is the windows that were requested to be added but
@@ -41,10 +41,10 @@ internal static class WordsmithUI
     /// requests until after the window lock has been disabled and then
     /// add them.
     /// </summary>
-    private static List<Window> _add_queue = new();
+    private static List<IWindow> _add_queue = new();
     #endregion
 
-    private static Window? GetWindowByName( string name ) => _windowSystem.Windows.FirstOrDefault( x => x.WindowName == name );
+    private static IWindow? GetWindowByName( string name ) => _windowSystem.Windows.FirstOrDefault( x => x.WindowName == name );
 
     /// <summary>
     /// Adds a window object to the <see cref="WindowSystem"/>.
@@ -52,14 +52,14 @@ internal static class WordsmithUI
     /// queue.
     /// </summary>
     /// <param name="w"></param>
-    internal static void AddWindow( Window? w )
+    internal static void AddWindow( IWindow? w )
     {
         // If the window is null then abort
         if ( w is null )
             return;
 
         // Check if the Window already exists.
-        Window? w_test = GetWindowByName(w.WindowName);
+        IWindow? w_test = GetWindowByName(w.WindowName);
 
         // If the window already exists in the Window System show the
         // existing Window and dispose of the given Window object.
@@ -125,7 +125,7 @@ internal static class WordsmithUI
                 idisp?.Dispose();
 
             // Remove the Window.
-            RemoveWindow( _windowSystem.Windows[0] );
+            RemoveWindow( (Window)_windowSystem.Windows[0] );
         }
     }
 
@@ -188,7 +188,7 @@ internal static class WordsmithUI
         }
     }
 
-    internal static Window? GetWindow( string name ) => GetWindowByName( name );
+    internal static IWindow? GetWindow( string name ) => GetWindowByName( name );
 
     /// <summary>
     /// Removes the window from the <see cref="WindowSystem"/> and <see cref="List{T}"/>.
@@ -325,7 +325,7 @@ internal static class WordsmithUI
     /// <returns><see langword="true"/> if a window was shown.</returns>
     internal static bool ShowWindow(string str)
     {
-        Window? w = Windows.FirstOrDefault(x => x.WindowName == str);
+        IWindow? w = Windows.FirstOrDefault(x => x.WindowName == str);
         if ( w is null )
             return false;
 
@@ -340,7 +340,7 @@ internal static class WordsmithUI
     /// <returns><see langword="true"/> if the window was shown.</returns>
     internal static bool ShowWindow(Type t)
     {
-        Window? w = Windows.FirstOrDefault(x => x.GetType() == t);
+        IWindow? w = Windows.FirstOrDefault(x => x.GetType() == t);
         if ( w == null )
             return false;
 
