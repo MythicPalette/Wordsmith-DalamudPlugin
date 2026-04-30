@@ -21,15 +21,10 @@
 
   <PropertyGroup>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <RepositoryUrl>https://github.com/MythicPalette/Wordsmith</RepositoryUrl>
-    <PackageReleaseNotes></PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
-  </ItemGroup>
-
-  <ItemGroup>
   </ItemGroup>
 
   <ItemGroup>
@@ -47,8 +42,14 @@
     </EmbeddedResource>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="DotNet.ReproducibleBuilds" Version="2.0.2" />
-  </ItemGroup>
+  <PropertyGroup>
+    <Author>Mythic Palette</Author>
+    <Name>Wordsmith</Name>
+    <Punchline>A roleplay thesaurus and scratch pad.</Punchline>
+    <Description>Wordsmith is a text editor with roleplayers in mind. It automatically breaks your text up for easy copy/paste, has advanced features, spellcheck, and even a thesaurus.</Description>
+    <RepoUrl>https://github.com/MythicPalette/Wordsmith-DalamudPlugin</RepoUrl>
+    <Tags>Social;Utility</Tags>
+    <AcceptsFeedback>true</AcceptsFeedback>
+  </PropertyGroup>
 
 </Project>
